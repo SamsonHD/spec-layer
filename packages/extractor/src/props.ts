@@ -28,7 +28,7 @@ export function extractProps(root: SerializedNode): ComponentProp[] {
   return Object.entries(root.propertyDefinitions ?? {}).map(([raw, def]) => ({
     name: cleanName(raw),
     kind: KIND_MAP[def.type],
-    options: def.variantOptions,
+    ...(def.variantOptions !== undefined ? { options: def.variantOptions } : {}),
     default: def.defaultValue,
   }));
 }
