@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { extractAnatomy } from '../src/anatomy';
 import button from './fixtures/button.json';
+import chip from './fixtures/chip.json';
 import type { SerializedNode } from '../src/tree';
 
 describe('extractAnatomy', () => {
@@ -17,5 +18,23 @@ describe('extractAnatomy', () => {
 
   it('excludes invisible layers', () => {
     expect(result.parts.find((p) => p.name === 'debug-overlay')).toBeUndefined();
+  });
+});
+
+describe('extractAnatomy — single-wrapper descent (bug 2)', () => {
+  const chipResult = extractAnatomy(chip as SerializedNode);
+
+  it('does not list the sole wrapper frame as a part', () => {
+    expect(chipResult.parts.map((p) => p.name)).not.toContain('Contents');
+  });
+
+  it('lists the parts inside the wrapper frame', () => {
+    const names = chipResult.parts.map((p) => p.name);
+    expect(names).toContain('icon');
+    expect(names).toContain('Label');
+  });
+
+  it('collects related atoms from inside the wrapper', () => {
+    expect(chipResult.related).toEqual(['Icon']);
   });
 });

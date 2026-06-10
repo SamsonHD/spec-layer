@@ -40,6 +40,7 @@ export function extractVariants(root: SerializedNode): VariantAxis[] {
 }
 
 export function extractStates(root: SerializedNode): string[] {
-  const axis = extractVariants(root).find((v) => v.prop.toLowerCase() === 'state');
+  const normalized = (s: string) => s.trim().toLowerCase();
+  const axis = extractVariants(root).find((v) => normalized(v.prop) === 'state' || normalized(v.prop) === 'states');
   return axis?.values.length ? axis.values : ['Default'];
 }

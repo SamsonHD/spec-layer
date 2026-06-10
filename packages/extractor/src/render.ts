@@ -3,7 +3,11 @@ import { contentHash } from './hash';
 import { serializeFrontmatter, type SpecFrontmatter } from '@spec-layer/format';
 import type { ProseDrafts } from './prose/prompt';
 
-const slug = (name: string) => name.toLowerCase().replace(/\s+/g, '-');
+const slug = (name: string) =>
+  name.toLowerCase()
+    .replace(/[/\\\s,=]+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-{2,}/g, '-');
 
 const DRAFT = `> ⚠️ Draft — AI-suggested, not yet approved.\n`;
 

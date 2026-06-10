@@ -11,8 +11,15 @@ function walk(node: SerializedNode, visit: (n: SerializedNode) => void): void {
 
 export function extractTokens(root: SerializedNode): TokenBinding[] {
   const out: TokenBinding[] = [];
+  const seen = new Set<string>();
   walk(defaultVariant(root), (n) => {
-    for (const b of n.bindings ?? []) out.push({ part: n.name, property: b.property, token: b.token });
+    for (const b of n.bindings ?? []) {
+      const key = `${n.name}\0${b.property}\0${b.token}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push({ part: n.name, property: b.property, token: b.token });
+      }
+    }
   });
   return out;
 }

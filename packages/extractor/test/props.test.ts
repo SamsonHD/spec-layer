@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { extractProps, extractVariants, extractStates } from '../src/props';
 import button from './fixtures/button.json';
+import chip from './fixtures/chip.json';
 import type { SerializedNode } from '../src/tree';
 
 const root = button as SerializedNode;
@@ -27,5 +28,9 @@ describe('props/variants/states', () => {
   it('falls back to ["Default"] when no state axis exists', () => {
     const noState: SerializedNode = { ...root, propertyDefinitions: { Style: root.propertyDefinitions!['Style'] } };
     expect(extractStates(noState)).toEqual(['Default']);
+  });
+
+  it('recognises plural axis name "States" (bug 1)', () => {
+    expect(extractStates(chip as SerializedNode)).toEqual(['Default', 'Hover', 'Focus', 'Press']);
   });
 });

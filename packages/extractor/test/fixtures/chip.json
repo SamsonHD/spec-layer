@@ -1,0 +1,71 @@
+{
+  "id": "10:1",
+  "name": "ChipAction",
+  "type": "COMPONENT_SET",
+  "visible": true,
+  "key": "m3-chip",
+  "propertyDefinitions": {
+    "Style": {
+      "type": "VARIANT",
+      "defaultValue": "Default",
+      "variantOptions": ["Default", "Color Background", "Status"]
+    },
+    "States": {
+      "type": "VARIANT",
+      "defaultValue": "Default",
+      "variantOptions": ["Default", "Hover", "Focus", "Press"]
+    },
+    "Label#1:2": {
+      "type": "TEXT",
+      "defaultValue": "Label"
+    }
+  },
+  "children": [
+    {
+      "id": "10:2",
+      "name": "Style=Default, States=Default",
+      "type": "COMPONENT",
+      "visible": true,
+      "children": [
+        {
+          "id": "10:3",
+          "name": "Contents",
+          "type": "FRAME",
+          "visible": true,
+          "children": [
+            {
+              "id": "10:4",
+              "name": "icon",
+              "type": "INSTANCE",
+              "visible": true,
+              "mainComponent": { "name": "Icon", "key": "m3-icon" },
+              "bindings": [
+                { "property": "fills", "token": "Text Color/Body/Primary" }
+              ]
+            },
+            {
+              "id": "10:5",
+              "name": "Label",
+              "type": "TEXT",
+              "visible": true,
+              "bindings": [
+                { "property": "fills", "token": "Text Color/Body/Primary" },
+                { "property": "fontSize", "token": "font-size/fs-100" }
+              ]
+            },
+            {
+              "id": "10:6",
+              "name": "icon",
+              "type": "INSTANCE",
+              "visible": true,
+              "mainComponent": { "name": "Icon", "key": "m3-icon" },
+              "bindings": [
+                { "property": "fills", "token": "Text Color/Body/Primary" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

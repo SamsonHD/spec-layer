@@ -6,6 +6,7 @@ import { parseFrontmatter } from '@spec-layer/format';
 import button from './fixtures/button.json';
 import type { SerializedNode } from '../src/tree';
 import type { ProseDrafts } from '../src/prose/prompt';
+import type { IntermediateSpec } from '../src/extract';
 
 describe('renderSpec', () => {
   const md = renderSpec(extract(button as SerializedNode, { figmaFile: 'FILE1' }), {
@@ -29,6 +30,16 @@ describe('renderSpec', () => {
       const idx = md.indexOf(section);
       expect(md.slice(idx, idx + 200)).toContain('> ⚠️ Draft — AI-suggested, not yet approved.');
     }
+  });
+
+  it('slug sanitizes special chars in related-atoms links (bug 3)', () => {
+    const spec: IntermediateSpec = {
+      name: 'Chip', figmaKey: 'k', figmaFile: 'F', figmaNode: 'n',
+      anatomy: [], props: [], variants: [], states: ['Default'],
+      tokens: [], related: ['Padding=Square, Scale=1x'], gaps: [],
+    };
+    const md = renderSpec(spec, { prose: null, extractedAt: '2026-06-10T00:00:00.000Z' });
+    expect(md).toContain('- [Padding=Square, Scale=1x](./padding-square-scale-1x.md)');
   });
 
   it('injects prose drafts into judgment sections (still marked draft)', () => {
