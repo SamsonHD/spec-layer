@@ -4,3 +4,4 @@ export * from './props';
 export * from './tokens';
 export * from './extract';
 export * from './hash';
+export * from './render';
