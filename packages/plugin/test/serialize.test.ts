@@ -44,6 +44,60 @@ describe('serializeNode', () => {
     expect(out.bindings).toContainEqual({ property: 'fills', token: 'color/primary' });
     expect(out.hasUnboundPaint).toBeFalsy();
   });
+
+  it('resolves textStyleId to a typography binding', async () => {
+    const r = { ...resolver, styleName: async () => 'md.sys.typescale.label-large' };
+    const text = { id: '3:1', name: 'label', type: 'TEXT', visible: true, textStyleId: 'S:txt,1:1' };
+    const out = await serializeNode(text as never, r);
+    expect(out.bindings).toContainEqual({ property: 'typography', token: 'md.sys.typescale.label-large' });
+  });
+
+  it('resolves effectStyleId to an effects binding', async () => {
+    const r = { ...resolver, styleName: async () => 'md.sys.elevation.level1' };
+    const card = { id: '3:2', name: 'card', type: 'FRAME', visible: true, effectStyleId: 'S:fx,1:1' };
+    const out = await serializeNode(card as never, r);
+    expect(out.bindings).toContainEqual({ property: 'effects', token: 'md.sys.elevation.level1' });
+  });
+
+  it('resolves ALL entries of array-valued bound variables', async () => {
+    const r = {
+      ...resolver,
+      variableName: async (id: string) =>
+        (({ 'V:1': 'color/overlay', 'V:2': 'color/base' } as Record<string, string>)[id] ?? null),
+    };
+    const multi = { ...mockRect, boundVariables: { fills: [{ id: 'V:1' }, { id: 'V:2' }] } };
+    const out = await serializeNode(multi as never, r);
+    expect(out.bindings).toContainEqual({ property: 'fills', token: 'color/overlay' });
+    expect(out.bindings).toContainEqual({ property: 'fills', token: 'color/base' });
+  });
+
+  it('captures auto-layout and corner radius values', async () => {
+    const frame = {
+      id: '3:3', name: 'container', type: 'FRAME', visible: true,
+      layoutMode: 'HORIZONTAL', paddingTop: 10, paddingRight: 24, paddingBottom: 10, paddingLeft: 24,
+      itemSpacing: 8, cornerRadius: 20,
+    };
+    const out = await serializeNode(frame as never, resolver);
+    expect(out.layout).toEqual({
+      mode: 'HORIZONTAL', paddingTop: 10, paddingRight: 24, paddingBottom: 10, paddingLeft: 24,
+      itemSpacing: 8, cornerRadius: 20,
+    });
+  });
+
+  it('omits layout entirely for non-auto-layout nodes with no radius', async () => {
+    const out = await serializeNode(mockRect as never, resolver);
+    expect(out.layout).toBeUndefined();
+  });
+
+  it('skips zero-valued layout fields and mixed (symbol) cornerRadius', async () => {
+    const frame = {
+      id: '3:4', name: 'row', type: 'FRAME', visible: true,
+      layoutMode: 'VERTICAL', paddingTop: 0, paddingRight: 0, paddingBottom: 0, paddingLeft: 0,
+      itemSpacing: 12, cornerRadius: Symbol('figma.mixed'),
+    };
+    const out = await serializeNode(frame as never, resolver);
+    expect(out.layout).toEqual({ mode: 'VERTICAL', itemSpacing: 12 });
+  });
 });
 
 describe('mainComponentRef', () => {

@@ -1,4 +1,4 @@
-import type { SerializedNode, PropertyDefinition, TokenRef } from '@spec-layer/extractor';
+import type { SerializedNode, PropertyDefinition, TokenRef, LayoutInfo } from '@spec-layer/extractor';
 
 /**
  * Resolve the reference name/key for an instance's main component. When the main
@@ -33,6 +33,15 @@ interface RawNode {
   fills?: Array<{ type: string }>;
   fillStyleId?: string;
   strokeStyleId?: string;
+  textStyleId?: string | symbol;
+  effectStyleId?: string;
+  layoutMode?: string;
+  paddingTop?: number;
+  paddingRight?: number;
+  paddingBottom?: number;
+  paddingLeft?: number;
+  itemSpacing?: number;
+  cornerRadius?: number | symbol;
   boundVariables?: Record<string, BoundVarValue>;
   componentPropertyDefinitions?: Record<string, {
     type: string;
@@ -48,13 +57,15 @@ export async function serializeNode(node: RawNode, resolver: NodeResolver): Prom
   // --- Resolve boundVariables ---
   const bv = node.boundVariables ?? {};
   for (const [property, value] of Object.entries(bv)) {
-    // Array-valued (fills, strokes) — resolve first entry only.
-    const entry: RawBoundVar | null = Array.isArray(value)
-      ? (value[0] ?? null)
-      : (value as RawBoundVar);
-    if (!entry?.id) continue;
-    const token = await resolver.variableName(entry.id);
-    if (token) bindings.push({ property, token });
+    // Resolve ALL entries of array-valued variables.
+    const entries: RawBoundVar[] = Array.isArray(value) ? value : [value];
+    for (const entry of entries) {
+      if (!entry?.id) continue;
+      const token = await resolver.variableName(entry.id);
+      if (token && !bindings.some((b) => b.property === property && b.token === token)) {
+        bindings.push({ property, token });
+      }
+    }
   }
 
   // --- Resolve style ids ---
@@ -65,6 +76,14 @@ export async function serializeNode(node: RawNode, resolver: NodeResolver): Prom
   if (node.strokeStyleId) {
     const token = await resolver.styleName(node.strokeStyleId);
     if (token) bindings.push({ property: 'strokes', token });
+  }
+  if (typeof node.textStyleId === 'string' && node.textStyleId) {
+    const token = await resolver.styleName(node.textStyleId);
+    if (token) bindings.push({ property: 'typography', token });
+  }
+  if (node.effectStyleId) {
+    const token = await resolver.styleName(node.effectStyleId);
+    if (token) bindings.push({ property: 'effects', token });
   }
 
   // --- hasUnboundPaint ---
@@ -98,6 +117,20 @@ export async function serializeNode(node: RawNode, resolver: NodeResolver): Prom
     if (mc) mainComponent = mc;
   }
 
+  // --- layout (auto-layout values + corner radius; only positive numbers) ---
+  let layout: LayoutInfo | undefined;
+  if (node.layoutMode === 'HORIZONTAL' || node.layoutMode === 'VERTICAL') {
+    layout = { mode: node.layoutMode };
+    const fields = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'itemSpacing'] as const;
+    for (const k of fields) {
+      const v = node[k];
+      if (typeof v === 'number' && v > 0) layout[k] = v;
+    }
+  }
+  if (typeof node.cornerRadius === 'number' && node.cornerRadius > 0) {
+    layout = { ...(layout ?? {}), cornerRadius: node.cornerRadius };
+  }
+
   // --- Recurse children ---
   const children = node.children
     ? await Promise.all(node.children.map(c => serializeNode(c, resolver)))
@@ -113,6 +146,7 @@ export async function serializeNode(node: RawNode, resolver: NodeResolver): Prom
     ...(bindings.length > 0 ? { bindings } : {}),
     ...(hasUnboundPaint ? { hasUnboundPaint } : {}),
     ...(mainComponent ? { mainComponent } : {}),
+    ...(layout ? { layout } : {}),
     ...(children ? { children } : {}),
   };
 
