@@ -5,3 +5,5 @@ export * from './tokens';
 export * from './extract';
 export * from './hash';
 export * from './render';
+export * from './prose/prompt';
+export * from './prose/client';

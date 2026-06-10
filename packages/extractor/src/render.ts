@@ -1,15 +1,9 @@
 import type { IntermediateSpec } from './extract';
 import { contentHash } from './hash';
 import { serializeFrontmatter, type SpecFrontmatter } from '@spec-layer/format';
+import type { ProseDrafts } from './prose/prompt';
 
 const slug = (name: string) => name.toLowerCase().replace(/\s+/g, '-');
-
-export interface ProseDrafts {
-  definition: string;
-  accessibility: string;
-  dos: string[];
-  donts: string[];
-}
 
 const DRAFT = `> ⚠️ Draft — AI-suggested, not yet approved.\n`;
 
