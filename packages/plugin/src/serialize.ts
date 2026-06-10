@@ -1,5 +1,19 @@
 import type { SerializedNode, PropertyDefinition, TokenRef } from '@spec-layer/extractor';
 
+/**
+ * Resolve the reference name/key for an instance's main component. When the main
+ * component is a variant inside a component set, the set carries the real name/key,
+ * so prefer it over the variant's combo name (e.g. "Size=Large, State=Default").
+ */
+export function mainComponentRef(
+  mc: { name: string; key: string; parent?: { type: string; name: string; key: string } | null },
+): { name: string; key: string } {
+  if (mc.parent && mc.parent.type === 'COMPONENT_SET') {
+    return { name: mc.parent.name, key: mc.parent.key };
+  }
+  return { name: mc.name, key: mc.key };
+}
+
 /** Injected resolver — keeps serialize.ts free of Figma globals so it runs under vitest. */
 export interface NodeResolver {
   variableName(id: string): Promise<string | null>;
