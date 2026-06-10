@@ -28,13 +28,44 @@ describe('extractAnatomy — single-wrapper descent (bug 2)', () => {
     expect(chipResult.parts.map((p) => p.name)).not.toContain('Contents');
   });
 
-  it('lists the parts inside the wrapper frame', () => {
-    const names = chipResult.parts.map((p) => p.name);
-    expect(names).toContain('icon');
-    expect(names).toContain('Label');
+  // M-1: assert the FULL parts list so duplicate-named parts are never collapsed
+  it('lists the full parts inside the wrapper frame (including duplicate icon entries)', () => {
+    expect(chipResult.parts.map((p) => p.name)).toEqual(['icon', 'Label', 'icon']);
   });
 
   it('collects related atoms from inside the wrapper', () => {
     expect(chipResult.related).toEqual(['Icon']);
+  });
+});
+
+describe('extractAnatomy — empty-wrapper guard (I-1)', () => {
+  // A COMPONENT_SET whose default variant's sole child is an empty FRAME.
+  // Expected: anatomy lists the wrapper itself rather than returning an empty array.
+  const emptyWrapperNode: SerializedNode = {
+    id: '20:1',
+    name: 'EmptyComp',
+    type: 'COMPONENT_SET',
+    visible: true,
+    children: [
+      {
+        id: '20:2',
+        name: 'State=Default',
+        type: 'COMPONENT',
+        visible: true,
+        children: [
+          {
+            id: '20:3',
+            name: 'EmptyWrapper',
+            type: 'FRAME',
+            visible: true,
+            children: [],
+          },
+        ],
+      },
+    ],
+  };
+
+  it('falls back to the wrapper itself when it has no visible children', () => {
+    expect(extractAnatomy(emptyWrapperNode).parts.map((p) => p.name)).toEqual(['EmptyWrapper']);
   });
 });

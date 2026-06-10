@@ -6,7 +6,7 @@ import type { SerializedNode, PropertyDefinition, TokenRef } from '@spec-layer/e
  * so prefer it over the variant's combo name (e.g. "Size=Large, State=Default").
  */
 export function mainComponentRef(
-  mc: { name: string; key: string; parent?: { type: string; name: string; key: string } | null },
+  mc: { name: string; key: string; parent: { type: string; name: string; key: string } | null },
 ): { name: string; key: string } {
   if (mc.parent && mc.parent.type === 'COMPONENT_SET') {
     return { name: mc.parent.name, key: mc.parent.key };

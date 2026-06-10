@@ -7,7 +7,8 @@ const slug = (name: string) =>
   name.toLowerCase()
     .replace(/[/\\\s,=]+/g, '-')
     .replace(/[^a-z0-9-]/g, '')
-    .replace(/-{2,}/g, '-');
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+|-+$/g, '');
 
 const DRAFT = `> ⚠️ Draft — AI-suggested, not yet approved.\n`;
 

@@ -26,8 +26,15 @@ export function extractAnatomy(root: SerializedNode): AnatomyResult {
 
   // Resolve which children to list as anatomy parts, descending through any
   // sole FRAME/GROUP container so we surface real parts instead of a wrapper.
+  // Guard: only descend when the sole FRAME/GROUP child itself has at least one
+  // visible child — otherwise we would surface an empty parts list instead of
+  // the wrapper, which is a silent failure.
   let children = (defaultVariant(root).children ?? []).filter((c) => c.visible);
-  while (children.length === 1 && (children[0].type === 'FRAME' || children[0].type === 'GROUP')) {
+  while (
+    children.length === 1 &&
+    (children[0].type === 'FRAME' || children[0].type === 'GROUP') &&
+    (children[0].children ?? []).filter((c) => c.visible).length > 0
+  ) {
     children = (children[0].children ?? []).filter((c) => c.visible);
   }
 
