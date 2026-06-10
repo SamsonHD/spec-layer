@@ -1,0 +1,106 @@
+import type { SerializedNode, PropertyDefinition, TokenRef } from '@spec-layer/extractor';
+
+/** Injected resolver — keeps serialize.ts free of Figma globals so it runs under vitest. */
+export interface NodeResolver {
+  variableName(id: string): Promise<string | null>;
+  styleName(id: string): Promise<string | null>;
+  mainComponent(node: unknown): Promise<{ name: string; key: string } | null>;
+}
+
+// Structurally-typed shapes for what we read off the raw Figma node.
+interface RawBoundVar { id: string }
+type BoundVarValue = RawBoundVar | RawBoundVar[];
+interface RawNode {
+  id: string;
+  name: string;
+  type: string;
+  visible?: boolean;
+  key?: string;
+  fills?: Array<{ type: string }>;
+  fillStyleId?: string;
+  strokeStyleId?: string;
+  boundVariables?: Record<string, BoundVarValue>;
+  componentPropertyDefinitions?: Record<string, {
+    type: string;
+    defaultValue?: string | boolean;
+    variantOptions?: string[];
+  }>;
+  children?: RawNode[];
+}
+
+export async function serializeNode(node: RawNode, resolver: NodeResolver): Promise<SerializedNode> {
+  const bindings: TokenRef[] = [];
+
+  // --- Resolve boundVariables ---
+  const bv = node.boundVariables ?? {};
+  for (const [property, value] of Object.entries(bv)) {
+    // Array-valued (fills, strokes) — resolve first entry only.
+    const entry: RawBoundVar | null = Array.isArray(value)
+      ? (value[0] ?? null)
+      : (value as RawBoundVar);
+    if (!entry?.id) continue;
+    const token = await resolver.variableName(entry.id);
+    if (token) bindings.push({ property, token });
+  }
+
+  // --- Resolve style ids ---
+  if (node.fillStyleId) {
+    const token = await resolver.styleName(node.fillStyleId);
+    if (token) bindings.push({ property: 'fills', token });
+  }
+  if (node.strokeStyleId) {
+    const token = await resolver.styleName(node.strokeStyleId);
+    if (token) bindings.push({ property: 'strokes', token });
+  }
+
+  // --- hasUnboundPaint ---
+  const hasSolid = Array.isArray(node.fills) && node.fills.some(f => f.type === 'SOLID');
+  const fillsBound = 'fills' in bv;
+  const hasStyleId = Boolean(node.fillStyleId);
+  const hasUnboundPaint = hasSolid && !fillsBound && !hasStyleId ? true : undefined;
+
+  // --- componentPropertyDefinitions ---
+  let propertyDefinitions: Record<string, PropertyDefinition> | undefined;
+  try {
+    if (node.componentPropertyDefinitions) {
+      const defs: Record<string, PropertyDefinition> = {};
+      for (const [k, v] of Object.entries(node.componentPropertyDefinitions)) {
+        defs[k] = {
+          type: v.type as PropertyDefinition['type'],
+          ...(v.defaultValue !== undefined ? { defaultValue: v.defaultValue } : {}),
+          ...(v.variantOptions ? { variantOptions: v.variantOptions } : {}),
+        };
+      }
+      if (Object.keys(defs).length > 0) propertyDefinitions = defs;
+    }
+  } catch {
+    // Figma throws on variant children — silently skip.
+  }
+
+  // --- mainComponent (INSTANCE nodes) ---
+  let mainComponent: { name: string; key: string } | undefined;
+  if (node.type === 'INSTANCE') {
+    const mc = await resolver.mainComponent(node);
+    if (mc) mainComponent = mc;
+  }
+
+  // --- Recurse children ---
+  const children = node.children
+    ? await Promise.all(node.children.map(c => serializeNode(c, resolver)))
+    : undefined;
+
+  const result: SerializedNode = {
+    id: node.id,
+    name: node.name,
+    type: node.type,
+    visible: node.visible ?? true,
+    ...(node.key !== undefined ? { key: node.key } : {}),
+    ...(propertyDefinitions ? { propertyDefinitions } : {}),
+    ...(bindings.length > 0 ? { bindings } : {}),
+    ...(hasUnboundPaint ? { hasUnboundPaint } : {}),
+    ...(mainComponent ? { mainComponent } : {}),
+    ...(children ? { children } : {}),
+  };
+
+  return result;
+}

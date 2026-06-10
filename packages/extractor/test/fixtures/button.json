@@ -1,0 +1,104 @@
+{
+  "id": "1:100",
+  "name": "Button",
+  "type": "COMPONENT_SET",
+  "visible": true,
+  "key": "m3-button",
+  "propertyDefinitions": {
+    "Style": {
+      "type": "VARIANT",
+      "defaultValue": "Filled",
+      "variantOptions": ["Filled", "Outlined"]
+    },
+    "State": {
+      "type": "VARIANT",
+      "defaultValue": "Enabled",
+      "variantOptions": ["Enabled", "Hovered", "Disabled"]
+    },
+    "Show icon#1:5": {
+      "type": "BOOLEAN",
+      "defaultValue": false
+    },
+    "Label#1:6": {
+      "type": "TEXT",
+      "defaultValue": "Button"
+    }
+  },
+  "children": [
+    {
+      "id": "1:101",
+      "name": "Style=Filled, State=Enabled",
+      "type": "COMPONENT",
+      "visible": true,
+      "children": [
+        {
+          "id": "1:102",
+          "name": "container",
+          "type": "FRAME",
+          "visible": true,
+          "bindings": [
+            { "property": "fills", "token": "md.sys.color.primary" },
+            { "property": "cornerRadius", "token": "md.sys.shape.corner.full" }
+          ]
+        },
+        {
+          "id": "1:103",
+          "name": "label",
+          "type": "TEXT",
+          "visible": true,
+          "bindings": [
+            { "property": "fills", "token": "md.sys.color.on-primary" }
+          ]
+        },
+        {
+          "id": "1:104",
+          "name": "icon",
+          "type": "INSTANCE",
+          "visible": true,
+          "mainComponent": { "name": "Icon", "key": "m3-icon" }
+        },
+        {
+          "id": "1:105",
+          "name": "debug-overlay",
+          "type": "RECTANGLE",
+          "visible": false,
+          "hasUnboundPaint": true
+        }
+      ]
+    },
+    {
+      "id": "1:106",
+      "name": "Style=Outlined, State=Enabled",
+      "type": "COMPONENT",
+      "visible": true,
+      "children": [
+        {
+          "id": "1:107",
+          "name": "container",
+          "type": "FRAME",
+          "visible": true,
+          "bindings": [
+            { "property": "strokes", "token": "md.sys.color.outline" },
+            { "property": "cornerRadius", "token": "md.sys.shape.corner.full" }
+          ]
+        },
+        {
+          "id": "1:108",
+          "name": "label",
+          "type": "TEXT",
+          "visible": true,
+          "bindings": [
+            { "property": "fills", "token": "md.sys.color.primary" }
+          ]
+        },
+        {
+          "id": "1:109",
+          "name": "icon",
+          "type": "INSTANCE",
+          "visible": true,
+          "mainComponent": { "name": "Icon", "key": "m3-icon" }
+        }
+      ]
+    }
+  ]
+}
