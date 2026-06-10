@@ -56,6 +56,20 @@ export function buildProsePrompt(spec: IntermediateSpec): string {
     for (const t of spec.tokens) {
       lines.push(`  ${t.part}.${t.property} → ${t.token}`);
     }
+    if (spec.tokens.some((t) => t.property.includes('('))) {
+      lines.push(
+        '  Note: properties qualified like "fills (State=Hovered)" show what changes in that variant relative to the default.',
+      );
+    }
+  }
+
+  // Layout
+  if (spec.layout.length) {
+    lines.push('');
+    lines.push('Layout (default variant):');
+    for (const l of spec.layout) {
+      lines.push(`  ${l.part}: ${l.summary}`);
+    }
   }
 
   // Related
