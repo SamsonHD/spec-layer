@@ -34,7 +34,7 @@ interface RawNode {
   fillStyleId?: string;
   strokeStyleId?: string;
   textStyleId?: string | symbol;
-  effectStyleId?: string;
+  effectStyleId?: string | symbol;
   layoutMode?: string;
   paddingTop?: number;
   paddingRight?: number;
@@ -81,7 +81,7 @@ export async function serializeNode(node: RawNode, resolver: NodeResolver): Prom
     const token = await resolver.styleName(node.textStyleId);
     if (token) bindings.push({ property: 'typography', token });
   }
-  if (node.effectStyleId) {
+  if (typeof node.effectStyleId === 'string' && node.effectStyleId) {
     const token = await resolver.styleName(node.effectStyleId);
     if (token) bindings.push({ property: 'effects', token });
   }

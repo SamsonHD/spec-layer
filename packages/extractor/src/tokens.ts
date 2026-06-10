@@ -48,10 +48,16 @@ export function extractTokens(root: SerializedNode): TokenBinding[] {
 
   // Default variant: unqualified rows, and the baseline for diffing.
   const def = defaultVariant(root);
-  const baseline = new Map<string, string>(); // "part\0property" -> token
+  const baseline = new Map<string, Set<string>>(); // "part\0property" -> tokens
   walk(def, (n) => {
     for (const b of n.bindings ?? []) {
-      baseline.set(`${n.name}\0${b.property}`, b.token);
+      const key = `${n.name}\0${b.property}`;
+      let tokens = baseline.get(key);
+      if (!tokens) {
+        tokens = new Set();
+        baseline.set(key, tokens);
+      }
+      tokens.add(b.token);
       push(n.name, b.property, b.token);
     }
   });
@@ -63,7 +69,7 @@ export function extractTokens(root: SerializedNode): TokenBinding[] {
     const delta = variantDelta(def.name, variant.name);
     walk(variant, (n) => {
       for (const b of n.bindings ?? []) {
-        if (baseline.get(`${n.name}\0${b.property}`) === b.token) continue;
+        if (baseline.get(`${n.name}\0${b.property}`)?.has(b.token)) continue;
         push(n.name, `${b.property} (${delta})`, b.token);
       }
     });

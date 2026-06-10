@@ -98,6 +98,13 @@ describe('serializeNode', () => {
     const out = await serializeNode(frame as never, resolver);
     expect(out.layout).toEqual({ mode: 'VERTICAL', itemSpacing: 12 });
   });
+
+  it('skips mixed (symbol) effectStyleId without calling the resolver', async () => {
+    const r = { ...resolver, styleName: async () => 'should-not-appear' };
+    const mixed = { id: '3:5', name: 'card', type: 'FRAME', visible: true, effectStyleId: Symbol('figma.mixed') };
+    const out = await serializeNode(mixed as never, r);
+    expect(out.bindings ?? []).not.toContainEqual(expect.objectContaining({ property: 'effects' }));
+  });
 });
 
 describe('mainComponentRef', () => {

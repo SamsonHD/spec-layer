@@ -77,4 +77,30 @@ describe('tokens', () => {
     // cornerRadius IS bound on container → must NOT be flagged
     expect(gaps).not.toContainEqual(expect.objectContaining({ issue: expect.stringContaining('cornerRadius') }));
   });
+
+  it('keeps all default-variant tokens in the baseline (multi-token property, no false diffs)', () => {
+    const multi: SerializedNode = {
+      id: '1', name: 'Set', type: 'COMPONENT_SET', visible: true,
+      children: [
+        { id: '2', name: 'A=One', type: 'COMPONENT', visible: true, children: [
+          { id: '3', name: 'container', type: 'FRAME', visible: true,
+            bindings: [
+              { property: 'fills', token: 'color/overlay' },
+              { property: 'fills', token: 'color/base' },
+            ] },
+        ] },
+        { id: '4', name: 'A=Two', type: 'COMPONENT', visible: true, children: [
+          { id: '5', name: 'container', type: 'FRAME', visible: true,
+            bindings: [{ property: 'fills', token: 'color/overlay' }] },
+        ] },
+      ],
+    };
+    const tokens = extractTokens(multi);
+    // color/overlay exists on the default → must NOT reappear as a qualified diff row
+    expect(tokens).not.toContainEqual(
+      expect.objectContaining({ property: 'fills (A=Two)' }),
+    );
+    expect(tokens).toContainEqual({ part: 'container', property: 'fills', token: 'color/overlay' });
+    expect(tokens).toContainEqual({ part: 'container', property: 'fills', token: 'color/base' });
+  });
 });
