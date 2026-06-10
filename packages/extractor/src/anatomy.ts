@@ -8,6 +8,13 @@ export function defaultVariant(root: SerializedNode): SerializedNode {
   return root.type === 'COMPONENT_SET' && root.children?.length ? root.children[0] : root;
 }
 
+/**
+ * Anatomy is intentionally a SHALLOW walk: it lists the component's primary
+ * named parts (the direct, visible children of the default variant), matching
+ * how design systems document anatomy. This differs by design from token/gap
+ * extraction (tokens.ts), which walks the full tree because bindings live on
+ * nested layers. The two depths are not meant to align.
+ */
 export function extractAnatomy(root: SerializedNode): AnatomyResult {
   const parts: AnatomyPart[] = [];
   const related = new Set<string>();
