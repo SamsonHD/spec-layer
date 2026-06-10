@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { serializeNode } from '../src/serialize';
+import { serializeNode, mainComponentRef } from '../src/serialize';
 
 const resolver = {
   variableName: async (id: string) => (({ 'VariableID:1': 'md.sys.color.primary' } as Record<string,string>)[id] ?? null),
@@ -43,5 +43,27 @@ describe('serializeNode', () => {
     const out = await serializeNode(styled as never, styledResolver);
     expect(out.bindings).toContainEqual({ property: 'fills', token: 'color/primary' });
     expect(out.hasUnboundPaint).toBeFalsy();
+  });
+});
+
+describe('mainComponentRef', () => {
+  it('prefers the parent component set name/key for a variant main component', () => {
+    const ref = mainComponentRef({
+      name: 'Size=Large, State=Default', key: 'variantkey',
+      parent: { type: 'COMPONENT_SET', name: 'Button', key: 'setkey' },
+    });
+    expect(ref).toEqual({ name: 'Button', key: 'setkey' });
+  });
+
+  it('uses the component name/key when it is standalone (no set parent)', () => {
+    const ref = mainComponentRef({
+      name: 'Icon', key: 'iconkey', parent: { type: 'FRAME', name: 'Page', key: '' },
+    });
+    expect(ref).toEqual({ name: 'Icon', key: 'iconkey' });
+  });
+
+  it('uses the component name/key when parent is null', () => {
+    const ref = mainComponentRef({ name: 'Icon', key: 'iconkey', parent: null });
+    expect(ref).toEqual({ name: 'Icon', key: 'iconkey' });
   });
 });

@@ -1,5 +1,5 @@
 /// <reference types="@figma/plugin-typings" />
-import { serializeNode } from './serialize';
+import { serializeNode, mainComponentRef } from './serialize';
 import type { NodeResolver } from './serialize';
 import type { MainToUi, UiToMain } from './messages';
 
@@ -29,7 +29,19 @@ const resolver: NodeResolver = {
       if (typeof n.getMainComponentAsync !== 'function') return null;
       const mc = await n.getMainComponentAsync();
       if (!mc) return null;
-      return { name: mc.name, key: mc.key };
+      // When mc is a variant, its parent is a COMPONENT_SET carrying the real name/key.
+      // BaseNode | null doesn't expose `.key`; narrow on type then cast to ComponentSetNode.
+      const rawParent = mc.parent;
+      const parent = rawParent
+        ? {
+            type: rawParent.type,
+            name: rawParent.name,
+            key: rawParent.type === 'COMPONENT_SET'
+              ? (rawParent as ComponentSetNode).key
+              : '',
+          }
+        : null;
+      return mainComponentRef({ name: mc.name, key: mc.key, parent });
     } catch {
       return null;
     }
