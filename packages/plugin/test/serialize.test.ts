@@ -33,4 +33,15 @@ describe('serializeNode', () => {
     const out = await serializeNode(parent as never, resolver);
     expect(out.children?.[0].name).toBe('container');
   });
+
+  it('resolves fillStyleId to a binding', async () => {
+    const styledResolver = {
+      ...resolver,
+      styleName: async (_id: string) => 'color/primary',
+    };
+    const styled = { ...mockRect, boundVariables: {}, fillStyleId: 'S:abc,1:1' };
+    const out = await serializeNode(styled as never, styledResolver);
+    expect(out.bindings).toContainEqual({ property: 'fills', token: 'color/primary' });
+    expect(out.hasUnboundPaint).toBeFalsy();
+  });
 });

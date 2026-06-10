@@ -45,8 +45,15 @@ function findComponent(
   for (const node of selection) {
     let current: BaseNode | null = node;
     while (current) {
-      if (current.type === 'COMPONENT_SET' || current.type === 'COMPONENT') {
-        return current as ComponentNode | ComponentSetNode;
+      if (current.type === 'COMPONENT_SET') {
+        return current as ComponentSetNode;
+      }
+      if (current.type === 'COMPONENT') {
+        const parent = (current as SceneNode).parent;
+        if (parent?.type === 'COMPONENT_SET') {
+          return parent as ComponentSetNode;
+        }
+        return current as ComponentNode;
       }
       current = (current as SceneNode).parent ?? null;
     }
@@ -85,7 +92,8 @@ figma.clientStorage.getAsync('apiKey').then((value: string | undefined) => {
   figma.ui.postMessage(msg);
 }).catch(() => {/* ignore */});
 
-// React to selection changes
+// React to selection changes.
+// Note: selectionchange does not fire on plugin open; the UI sends requestSelection on mount to get the initial selection.
 figma.on('selectionchange', () => { postSelection(); });
 
 // React to UI messages
