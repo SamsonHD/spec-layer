@@ -38,7 +38,7 @@ describe('renderSpec', () => {
     const spec: IntermediateSpec = {
       name: 'Chip', figmaKey: 'k', figmaFile: 'F', figmaNode: 'n',
       anatomy: [], props: [], variants: [], states: ['Default'],
-      tokens: [], related: ['Padding=Square, Scale=1x'], gaps: [],
+      tokens: [], related: ['Padding=Square, Scale=1x'], gaps: [], layout: [],
     };
     const md = renderSpec(spec, { prose: null, extractedAt: '2026-06-10T00:00:00.000Z' });
     expect(md).toContain('- [Padding=Square, Scale=1x](./padding-square-scale-1x.md)');
@@ -49,7 +49,7 @@ describe('renderSpec', () => {
     const spec: IntermediateSpec = {
       name: 'Test', figmaKey: 'k', figmaFile: 'F', figmaNode: 'n',
       anatomy: [], props: [], variants: [], states: ['Default'],
-      tokens: [], related: ['=Edge,'], gaps: [],
+      tokens: [], related: ['=Edge,'], gaps: [], layout: [],
     };
     const md = renderSpec(spec, { prose: null, extractedAt: '2026-06-10T00:00:00.000Z' });
     expect(md).toContain('- [=Edge,](./edge.md)');

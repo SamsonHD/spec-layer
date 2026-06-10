@@ -15,6 +15,8 @@ export interface SerializedNode {
   mainComponent?: { name: string; key: string };
   /** Stable component key (COMPONENT/COMPONENT_SET only). */
   key?: string;
+  /** Auto-layout/shape values for this node, when present. */
+  layout?: LayoutInfo;
 }
 
 export interface PropertyDefinition {
@@ -26,4 +28,15 @@ export interface PropertyDefinition {
 export interface TokenRef {
   property: string; // fills | strokes | itemSpacing | cornerRadius | ...
   token: string;    // resolved variable or style name
+}
+
+/** Auto-layout and shape values captured from the Figma node (only values > 0 are present). */
+export interface LayoutInfo {
+  mode?: 'HORIZONTAL' | 'VERTICAL';
+  paddingTop?: number;
+  paddingRight?: number;
+  paddingBottom?: number;
+  paddingLeft?: number;
+  itemSpacing?: number;
+  cornerRadius?: number;
 }

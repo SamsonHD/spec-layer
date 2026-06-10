@@ -2,6 +2,7 @@ import type { SerializedNode } from './tree';
 import { extractAnatomy, type AnatomyPart } from './anatomy';
 import { extractProps, extractVariants, extractStates, type ComponentProp, type VariantAxis } from './props';
 import { extractTokens, extractGaps, type TokenBinding, type Gap } from './tokens';
+import { extractLayout, type LayoutSummary } from './layout';
 
 export interface IntermediateSpec {
   name: string;
@@ -15,6 +16,7 @@ export interface IntermediateSpec {
   tokens: TokenBinding[];
   related: string[];
   gaps: Gap[];
+  layout: LayoutSummary[];
 }
 
 export function extract(root: SerializedNode, meta: { figmaFile: string }): IntermediateSpec {
@@ -31,5 +33,6 @@ export function extract(root: SerializedNode, meta: { figmaFile: string }): Inte
     tokens: extractTokens(root),
     related,
     gaps: extractGaps(root),
+    layout: extractLayout(root),
   };
 }

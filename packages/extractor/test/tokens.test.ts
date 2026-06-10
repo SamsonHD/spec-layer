@@ -63,4 +63,18 @@ describe('tokens', () => {
     // unparseable names fall back to the full variant name
     expect(variantDelta('Default', 'Fancy Variant')).toBe('Fancy Variant');
   });
+
+  it('flags TEXT parts with no text style or typography variable', () => {
+    expect(extractGaps(root)).toContainEqual(
+      { part: 'label', issue: 'no text style or typography variable' },
+    );
+  });
+
+  it('flags hardcoded layout values not bound to variables', () => {
+    const gaps = extractGaps(root);
+    expect(gaps).toContainEqual({ part: 'container', issue: 'hardcoded itemSpacing (8px)' });
+    expect(gaps).toContainEqual({ part: 'container', issue: 'hardcoded padding' });
+    // cornerRadius IS bound on container → must NOT be flagged
+    expect(gaps).not.toContainEqual(expect.objectContaining({ issue: expect.stringContaining('cornerRadius') }));
+  });
 });

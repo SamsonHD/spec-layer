@@ -71,10 +71,33 @@ export function extractTokens(root: SerializedNode): TokenBinding[] {
   return out;
 }
 
+/** Properties that indicate a TEXT node's typography is governed by a style or variable. */
+const TYPOGRAPHY_PROPS = ['typography', 'fontSize', 'fontFamily', 'fontStyle', 'fontWeight', 'lineHeight', 'letterSpacing'];
+/** Bound-variable property names that cover padding. */
+const PADDING_PROPS = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'verticalPadding', 'horizontalPadding'];
+
 export function extractGaps(root: SerializedNode): Gap[] {
   const out: Gap[] = [];
   walk(defaultVariant(root), (n) => {
-    if (n.hasUnboundPaint) out.push({ part: n.name, issue: 'hardcoded paint (no variable or style)' });
+    const bound = new Set((n.bindings ?? []).map((b) => b.property));
+    if (n.hasUnboundPaint) {
+      out.push({ part: n.name, issue: 'hardcoded paint (no variable or style)' });
+    }
+    if (n.type === 'TEXT' && !TYPOGRAPHY_PROPS.some((p) => bound.has(p))) {
+      out.push({ part: n.name, issue: 'no text style or typography variable' });
+    }
+    const l = n.layout;
+    if (!l) return;
+    if (l.itemSpacing !== undefined && !bound.has('itemSpacing')) {
+      out.push({ part: n.name, issue: `hardcoded itemSpacing (${l.itemSpacing}px)` });
+    }
+    if (l.cornerRadius !== undefined && !bound.has('cornerRadius') && !bound.has('topLeftRadius')) {
+      out.push({ part: n.name, issue: `hardcoded cornerRadius (${l.cornerRadius}px)` });
+    }
+    const pads = [l.paddingTop, l.paddingRight, l.paddingBottom, l.paddingLeft];
+    if (pads.some((p) => p !== undefined) && !PADDING_PROPS.some((p) => bound.has(p))) {
+      out.push({ part: n.name, issue: 'hardcoded padding' });
+    }
   });
   return out;
 }

@@ -39,7 +39,8 @@
           "bindings": [
             { "property": "fills", "token": "md.sys.color.primary" },
             { "property": "cornerRadius", "token": "md.sys.shape.corner.full" }
-          ]
+          ],
+          "layout": { "mode": "HORIZONTAL", "paddingTop": 10, "paddingRight": 24, "paddingBottom": 10, "paddingLeft": 24, "itemSpacing": 8 }
         },
         {
           "id": "1:103",

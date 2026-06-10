@@ -15,7 +15,10 @@ describe('extract', () => {
     expect(spec.props.length).toBe(4);
     expect(spec.states).toEqual(['Enabled', 'Hovered', 'Disabled']);
     expect(spec.tokens.length).toBeGreaterThan(0);
-    expect(spec.gaps.length).toBe(1);
+    expect(spec.gaps.length).toBe(4);
+    expect(spec.layout).toEqual([
+      { part: 'container', summary: 'horizontal, padding 10/24/10/24, gap 8' },
+    ]);
   });
 
   it('hash is stable across key order and changes when content changes', () => {
