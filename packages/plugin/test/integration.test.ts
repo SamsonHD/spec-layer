@@ -18,10 +18,12 @@ const mockButtonSet = {
       children: [
         { id: '1:102', name: 'container', type: 'FRAME', visible: true,
           fills: [{ type: 'SOLID' }], fillStyleId: '',
-          boundVariables: { fills: [{ id: 'VAR:1' }] } },
+          boundVariables: { fills: [{ id: 'VAR:1' }] },
+          layoutMode: 'HORIZONTAL', itemSpacing: 8 },
         { id: '1:103', name: 'label', type: 'TEXT', visible: true,
           fills: [{ type: 'SOLID' }], fillStyleId: '',
-          boundVariables: { fills: [{ id: 'VAR:2' }] } },
+          boundVariables: { fills: [{ id: 'VAR:2' }] },
+          textStyleId: 'S:type,1:1' },
         { id: '1:104', name: 'icon', type: 'INSTANCE', visible: true },
       ],
     },
@@ -30,7 +32,7 @@ const mockButtonSet = {
 
 const resolver: NodeResolver = {
   variableName: async (id) => (({ 'VAR:1': 'md.sys.color.primary', 'VAR:2': 'md.sys.color.on-primary' } as Record<string,string>)[id] ?? null),
-  styleName: async () => null,
+  styleName: async (id) => (id === 'S:type,1:1' ? 'md.sys.typescale.label-large' : null),
   mainComponent: async () => ({ name: 'Icon', key: 'm3-icon' }),
 };
 
@@ -68,5 +70,18 @@ describe('full pipeline: serialize → extract → render → approve → parse'
     const spec = extract(node, { figmaFile: 'F' });
     const md = renderSpec(spec, { prose: null, extractedAt: '2026-06-10T00:00:00.000Z' });
     expect(() => parseFrontmatter(md)).not.toThrow();
+  });
+
+  it('typography styles and layout flow through serialize → extract → render', async () => {
+    const node = await serializeNode(mockButtonSet as never, resolver);
+    const spec = extract(node, { figmaFile: 'FILEKEY' });
+    const md = renderSpec(spec, { prose: null, extractedAt: '2026-06-10T00:00:00.000Z' });
+
+    // typography binding lands in the Tokens used table
+    expect(md).toContain('| label | typography | `md.sys.typescale.label-large` |');
+    // hardcoded itemSpacing is reported as a gap
+    expect(md).toContain('- **container**: hardcoded itemSpacing (8px)');
+    // layout summary is available to the prose pass
+    expect(spec.layout).toContainEqual({ part: 'container', summary: 'horizontal, gap 8' });
   });
 });
