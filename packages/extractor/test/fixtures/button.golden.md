@@ -6,7 +6,7 @@ component:
   figma_key: m3-button
   figma_file: FILE1
   figma_node: 1:100
-content_hash: fe9370aee08bd73ca568b038ab2a5a1941c868b3357d44d8de91ae76828f8fcc
+content_hash: 57739d869dbfcbc0dad6d17ead5da6117c7b2c6666eabc711dc5c6b881a9c644
 extracted_at: 2026-06-10T00:00:00.000Z
 ---
 
@@ -49,6 +49,9 @@ _To be written._
 | container | fills | `md.sys.color.primary` |
 | container | cornerRadius | `md.sys.shape.corner.full` |
 | label | fills | `md.sys.color.on-primary` |
+| container | strokes (Style=Outlined) | `md.sys.color.outline` |
+| label | fills (Style=Outlined) | `md.sys.color.primary` |
+| container | fills (State=Hovered) | `md.sys.color.primary-hover` |
 
 ## Code
 

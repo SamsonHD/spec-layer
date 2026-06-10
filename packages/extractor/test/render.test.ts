@@ -15,7 +15,9 @@ describe('renderSpec', () => {
   });
 
   it('matches the golden file', () => {
-    const golden = fs.readFileSync(new URL('./fixtures/button.golden.md', import.meta.url), 'utf8');
+    const goldenUrl = new URL('./fixtures/button.golden.md', import.meta.url);
+    if (process.env.UPDATE_GOLDEN) fs.writeFileSync(goldenUrl, md);
+    const golden = fs.readFileSync(goldenUrl, 'utf8');
     expect(md).toBe(golden);
   });
 

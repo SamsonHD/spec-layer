@@ -99,6 +99,33 @@
           "mainComponent": { "name": "Icon", "key": "m3-icon" }
         }
       ]
+    },
+    {
+      "id": "1:110",
+      "name": "Style=Filled, State=Hovered",
+      "type": "COMPONENT",
+      "visible": true,
+      "children": [
+        {
+          "id": "1:111",
+          "name": "container",
+          "type": "FRAME",
+          "visible": true,
+          "bindings": [
+            { "property": "fills", "token": "md.sys.color.primary-hover" },
+            { "property": "cornerRadius", "token": "md.sys.shape.corner.full" }
+          ]
+        },
+        {
+          "id": "1:112",
+          "name": "label",
+          "type": "TEXT",
+          "visible": true,
+          "bindings": [
+            { "property": "fills", "token": "md.sys.color.on-primary" }
+          ]
+        }
+      ]
     }
   ]
 }
