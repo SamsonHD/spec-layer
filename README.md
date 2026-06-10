@@ -38,7 +38,7 @@ Extract → Approve → Store → Serve
 
 ## The format
 
-The spec format is an open standard — MIT licensed. Each component gets one `.md` file with a YAML frontmatter block (identity, status, code mapping) and ten canonical Markdown sections (Anatomy, Props & Variants, States & Interactions, Design Tokens, Accessibility, Usage, Content Guidelines, Related Components, Code Mapping, Changelog).
+The spec format is an open standard — MIT licensed. Each component gets one `.md` file with a YAML frontmatter block (identity, status, code mapping) and ten canonical Markdown sections (Definition, Anatomy, Configuration, Variants, States, Tokens used, Code, Accessibility, Do's & Don'ts, Related atoms).
 
 - Full definition: [`spec/SPEC.md`](spec/SPEC.md)
 - Reference examples: [`spec/examples/button.md`](spec/examples/button.md), [`spec/examples/text-field.md`](spec/examples/text-field.md), [`spec/examples/dialog.md`](spec/examples/dialog.md)
@@ -77,7 +77,7 @@ Then in Figma: **Plugins → Development → Import plugin from manifest** and s
 
 Select any component on the canvas, open the plugin, and run through the Extract → Review → Approve → Export flow.
 
-**Optional — AI prose drafts:** set `ANTHROPIC_API_KEY` in your environment before building. Without it the plugin still produces a complete structural spec; the LLM-drafted prose sections (Usage, Accessibility, Content Guidelines) will be marked as stubs for you to fill in.
+**Optional — AI prose drafts:** open the plugin's Settings panel and enter your Anthropic API key in the API key field. The key is saved in Figma's local client storage (`figma.clientStorage`) — no environment variable or build step required. Without a key the plugin still produces a complete structural spec; the LLM-drafted judgment sections (Definition, Code, Accessibility, Do's & Don'ts) will contain stub placeholder text for you to fill in.
 
 For the full manual verification walkthrough, see [`packages/plugin/TESTING.md`](packages/plugin/TESTING.md).
 
