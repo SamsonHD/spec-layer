@@ -1,0 +1,10 @@
+{
+  "name": "@spec-layer/extractor",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@spec-layer/format": "*",
+    "js-sha256": "^0.11.0"
+  }
+}
