@@ -27,6 +27,18 @@ describe('frontmatter', () => {
     expect(() => parseFrontmatter(md)).toThrow(/status/i);
   });
 
+  it('rejects an unsupported spec_version', () => {
+    const md = serializeFrontmatter({ ...fm, spec_version: '0.2' as never }, '');
+    expect(() => parseFrontmatter(md)).toThrow(/spec_version/i);
+  });
+
+  it('parses a CRLF-encoded document successfully', () => {
+    const md = serializeFrontmatter(fm, '## Definition\n\nA button.\n');
+    const crlf = md.replace(/\n/g, '\r\n');
+    const parsed = parseFrontmatter(crlf);
+    expect(parsed.frontmatter).toEqual(fm);
+  });
+
   it('parses every reference example without error', async () => {
     const fs = await import('node:fs');
     for (const f of ['button.md', 'text-field.md', 'dialog.md']) {
