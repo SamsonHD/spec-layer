@@ -2,6 +2,8 @@ import type { IntermediateSpec } from './extract';
 import { contentHash } from './hash';
 import { serializeFrontmatter, type SpecFrontmatter } from '@spec-layer/format';
 
+const slug = (name: string) => name.toLowerCase().replace(/\s+/g, '-');
+
 export interface ProseDrafts {
   definition: string;
   accessibility: string;
@@ -24,14 +26,18 @@ export function renderSpec(
   };
   const p = opts.prose;
   const lines: string[] = [
-    `# ${spec.name}`,
-    '',
     '## Definition', '', DRAFT, p?.definition ?? '_To be written._', '',
     '## Anatomy', '',
-    ...spec.anatomy.map((a) => `- **${a.name}** (${a.type.toLowerCase()})${a.nested ? ' — nested component' : ''}`), '',
+    ...spec.anatomy.map((a) => `- ${a.name}${a.nested ? ' (component)' : ''}`), '',
     '## Configuration', '',
     '| Name | Kind | Options | Default |', '|---|---|---|---|',
-    ...spec.props.map((pr) => `| ${pr.name} | ${pr.kind} | ${pr.options?.join(', ') ?? '—'} | ${pr.default ?? '—'} |`), '',
+    ...spec.props.map((pr) => {
+      const options =
+        pr.kind === 'boolean' ? 'true / false'
+        : pr.options?.length ? pr.options.join(' · ')
+        : '—';
+      return `| ${pr.name} | ${pr.kind} | ${options} | ${pr.default ?? '—'} |`;
+    }), '',
     '## Variants', '',
     ...spec.variants.map((v) => `- **${v.prop}**: ${v.values.join(' · ')}`), '',
     '## States', '', ...spec.states.map((s) => `- ${s}`), '',
@@ -43,7 +49,7 @@ export function renderSpec(
     "## Do's & Don'ts", '', DRAFT,
     ...(p ? [...p.dos.map((d) => `- ✅ ${d}`), ...p.donts.map((d) => `- ❌ ${d}`)] : ['_To be written._']), '',
     '## Related atoms', '',
-    ...(spec.related.length ? spec.related.map((r) => `- ${r}`) : ['_None._']), '',
+    ...(spec.related.length ? spec.related.map((r) => `- [${r}](./${slug(r)}.md)`) : ['None.']), '',
   ];
   if (spec.gaps.length) {
     lines.push('## Extraction gaps', '', ...spec.gaps.map((g) => `- **${g.part}**: ${g.issue}`), '');

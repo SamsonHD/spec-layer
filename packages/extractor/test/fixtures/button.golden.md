@@ -10,8 +10,6 @@ content_hash: fe9370aee08bd73ca568b038ab2a5a1941c868b3357d44d8de91ae76828f8fcc
 extracted_at: 2026-06-10T00:00:00.000Z
 ---
 
-# Button
-
 ## Definition
 
 > ⚠️ Draft — AI-suggested, not yet approved.
@@ -20,17 +18,17 @@ _To be written._
 
 ## Anatomy
 
-- **container** (frame)
-- **label** (text)
-- **icon** (instance) — nested component
+- container
+- label
+- icon (component)
 
 ## Configuration
 
 | Name | Kind | Options | Default |
 |---|---|---|---|
-| Style | variant | Filled, Outlined | Filled |
-| State | variant | Enabled, Hovered, Disabled | Enabled |
-| Show icon | boolean | — | false |
+| Style | variant | Filled · Outlined | Filled |
+| State | variant | Enabled · Hovered · Disabled | Enabled |
+| Show icon | boolean | true / false | false |
 | Label | text | — | Button |
 
 ## Variants
@@ -72,7 +70,7 @@ _To be written._
 
 ## Related atoms
 
-- Icon
+- [Icon](./icon.md)
 
 ## Extraction gaps
 
