@@ -1,7 +1,7 @@
 import { extract, renderSpec, draftProse } from '@spec-layer/extractor';
 import type { SerializedNode, CacheStore } from '@spec-layer/extractor';
 import type { MainToUi, UiToMain } from '../messages';
-import { approveSpec, nextStatus, type UiPhase } from './state';
+import { approveSpec, nextStatus, resetToIdle, toKebab, type UiPhase } from './state';
 
 // ---------------------------------------------------------------------------
 // Message helpers
@@ -18,14 +18,27 @@ function send(msg: UiToMain): void {
 
 const pendingGets = new Map<string, Array<(v: string | null) => void>>();
 
+const CACHE_GET_TIMEOUT_MS = 5_000;
+
 const cacheStore: CacheStore = {
   get(key: string): Promise<string | null> {
     return new Promise((resolve) => {
       const existing = pendingGets.get(key);
       if (existing) {
         existing.push(resolve);
+        // Timeout is already running for this key (set when the first waiter registered)
       } else {
         pendingGets.set(key, [resolve]);
+        // Start a timeout for this key — resolves all waiters with null on expiry
+        const timer = setTimeout(() => {
+          const waiters = pendingGets.get(key);
+          if (waiters) {
+            pendingGets.delete(key);
+            for (const r of waiters) r(null);
+          }
+        }, CACHE_GET_TIMEOUT_MS);
+        // Store the timer id alongside the resolvers so a real reply can cancel it
+        (pendingGets.get(key) as unknown as { _timer?: ReturnType<typeof setTimeout> })._timer = timer;
       }
       send({ type: 'cacheGet', key });
     });
@@ -39,6 +52,9 @@ const cacheStore: CacheStore = {
 function resolvePendingGet(key: string, value: string | null): void {
   const resolvers = pendingGets.get(key);
   if (resolvers) {
+    // Cancel the timeout before we delete the entry and fire resolvers
+    const timer = (resolvers as unknown as { _timer?: ReturnType<typeof setTimeout> })._timer;
+    if (timer !== undefined) clearTimeout(timer);
     pendingGets.delete(key);
     for (const resolve of resolvers) resolve(value);
   }
@@ -54,14 +70,6 @@ let currentFileKey = '';
 let apiKey: string | null = null;
 let renderedMd = '';
 let banner = '';
-
-// ---------------------------------------------------------------------------
-// Kebab-case filename helper
-// ---------------------------------------------------------------------------
-
-function toKebab(name: string): string {
-  return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-}
 
 // ---------------------------------------------------------------------------
 // DOM — build once, wire once
@@ -222,6 +230,7 @@ async function runExtract(): Promise<void> {
   if (!currentNode) return;
 
   clearBanners();
+  phase = resetToIdle();
   phase = nextStatus(phase, 'selected');
   extractBtn.disabled = true;
   phaseLabel.textContent = 'extracting…';

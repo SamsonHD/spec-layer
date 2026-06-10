@@ -46,7 +46,6 @@ if (existsSync(uiEntry)) {
 <html lang="en">
 <head><meta charset="utf-8" /><title>Spec Layer</title></head>
 <body>
-<div id="root"></div>
 <script>${js}</script>
 </body>
 </html>`;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { approveSpec, nextStatus, type UiPhase } from '../src/ui/state';
+import { approveSpec, nextStatus, resetToIdle, toKebab, type UiPhase } from '../src/ui/state';
 
 const draft = `---
 spec_version: "0.1"
@@ -33,6 +33,11 @@ describe('approveSpec', () => {
     expect(approved).toContain('## Definition');
     expect(approved).toContain('A button.');
   });
+
+  it('collapses triple+ newlines left by marker removal', () => {
+    const approved = approveSpec(draft, 'Alex');
+    expect(approved).not.toContain('\n\n\n');
+  });
 });
 
 describe('nextStatus', () => {
@@ -42,5 +47,31 @@ describe('nextStatus', () => {
     expect(nextStatus('drafting', 'prose-done')).toBe('review');
     expect(nextStatus('drafting', 'prose-failed')).toBe('review'); // degraded still reviewable
     expect(nextStatus('review', 'approved')).toBe('approved');
+  });
+
+  it('falls through on invalid transitions (returns current phase)', () => {
+    expect(nextStatus('idle', 'approved')).toBe('idle');
+    expect(nextStatus('review', 'selected')).toBe('review');
+    expect(nextStatus('approved', 'selected')).toBe('approved');
+  });
+});
+
+describe('resetToIdle', () => {
+  it('returns idle', () => {
+    expect(resetToIdle()).toBe('idle');
+  });
+});
+
+describe('toKebab', () => {
+  it('lowercases and replaces spaces', () => {
+    expect(toKebab('Text Field')).toBe('text-field');
+  });
+
+  it('handles Figma hierarchy slash separator', () => {
+    expect(toKebab('Icon/Arrow Up')).toBe('icon-arrow-up');
+  });
+
+  it('collapses space-around-slash into a single hyphen', () => {
+    expect(toKebab('Form / Input')).toBe('form-input');
   });
 });
