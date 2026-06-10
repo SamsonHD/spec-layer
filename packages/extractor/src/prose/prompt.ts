@@ -82,14 +82,9 @@ export function buildProsePrompt(spec: IntermediateSpec): string {
  * Strip optional ```json … ``` fences, trim, parse, and validate the shape.
  */
 export function parseProseResponse(text: string): ProseDrafts {
-  // Strip code fences
-  let cleaned = text.trim();
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned
-      .replace(/^```(?:json)?\n?/, '')
-      .replace(/\n?```$/, '')
-      .trim();
-  }
+  // Strip code fences — also handles preamble prose before the fence block
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const cleaned = fenced ? fenced[1].trim() : text.trim();
 
   let parsed: unknown;
   try {
@@ -110,17 +105,17 @@ export function parseProseResponse(text: string): ProseDrafts {
   if (typeof obj.accessibility !== 'string') {
     throw new Error('Prose response missing or invalid field: accessibility');
   }
-  if (!Array.isArray(obj.dos)) {
-    throw new Error('Prose response missing or invalid field: dos');
+  if (!Array.isArray(obj.dos) || !obj.dos.every((x: unknown) => typeof x === 'string')) {
+    throw new Error('Prose response field "dos" must be a string[]');
   }
-  if (!Array.isArray(obj.donts)) {
-    throw new Error('Prose response missing or invalid field: donts');
+  if (!Array.isArray(obj.donts) || !obj.donts.every((x: unknown) => typeof x === 'string')) {
+    throw new Error('Prose response field "donts" must be a string[]');
   }
 
   return {
     definition: obj.definition,
     accessibility: obj.accessibility,
-    dos: obj.dos as string[],
-    donts: obj.donts as string[],
+    dos: obj.dos,
+    donts: obj.donts,
   };
 }

@@ -54,4 +54,27 @@ describe('prose', () => {
     expect(result?.definition).toBe('Fresh.');
     expect(store.set).toHaveBeenCalledOnce();
   });
+
+  it('throws when dos contains a non-string element', () => {
+    expect(() =>
+      parseProseResponse('{"definition":"d","accessibility":"a","dos":[1],"donts":[]}'),
+    ).toThrow(/dos/i);
+  });
+
+  it('extracts JSON when the model prepends preamble before a fence', () => {
+    const input = 'Here is the JSON:\n```json\n{"definition":"D","accessibility":"A","dos":[],"donts":[]}\n```';
+    const out = parseProseResponse(input);
+    expect(out.definition).toBe('D');
+  });
+
+  it('throws a useful error on a malformed 200 envelope', async () => {
+    const fetcher = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({}),
+    })) as unknown as typeof fetch;
+    const storeWithNullGet = { get: vi.fn(async () => null), set: vi.fn(async () => {}) };
+    await expect(
+      draftProse(spec, { apiKey: 'sk', fetcher, cacheStore: storeWithNullGet }),
+    ).rejects.toThrow(/response shape/i);
+  });
 });

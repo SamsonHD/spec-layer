@@ -18,7 +18,7 @@ export async function draftProse(spec: IntermediateSpec, opts: DraftOptions): Pr
 
   const key = `prose:${contentHash(spec)}`;
   const hit = await opts.cacheStore.get(key);
-  if (hit) return JSON.parse(hit) as ProseDrafts;
+  if (hit) return parseProseResponse(hit);
 
   const res = await opts.fetcher('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -26,6 +26,7 @@ export async function draftProse(spec: IntermediateSpec, opts: DraftOptions): Pr
       'content-type': 'application/json',
       'x-api-key': opts.apiKey,
       'anthropic-version': '2023-06-01',
+      // Required: the request originates from the Figma plugin UI iframe (browser context).
       'anthropic-dangerous-direct-browser-access': 'true',
     },
     body: JSON.stringify({
@@ -37,7 +38,11 @@ export async function draftProse(spec: IntermediateSpec, opts: DraftOptions): Pr
 
   if (!res.ok) throw new Error(`Claude API error ${res.status}`);
   const data = await res.json();
-  const prose = parseProseResponse(data.content[0].text);
+  const raw = data?.content?.[0]?.text;
+  if (typeof raw !== 'string') {
+    throw new Error(`Unexpected Claude API response shape: ${JSON.stringify(data).slice(0, 200)}`);
+  }
+  const prose = parseProseResponse(raw);
   await opts.cacheStore.set(key, JSON.stringify(prose));
   return prose;
 }
