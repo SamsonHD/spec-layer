@@ -1,0 +1,13 @@
+{
+  "name": "@spec-layer/plugin",
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "@spec-layer/extractor": "*",
+    "@spec-layer/format": "*"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "@figma/plugin-typings": "^1.100.0"
+  }
+}

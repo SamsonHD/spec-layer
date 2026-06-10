@@ -1,0 +1,65 @@
+// Run: node build.mjs
+// Builds the Figma plugin artefacts into dist/:
+//   - dist/main.js   (IIFE bundle for the plugin main thread)
+//   - dist/ui.html   (HTML doc embedding the UI iframe bundle, or placeholder)
+
+import * as esbuild from 'esbuild';
+import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const dist = resolve(__dirname, 'dist');
+mkdirSync(dist, { recursive: true });
+
+// ---------------------------------------------------------------------------
+// Build 1: main thread → dist/main.js (IIFE, bundled)
+// ---------------------------------------------------------------------------
+await esbuild.build({
+  entryPoints: [resolve(__dirname, 'src/main.ts')],
+  outfile: resolve(dist, 'main.js'),
+  bundle: true,
+  format: 'iife',
+  platform: 'browser',
+  target: 'es2017',
+});
+console.log('Built dist/main.js');
+
+// ---------------------------------------------------------------------------
+// Build 2: UI iframe → dist/ui.html
+//   If src/ui/ui.ts exists: bundle it and embed in a minimal HTML document.
+//   Otherwise: write a placeholder HTML so the manifest reference is valid.
+// ---------------------------------------------------------------------------
+const uiEntry = resolve(__dirname, 'src/ui/ui.ts');
+
+if (existsSync(uiEntry)) {
+  const result = await esbuild.build({
+    entryPoints: [uiEntry],
+    bundle: true,
+    format: 'iife',
+    platform: 'browser',
+    target: 'es2017',
+    write: false, // capture output in memory
+  });
+  const js = result.outputFiles[0].text;
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8" /><title>Spec Layer</title></head>
+<body>
+<div id="root"></div>
+<script>${js}</script>
+</body>
+</html>`;
+  writeFileSync(resolve(dist, 'ui.html'), html, 'utf-8');
+  console.log('Built dist/ui.html (from src/ui/ui.ts)');
+} else {
+  const placeholder = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8" /><title>Spec Layer</title></head>
+<body>
+<div id="root">Spec Layer UI (build pending)</div>
+</body>
+</html>`;
+  writeFileSync(resolve(dist, 'ui.html'), placeholder, 'utf-8');
+  console.log('Built dist/ui.html (placeholder — src/ui/ui.ts not found)');
+}
