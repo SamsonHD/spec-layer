@@ -87,7 +87,7 @@ export function extractGaps(root: SerializedNode): Gap[] {
   walk(defaultVariant(root), (n) => {
     const bound = new Set((n.bindings ?? []).map((b) => b.property));
     if (n.hasUnboundPaint) {
-      out.push({ part: n.name, issue: 'hardcoded paint (no variable or style)' });
+      out.push({ part: n.name, issue: 'hardcoded color (no variable or style)' });
     }
     if (n.type === 'TEXT' && !TYPOGRAPHY_PROPS.some((p) => bound.has(p))) {
       out.push({ part: n.name, issue: 'no text style or typography variable' });

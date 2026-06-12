@@ -18,7 +18,7 @@ describe('tokens', () => {
 
   it('reports unbound paints as gaps, including on invisible layers', () => {
     expect(extractGaps(root)).toContainEqual(
-      { part: 'debug-overlay', issue: 'hardcoded paint (no variable or style)' },
+      { part: 'debug-overlay', issue: 'hardcoded color (no variable or style)' },
     );
   });
 

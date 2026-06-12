@@ -6,7 +6,7 @@ component:
   figma_key: m3-button
   figma_file: FILE1
   figma_node: 1:100
-content_hash: 3e0a2d8d570c10f46bbc5134273d04f63133c80775728bbad32b510b1e0f7ab5
+content_hash: ada3d5ef2f27a0707e25e1504fc68246abfb50b9922a44a72ccdac35d2bd4638
 extracted_at: 2026-06-10T00:00:00.000Z
 ---
 
@@ -80,4 +80,4 @@ _To be written._
 - **container**: hardcoded itemSpacing (8px)
 - **container**: hardcoded padding
 - **label**: no text style or typography variable
-- **debug-overlay**: hardcoded paint (no variable or style)
+- **debug-overlay**: hardcoded color (no variable or style)
