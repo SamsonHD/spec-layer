@@ -38,10 +38,16 @@ export function extractAnatomy(root: SerializedNode): AnatomyResult {
     children = (children[0].children ?? []).filter((c) => c.visible);
   }
 
+  // Anatomy is a list of MEANINGFUL parts: a leading and trailing icon wrapper
+  // both named "iconWrapper" only carry one anatomy entry's worth of information.
+  // Dedup by name (keep first occurrence) so the list reads cleanly.
+  const seenNames = new Set<string>();
   for (const child of children) {
     const nested = child.type === 'INSTANCE';
-    parts.push({ name: child.name, type: child.type, nested });
     if (nested && child.mainComponent) related.add(child.mainComponent.name);
+    if (seenNames.has(child.name)) continue;
+    seenNames.add(child.name);
+    parts.push({ name: child.name, type: child.type, nested });
   }
   return { parts, related: [...related] };
 }

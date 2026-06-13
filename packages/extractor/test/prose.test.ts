@@ -84,15 +84,15 @@ describe('prose', () => {
     expect(prompt).toContain('container: horizontal, padding 10/24/10/24, gap 8');
   });
 
-  it('prompt explains qualified variant-diff tokens when present', () => {
+  it('prompt explains conditioned token rules when present', () => {
     const prompt = buildProsePrompt(spec);
-    expect(prompt).toContain('fills (State=Hovered)');
-    expect(prompt).toContain('show what changes in that variant relative to the default');
+    expect(prompt).toContain('container.fill [State=Hovered] → md.sys.color.primary-hover');
+    expect(prompt).toContain('the token applies only to variants matching those axis values');
   });
 
   it('prompt omits the layout block when there is no layout data', () => {
     const prompt = buildProsePrompt({ ...spec, layout: [], tokens: [] });
     expect(prompt).not.toContain('Layout (default variant):');
-    expect(prompt).not.toContain('relative to the default');
+    expect(prompt).not.toContain('bracketed condition');
   });
 });

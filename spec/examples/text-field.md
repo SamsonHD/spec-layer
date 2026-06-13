@@ -17,21 +17,19 @@ A Text field lets users enter and edit short-form text. Use the Filled variant o
 
 ## Anatomy
 
-- Container
-- Active indicator (Filled) / Outline (Outlined)
-- Label text
-- Input text
-- Leading icon (component)
-- Trailing icon (component)
-- Supporting text
-- State layer
+1. Container
+2. Active indicator (Filled) / Outline (Outlined)
+3. Label text
+4. Input text
+5. Leading icon (component)
+6. Trailing icon (component)
+7. Supporting text
+8. State layer
 
 ## Configuration
 
 | Name | Kind | Options | Default |
 |---|---|---|---|
-| Style | variant | Filled · Outlined | Filled |
-| State | variant | Enabled · Focused · Error · Disabled | Enabled |
 | Show label | boolean | true / false | true |
 | Show supporting text | boolean | true / false | false |
 | Show leading icon | boolean | true / false | false |
@@ -42,8 +40,7 @@ A Text field lets users enter and edit short-form text. Use the Filled variant o
 
 ## Variants
 
-- **Style**: Filled · Outlined
-- **State**: Enabled · Focused · Error · Disabled
+- **Style**: Filled (default) · Outlined
 
 ## States
 
@@ -54,25 +51,59 @@ A Text field lets users enter and edit short-form text. Use the Filled variant o
 
 ## Tokens used
 
+### Color
+
+#### Container
+
+| Property | Condition | Token |
+|---|---|---|
+| background | Style=Filled | `md.sys.color.surface-container-highest` |
+| border-color | Style=Outlined | `md.sys.color.outline` |
+
+#### Active indicator / Outline
+
+| Property | Condition | Token |
+|---|---|---|
+| color | State=Focused | `md.sys.color.primary` |
+| color | State=Error | `md.sys.color.error` |
+
+#### Label text
+
+| Property | Condition | Token |
+|---|---|---|
+| color | State=Enabled | `md.sys.color.on-surface-variant` |
+| color | State=Focused | `md.sys.color.primary` |
+| color | State=Error | `md.sys.color.error` |
+
+#### Supporting text
+
+| Property | Condition | Token |
+|---|---|---|
+| color | — | `md.sys.color.on-surface-variant` |
+| color | State=Error | `md.sys.color.error` |
+
+#### Fixed
+
 | Part | Property | Token |
 |---|---|---|
-| Container | background (Filled) | md.sys.color.surface-container-highest |
-| Container | border-radius (Filled) | md.sys.shape.corner.extra-small-top |
-| Container | border-color (Outlined) | md.sys.color.outline |
-| Container | border-radius (Outlined) | md.sys.shape.corner.extra-small |
-| Active indicator / Outline | color (focused) | md.sys.color.primary |
-| Active indicator / Outline | color (error) | md.sys.color.error |
-| Label text | color (enabled) | md.sys.color.on-surface-variant |
-| Label text | color (focused) | md.sys.color.primary |
-| Label text | color (error) | md.sys.color.error |
-| Label text | typography (resting) | md.sys.typescale.body-large |
-| Label text | typography (floating) | md.sys.typescale.body-small |
-| Input text | color | md.sys.color.on-surface |
-| Input text | typography | md.sys.typescale.body-large |
-| Supporting text | color (default) | md.sys.color.on-surface-variant |
-| Supporting text | color (error) | md.sys.color.error |
-| Supporting text | typography | md.sys.typescale.body-small |
-| State layer | opacity (hovered) | md.sys.state.hover.state-layer-opacity |
+| Input text | color | `md.sys.color.on-surface` |
+
+### Typography
+
+| Part | Property | Condition | Token |
+|---|---|---|---|
+| Label text | typography | resting | `md.sys.typescale.body-large` |
+| Label text | typography | floating | `md.sys.typescale.body-small` |
+| Input text | typography | — | `md.sys.typescale.body-large` |
+| Supporting text | typography | — | `md.sys.typescale.body-small` |
+
+### Measurements
+
+| Part | Property | Condition | Token |
+|---|---|---|---|
+| Container | border-radius | Style=Filled | `md.sys.shape.corner.extra-small-top` |
+| Container | border-radius | Style=Outlined | `md.sys.shape.corner.extra-small` |
+| State layer | opacity | State=Hovered | `md.sys.state.hover.state-layer-opacity` |
 
 ## Code
 

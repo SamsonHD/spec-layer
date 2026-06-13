@@ -119,18 +119,18 @@ visible area.
 
 **Kind:** Deterministic (derived from the Figma node tree)
 
-A bulleted list of the named layers or parts that make up the component. Each item names the part. Nested components (instances of another component) are flagged with `(component)`.
+A numbered list of the named layers or parts that make up the component, in document order. Each item names the part. Nested components (instances of another component) are flagged with `(component)`. The numbering exists so prose, diagrams, or callouts elsewhere in the spec can reference parts by index ("see anatomy item 3").
 
 **Shape:**
 
 ```markdown
 ## Anatomy
 
-- Container
-- Label
-- Leading icon (component)
-- Trailing icon (component)
-- State layer
+1. Container
+2. Label
+3. Leading icon (component)
+4. Trailing icon (component)
+5. State layer
 ```
 
 ---
@@ -139,13 +139,13 @@ A bulleted list of the named layers or parts that make up the component. Each it
 
 **Kind:** Deterministic (derived from component properties in the Figma node)
 
-A table of all component properties. Columns:
+A table of the component's non-variant properties — its `boolean`, `text`, and `instanceSwap` options. Variant axes are documented in `## Variants` and `## States` instead, so they are not repeated here. When the component has no non-variant properties, the section body is the single value `_None._`. Columns:
 
 | Column | Description |
 |---|---|
 | Name | The property name exactly as it appears in Figma. |
-| Kind | One of: `variant`, `boolean`, `text`, `instanceSwap`. |
-| Options | For `variant`: the list of allowed values. For `boolean`: `true / false`. For `text` and `instanceSwap`: `—`. |
+| Kind | One of: `boolean`, `text`, `instanceSwap`. |
+| Options | For `boolean`: `true / false`. For `text` and `instanceSwap`: `—`. |
 | Default | The default value as set in Figma. |
 
 **Shape:**
@@ -155,8 +155,6 @@ A table of all component properties. Columns:
 
 | Name | Kind | Options | Default |
 |---|---|---|---|
-| Type | variant | Filled · Outlined · Text · Elevated · Tonal | Filled |
-| Size | variant | Small · Medium · Large | Medium |
 | Disabled | boolean | true / false | false |
 | Label | text | — | Button |
 | Icon | instanceSwap | — | — |
@@ -168,19 +166,22 @@ A table of all component properties. Columns:
 
 **Kind:** Deterministic (derived from the Figma component set's variant axes)
 
-A bulleted list, one item per variant axis. Each item uses the format:
+A bulleted list of the component's style variant axes — every variant axis except the State axis (owned by `## States`). Each non-boolean axis is one bullet with its default value marked:
 
 ```
-**AxisName**: Value · Value · …
+**AxisName**: Value (default) · Value · …
 ```
+
+Boolean variant axes (values exactly `{true, false}`, e.g. `Danger`, `Disabled`, `Outline`) are toggles rather than style scales, so they are collected into a single `Modifiers` bullet listing their names. When there are no style axes or modifiers, the section body is `_None._`.
 
 **Shape:**
 
 ```markdown
 ## Variants
 
-- **Type**: Filled · Outlined · Text · Elevated · Tonal
-- **Size**: Small · Medium · Large
+- **Type**: Filled (default) · Outlined · Text · Elevated · Tonal
+- **Size**: Small · Medium (default) · Large
+- **Modifiers**: Danger · Disabled
 ```
 
 ---
@@ -217,26 +218,74 @@ A bulleted list of state names.
 
 **Kind:** Deterministic (derived from variable and style bindings on the node tree)
 
-A table of design token bindings. Columns:
+Token bindings are grouped into three `###` sub-sections by property kind, so that color decisions, typography, and geometry can be read independently:
 
-| Column | Description |
+| Sub-section | Properties it covers |
 |---|---|
-| Part | The anatomy part the binding applies to (use `*` for the whole component). |
-| Property | The CSS/design property (e.g. `background`, `color`, `border-radius`, `gap`). |
-| Token | The fully-qualified token name as it appears in the Figma variable or style library. |
+| `### Color` | `fill`, `border`, `background`, `color`, `outline` |
+| `### Typography` | `typography`, `font-size`, `font-family`, `font-weight`, `font-style`, `line-height`, `letter-spacing` |
+| `### Measurements` | everything else (e.g. `border-radius`, `padding`, `padding-x`, `padding-y`, `gap`) |
+
+Empty sub-sections are omitted. When the component has no token bindings at all, the section body is the single value `_None._`.
+
+**Color sub-section.** One `####` sub-table per part, in the order parts are first encountered during extraction (document order). Parts here are layer names from the full node tree — not limited to the `## Anatomy` list — and include synthetic parts such as `Container` (the variant root itself). Rows are `(property, state)`; columns are the values of the part's **column axis** — the non-State, non-boolean variant axis referenced by the most rules (typically `Type` or `Style`). The layout adapts to the part's bindings:
+
+- The State column is dropped when no rule conditions on the State axis; the column axis collapses to a single `Token` column when no column axis applies.
+- Boolean variant axes (values exactly `{true, false}`, e.g. `Danger`, `Disabled`, `Outline`) are split into bold `**When <Axis> = <value>**` sub-tables for each non-default value, so the base table stays focused on the default configuration.
+- Cells with no binding render as `—`. When two equally-specific rules disagree on a cell, every claimed token is shown, joined with ` · ` (more-specific rules — those conditioning on more axes — otherwise win).
+- Rules that condition on an axis outside the part's pivot (e.g. a second style axis like `Size`) are collected into a trailing `**Exceptions**` flat table (`Property | Condition | Token`) so the pivot stays clean while remaining lossless.
+- Parts with three or fewer rules render as a single compact `Property | Condition | Token` table instead of a pivot.
+- Parts whose bindings are all unconditioned are merged into one shared `#### Fixed` table at the end of `### Color`, with columns `Part | Property | Token`.
+
+A part falls back to a flat whole-part `Property | Condition | Token` table only for degenerate inputs (a rule referencing an axis absent from the component's variant set).
+
+**Typography and Measurements sub-sections.** Flat global tables with columns `Part | Property | Condition | Token`. An empty condition renders as `—`.
 
 **Shape:**
 
 ```markdown
 ## Tokens used
 
+### Color
+
+#### Container
+
+| Property | State | Primary | Secondary |
+|---|---|---|---|
+| fill | Default | `Background/Action/Action` | `Background/Action/Action Secondary` |
+| fill | Hover | `Background/Action/Action (Hover)` | `Background/Action/Action Secondary (Hover)` |
+
+**When Disabled = true**
+
+| Property | Primary | Secondary |
+|---|---|---|
+| fill | `Background/Surface/Disabled` | `Background/Action/Action Secondary` |
+
+#### Focus Rect
+
+| Property | Condition | Token |
+|---|---|---|
+| border | State=Focus | `Border Color/Action/Action` |
+
+#### Fixed
+
 | Part | Property | Token |
 |---|---|---|
-| Container | background | md.sys.color.primary |
-| Container | border-radius | md.sys.shape.corner.full |
-| Label | color | md.sys.color.on-primary |
-| Label | typography | md.sys.typescale.label-large |
-| State layer | opacity (hovered) | md.sys.state.hover.state-layer-opacity |
+| icon-primary | fill | `Gravy/FA6 Navy` |
+| icon-secondary | fill | `Gravy/FA6 Navy` |
+
+### Typography
+
+| Part | Property | Condition | Token |
+|---|---|---|---|
+| Label | typography | Size=Default | `Action/M` |
+
+### Measurements
+
+| Part | Property | Condition | Token |
+|---|---|---|---|
+| Container | border-radius | — | `rounded-8` |
+| Container | padding-x | Size=Small | `size-16` |
 ```
 
 ---

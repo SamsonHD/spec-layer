@@ -1,4 +1,5 @@
 import type { IntermediateSpec } from '../extract';
+import { formatConditions } from '../tokens';
 
 export interface ProseDrafts {
   definition: string;
@@ -54,11 +55,13 @@ export function buildProsePrompt(spec: IntermediateSpec): string {
     lines.push('');
     lines.push('Design tokens:');
     for (const t of spec.tokens) {
-      lines.push(`  ${t.part}.${t.property} → ${t.token}`);
+      const condition = formatConditions(t.conditions);
+      const qualifier = condition === '—' ? '' : ` [${condition}]`;
+      lines.push(`  ${t.part}.${t.property}${qualifier} → ${t.token}`);
     }
-    if (spec.tokens.some((t) => t.property.includes('('))) {
+    if (spec.tokens.some((t) => Object.keys(t.conditions).length)) {
       lines.push(
-        '  Note: properties qualified like "fills (State=Hovered)" show what changes in that variant relative to the default.',
+        '  Note: a bracketed condition like [State=Hover] means the token applies only to variants matching those axis values; unbracketed lines apply to all variants.',
       );
     }
   }

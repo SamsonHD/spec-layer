@@ -6,5 +6,6 @@ export * from './layout';
 export * from './extract';
 export * from './hash';
 export * from './render';
+export * from './resolve';
 export * from './prose/prompt';
 export * from './prose/client';

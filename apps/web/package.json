@@ -1,0 +1,29 @@
+{
+  "name": "md-ds",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Markdown-driven design system documentation",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@spec-layer/format": "*",
+    "@spec-layer/extractor": "*",
+    "gray-matter": "^4.0.3",
+    "next": "14.2.15",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^9.0.1",
+    "remark-gfm": "^4.0.0",
+    "rehype-slug": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "typescript": "^5"
+  }
+}

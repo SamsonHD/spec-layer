@@ -1,7 +1,12 @@
 import type { IntermediateSpec } from './extract';
 import { contentHash } from './hash';
-import { serializeFrontmatter, type SpecFrontmatter } from '@spec-layer/format';
+import type { TokenRule } from './tokens';
+import { serializeFrontmatter, DRAFT_MARKER, type SpecFrontmatter } from '@spec-layer/format';
 import type { ProseDrafts } from './prose/prompt';
+import {
+  categorize, pivotColorPart, flatPartTable, flatGlobalTable, fixedTable,
+  isUnconditioned, isModifierAxis, isStateAxisName,
+} from './pivot';
 
 const slug = (name: string) =>
   name.toLowerCase()
@@ -10,7 +15,113 @@ const slug = (name: string) =>
     .replace(/-{2,}/g, '-')
     .replace(/^-+|-+$/g, '');
 
-const DRAFT = `> ⚠️ Draft — AI-suggested, not yet approved.\n`;
+// The draft-marker line is canonical in @spec-layer/format (approve.ts strips it).
+const DRAFT = `${DRAFT_MARKER}\n`;
+
+/**
+ * Render `## Variants`: true style axes (one bullet each, default marked) plus a
+ * single `Modifiers` bullet listing the boolean (true/false) variant axes. The
+ * State axis is owned by `## States` and is not repeated here.
+ */
+function renderVariants(spec: IntermediateSpec): string[] {
+  const variantDefault: Record<string, string> = {};
+  for (const p of spec.props) {
+    if (p.kind === 'variant' && typeof p.default === 'string') variantDefault[p.name] = p.default;
+  }
+
+  const lines: string[] = [];
+  for (const v of spec.variants) {
+    if (isStateAxisName(v.prop) || isModifierAxis(v)) continue;
+    const def = variantDefault[v.prop];
+    lines.push(`- **${v.prop}**: ${v.values.map((val) => (val === def ? `${val} (default)` : val)).join(' · ')}`);
+  }
+  const modifiers = spec.variants.filter((v) => !isStateAxisName(v.prop) && isModifierAxis(v));
+  if (modifiers.length) lines.push(`- **Modifiers**: ${modifiers.map((m) => m.prop).join(' · ')}`);
+
+  return lines.length ? lines : ['_None._'];
+}
+
+/**
+ * Render `## Configuration`: the non-variant props (boolean / text /
+ * instanceSwap) — the component's options. Variant axes live in `## Variants`
+ * and `## States`, so they are not duplicated here.
+ */
+function renderConfiguration(spec: IntermediateSpec): string[] {
+  const configProps = spec.props.filter((p) => p.kind !== 'variant');
+  if (!configProps.length) return ['_None._'];
+  return [
+    '| Name | Kind | Options | Default |', '|---|---|---|---|',
+    ...configProps.map((pr) => {
+      const options =
+        pr.kind === 'boolean' ? 'true / false'
+        : pr.options?.length ? pr.options.join(' · ')
+        : '—';
+      return `| ${pr.name} | ${pr.kind} | ${options} | ${pr.default ?? '—'} |`;
+    }),
+  ];
+}
+
+/**
+ * Render the body of `## Tokens used` as three category sub-sections (Color,
+ * Typography, Measurements). Within Color, parts whose bindings are all
+ * unconditioned collapse into a single trailing `#### Fixed` table; the rest are
+ * pivoted per part (with a flat fallback).
+ */
+function renderTokensSection(spec: IntermediateSpec): string[] {
+  const colorByPart = new Map<string, TokenRule[]>();
+  const colorPartOrder: string[] = [];
+  const typography: TokenRule[] = [];
+  const measurements: TokenRule[] = [];
+  for (const r of spec.tokens) {
+    const cat = categorize(r.property);
+    if (cat === 'color') {
+      let list = colorByPart.get(r.part);
+      if (!list) {
+        colorByPart.set(r.part, (list = []));
+        colorPartOrder.push(r.part);
+      }
+      list.push(r);
+    } else if (cat === 'typography') typography.push(r);
+    else measurements.push(r);
+  }
+
+  const defaults: Record<string, string> = {};
+  for (const p of spec.props) {
+    if (p.kind === 'variant' && typeof p.default === 'string') defaults[p.name] = p.default;
+  }
+
+  const lines: string[] = [];
+
+  if (colorPartOrder.length) {
+    lines.push('### Color', '');
+    const fixedEntries: { part: string; rule: TokenRule }[] = [];
+    for (const part of colorPartOrder) {
+      const rules = colorByPart.get(part)!;
+      // Parts with only unconditioned bindings merge into the Fixed table.
+      if (rules.every(isUnconditioned)) {
+        for (const rule of rules) fixedEntries.push({ part, rule });
+        continue;
+      }
+      lines.push(`#### ${part}`, '');
+      const pivoted = pivotColorPart(rules, spec.variants, defaults);
+      lines.push(...(pivoted ?? flatPartTable(rules)));
+    }
+    if (fixedEntries.length) {
+      lines.push('#### Fixed', '', ...fixedTable(fixedEntries));
+    }
+  }
+
+  if (typography.length) {
+    lines.push('### Typography', '', ...flatGlobalTable(typography));
+  }
+
+  if (measurements.length) {
+    lines.push('### Measurements', '', ...flatGlobalTable(measurements));
+  }
+
+  if (!lines.length) return ['_None._', ''];
+  return lines;
+}
 
 export function renderSpec(
   spec: IntermediateSpec,
@@ -24,25 +135,18 @@ export function renderSpec(
     extracted_at: opts.extractedAt,
   };
   const p = opts.prose;
+
   const lines: string[] = [
     '## Definition', '', DRAFT, p?.definition ?? '_To be written._', '',
     '## Anatomy', '',
-    ...spec.anatomy.map((a) => `- ${a.name}${a.nested ? ' (component)' : ''}`), '',
+    ...spec.anatomy.map((a, i) => `${i + 1}. ${a.name}${a.nested ? ' (component)' : ''}`), '',
     '## Configuration', '',
-    '| Name | Kind | Options | Default |', '|---|---|---|---|',
-    ...spec.props.map((pr) => {
-      const options =
-        pr.kind === 'boolean' ? 'true / false'
-        : pr.options?.length ? pr.options.join(' · ')
-        : '—';
-      return `| ${pr.name} | ${pr.kind} | ${options} | ${pr.default ?? '—'} |`;
-    }), '',
+    ...renderConfiguration(spec), '',
     '## Variants', '',
-    ...spec.variants.map((v) => `- **${v.prop}**: ${v.values.join(' · ')}`), '',
+    ...renderVariants(spec), '',
     '## States', '', ...spec.states.map((s) => `- ${s}`), '',
     '## Tokens used', '',
-    '| Part | Property | Token |', '|---|---|---|',
-    ...spec.tokens.map((t) => `| ${t.part} | ${t.property} | \`${t.token}\` |`), '',
+    ...renderTokensSection(spec),
     '## Code', '', DRAFT, '_Import path, prop mapping, and usage example to be filled in._', '',
     '## Accessibility', '', DRAFT, p?.accessibility ?? '_To be written._', '',
     "## Do's & Don'ts", '', DRAFT,

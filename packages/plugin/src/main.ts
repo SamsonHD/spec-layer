@@ -2,6 +2,7 @@
 import { serializeNode, mainComponentRef } from './serialize';
 import type { NodeResolver } from './serialize';
 import type { MainToUi, UiToMain } from './messages';
+import { effectiveFileKey } from './fileKey';
 
 // ---------------------------------------------------------------------------
 // NodeResolver — wraps async Figma APIs
@@ -76,8 +77,33 @@ function findComponent(
 // ---------------------------------------------------------------------------
 // Post the current selection to the UI
 // ---------------------------------------------------------------------------
+// File key override — set by the UI when figma.fileKey is unavailable (dev
+// plugins) or when the user explicitly wants to attach a specific Figma file.
+// The main thread is the single source of truth for the effective file key;
+// the UI only displays/uses what it receives.
+let fileKeyOverride: string | null = null;
+
+// Resolves once the stored override has been loaded, so postSelection never
+// races ahead of clientStorage on boot.
+const fileKeyOverrideReady: Promise<void> = figma.clientStorage
+  .getAsync('fileKeyOverride')
+  .then((value: string | undefined) => {
+    fileKeyOverride = value ?? null;
+  })
+  .catch(() => {/* ignore */});
+
+function postFileKeyOverride(): void {
+  const msg: MainToUi = {
+    type: 'fileKeyOverride',
+    value: fileKeyOverride,
+    effectiveFileKey: effectiveFileKey(figma.fileKey, fileKeyOverride),
+  };
+  figma.ui.postMessage(msg);
+}
+
 async function postSelection(): Promise<void> {
-  const fileKey = figma.fileKey ?? 'unknown';
+  await fileKeyOverrideReady;
+  const fileKey = effectiveFileKey(figma.fileKey, fileKeyOverride);
   const component = findComponent(figma.currentPage.selection);
 
   if (!component) {
@@ -98,11 +124,15 @@ async function postSelection(): Promise<void> {
 // ---------------------------------------------------------------------------
 figma.showUI(__html__, { width: 480, height: 640 });
 
-// Send stored API key on startup
-figma.clientStorage.getAsync('apiKey').then((value: string | undefined) => {
-  const msg: MainToUi = { type: 'apiKey', value: value ?? null };
+// Send stored docs endpoint on startup
+figma.clientStorage.getAsync('docsEndpoint').then((value: string | undefined) => {
+  const msg: MainToUi = { type: 'docsEndpoint', value: value ?? null };
   figma.ui.postMessage(msg);
 }).catch(() => {/* ignore */});
+
+// Send stored Figma file key override (and the effective file key computed
+// from it) on startup; the UI uses it for the input and display only.
+fileKeyOverrideReady.then(() => { postFileKeyOverride(); });
 
 // React to selection changes.
 // Note: selectionchange does not fire on plugin open; the UI sends requestSelection on mount to get the initial selection.
@@ -116,23 +146,25 @@ figma.ui.onmessage = async (raw: unknown) => {
       await postSelection();
       break;
 
-    case 'setApiKey':
-      await figma.clientStorage.setAsync('apiKey', msg.value);
+    case 'setDocsEndpoint':
+      await figma.clientStorage.setAsync('docsEndpoint', msg.value);
       break;
 
-    case 'cacheGet': {
-      const value: string | undefined = await figma.clientStorage.getAsync(msg.key);
-      const reply: MainToUi = { type: 'cacheValue', key: msg.key, value: value ?? null };
-      figma.ui.postMessage(reply);
-      break;
-    }
-
-    case 'cacheSet':
-      await figma.clientStorage.setAsync(msg.key, msg.value);
+    case 'setFileKeyOverride':
+      // Wait for the boot-time load so it cannot clobber a user-set value.
+      await fileKeyOverrideReady;
+      fileKeyOverride = msg.value && msg.value !== '' ? msg.value : null;
+      await figma.clientStorage.setAsync('fileKeyOverride', fileKeyOverride);
+      // Echo back the new effective key — the UI never derives it itself.
+      postFileKeyOverride();
       break;
 
     case 'notify':
       figma.notify(msg.message);
+      break;
+
+    case 'openBrowser':
+      figma.openExternal(msg.url);
       break;
   }
 };

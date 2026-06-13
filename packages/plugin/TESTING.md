@@ -3,6 +3,10 @@
 Phase 1 release gate. Run top-to-bottom before merging to `main`.  
 Mark each item `[x]` when verified, note issues in **Known gaps** at the bottom.
 
+The plugin extracts a structural spec deterministically (no Anthropic call, no
+API key, no prose). The flow is: **Extract → review the rendered markdown in the
+textarea → Send to docs OR Download .md**.
+
 ---
 
 ## 1. Build
@@ -33,7 +37,26 @@ node packages/plugin/build.mjs
 
 ---
 
-## 4. Button — core extraction
+## 4. Settings — Docs URL and Figma file override
+
+1. Run the plugin.
+2. In **Settings**, leave **Docs URL** empty and confirm the placeholder reads `http://localhost:3000`.
+3. Type a custom URL (e.g. `http://localhost:4001`) into **Docs URL** and blur the field.
+4. Close the plugin and reopen it.
+5. Paste a full Figma file URL (e.g. `https://www.figma.com/file/ABC123/My-Kit`) into the **Figma file** field and blur.
+
+**Verify:**
+
+- [ ] After reopening, **Docs URL** still shows the custom value you entered (persists via clientStorage).
+- [ ] The **Figma file** hint shows the detected key (e.g. `Using file key ABC123`) when a valid URL/key is pasted.
+- [ ] Pasting an unparseable string shows the hint `Could not detect a file key — paste the full Figma URL.` and does **not** crash.
+- [ ] Clearing the **Figma file** field removes the hint.
+
+> Reset **Docs URL** back to `http://localhost:3000` before the send tests below.
+
+---
+
+## 5. Button — core extraction
 
 1. Locate the **Button** component set in the M3 kit (search Components panel: "Button").
 2. Select the **Button** component set frame.
@@ -46,18 +69,44 @@ node packages/plugin/build.mjs
 - [ ] Variant axes are complete: at least `Style` (Filled · Tonal · Outlined · Elevated · Text) and `State` (Enabled · Hovered · Focused · Pressed · Disabled).
 - [ ] **Tokens used** table shows `md.sys.*` names (e.g. `md.sys.color.primary`).
 - [ ] **No raw variable IDs** appear anywhere in the output (search the rendered markdown for `VariableID:` — should be zero hits).
+- [ ] The rendered markdown appears in the **review textarea** and the **Send to docs** / **Download .md** buttons are enabled.
 
 ---
 
-## 5. No-API-key mode (prose degraded)
+## 6. Send to docs — success path
 
-1. Ensure no Anthropic API key is set in the plugin settings field.
-2. Re-extract the Button (or any component).
+1. Start the docs web app so it listens on `http://localhost:3000` (the only origin permitted by `manifest.json` `networkAccess`).
+2. With a Button spec extracted (step 5), click **Send to docs**.
 
 **Verify:**
 
-- [ ] Prose sections (Definition, Code, Accessibility, Do's & Don'ts) display the draft marker: `⚠️ Draft — AI-suggested, not yet approved.` with placeholder text.
-- [ ] **Export / Download** button is still enabled and produces a `.md` file.
+- [ ] An info banner shows the result, e.g. `Sent → <path or slug>`.
+- [ ] The spec lands in the docs web app inbox (POST `http://localhost:3000/api/specs/import` succeeds).
+- [ ] A Figma toast notifies `Spec sent: <component>`.
+
+---
+
+## 7. Send to docs — failure path
+
+1. Stop the docs web app (nothing listening on `http://localhost:3000`).
+2. With a spec still extracted, click **Send to docs**.
+
+**Verify:**
+
+- [ ] A red **error banner** appears (e.g. `Send failed: …` or `Send failed (<status>): …`).
+- [ ] The plugin does **not** crash; the **Send to docs** button re-enables so you can retry.
+
+---
+
+## 8. Download draft .md (reflects textarea edits)
+
+1. With a spec extracted, edit the **review textarea** (add a word or a line of text).
+2. Click **Download .md**.
+
+**Verify:**
+
+- [ ] A `<component>.md` file downloads (filename is the kebab-cased component name).
+- [ ] The downloaded file content includes the edit you made in the textarea (download reflects textarea edits, not the original extraction).
 - [ ] Downloaded file parses without error:
   ```sh
   node -e "
@@ -71,48 +120,9 @@ node packages/plugin/build.mjs
 
 ---
 
-## 6. API key mode + cache
+## 9. Additional components — Text field & Dialog
 
-1. Open plugin settings, paste a valid Anthropic API key.
-2. Re-extract **Button** → wait for prose drafts to populate all judgment sections.
-3. **Re-extract the same Button again** without changing the selection.
-
-**Verify:**
-
-- [ ] On the second extraction, prose appears immediately (no visible loading delay).
-- [ ] Open DevTools Network panel (Figma desktop: **Help → Toggle Developer Tools**) and confirm **no second outbound request** to `api.anthropic.com` is made on the repeat extraction.
-
----
-
-## 7. Edit + Approve + Download round-trip
-
-1. In the plugin UI, edit the **Definition** textarea (add a word or sentence).
-2. Click **Approve** (enter your name when prompted).
-
-**Verify:**
-
-- [ ] Frontmatter flips to `status: approved` with your name in `approved_by`.
-- [ ] All `⚠️ Draft` markers are removed from the rendered markdown.
-- [ ] Click **Download** → file saves as `button.md`.
-- [ ] Parse the downloaded file:
-  ```sh
-  node -e "
-    const fs = require('fs');
-    const md = fs.readFileSync('button.md', 'utf8');
-    const m = md.match(/^---\n([\s\S]*?)\n---/);
-    const yaml = m[1];
-    if (!yaml.includes('status: approved')) throw new Error('not approved');
-    if (!yaml.includes('approved_by:')) throw new Error('no approved_by');
-    if (md.includes('⚠️ Draft')) throw new Error('draft marker still present');
-    console.log('OK');
-  "
-  ```
-
----
-
-## 8. Additional components — Text field & Dialog
-
-Repeat extraction (steps 4–5) for:
+Repeat extraction (step 5) and a send or download (steps 6–8) for:
 
 | Component | Status | Notes |
 |---|---|---|
@@ -123,7 +133,7 @@ Record any token resolution mismatches or missing anatomy parts under **Known ga
 
 ---
 
-## 9. Non-component selection guard
+## 10. Non-component selection guard
 
 1. Select any plain **Frame** (not a component or component set).
 2. Run the plugin.
@@ -132,11 +142,11 @@ Record any token resolution mismatches or missing anatomy parts under **Known ga
 
 ---
 
-## 10. Child-layer selection (findComponent fix)
+## 11. Child-layer selection (findComponent fix)
 
 1. Expand the Button component set in the Layers panel.
 2. Click a layer **inside** a variant (e.g. the Label Text layer inside Style=Filled, State=Enabled).
-3. Run the plugin.
+3. Run the plugin → click **Extract**.
 
 **Pass:** Plugin resolves up to the parent COMPONENT_SET and produces the full Configuration table (all variant axes present). It does **not** show a partial or empty props table.
 

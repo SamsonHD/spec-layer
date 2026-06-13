@@ -1,21 +1,26 @@
-import { parseFrontmatter, serializeFrontmatter } from '@spec-layer/format';
-
 // ---------------------------------------------------------------------------
 // Phase machine types
 // ---------------------------------------------------------------------------
 
-export type UiPhase = 'idle' | 'extracting' | 'drafting' | 'review' | 'approved';
-export type UiEvent = 'selected' | 'rendered' | 'prose-done' | 'prose-failed' | 'approved';
+export type UiPhase = 'idle' | 'extracting' | 'reviewing' | 'sent';
+export type UiEvent = 'selected' | 'rendered' | 'sent';
 
 // ---------------------------------------------------------------------------
 // nextStatus — pure transition function
+//
+//   idle --selected--> extracting --rendered--> reviewing --sent--> sent
+//   sent --selected--> idle          (new selection resets the cycle)
+//   sent --sent-->     sent          (re-send keeps the phase)
+//
+// 'sent' is only reachable from phases where a rendered spec exists
+// (reviewing, or sent itself). Any other (phase, event) pair is a no-op.
 // ---------------------------------------------------------------------------
 
 export function nextStatus(phase: UiPhase, event: UiEvent): UiPhase {
   if (phase === 'idle' && event === 'selected') return 'extracting';
-  if (phase === 'extracting' && event === 'rendered') return 'drafting';
-  if (phase === 'drafting' && (event === 'prose-done' || event === 'prose-failed')) return 'review';
-  if (phase === 'review' && event === 'approved') return 'approved';
+  if (phase === 'extracting' && event === 'rendered') return 'reviewing';
+  if ((phase === 'reviewing' || phase === 'sent') && event === 'sent') return 'sent';
+  if (phase === 'sent' && event === 'selected') return 'idle';
   return phase;
 }
 
@@ -37,31 +42,4 @@ export function toKebab(name: string): string {
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9-]/g, '')
     .replace(/-{2,}/g, '-');
-}
-
-// ---------------------------------------------------------------------------
-// The exact draft-marker line emitted by renderSpec in @spec-layer/extractor
-// ---------------------------------------------------------------------------
-
-const DRAFT_MARKER = '> ⚠️ Draft — AI-suggested, not yet approved.';
-
-// ---------------------------------------------------------------------------
-// approveSpec — flips frontmatter status, stamps approver, strips draft markers
-// ---------------------------------------------------------------------------
-
-export function approveSpec(md: string, approver: string): string {
-  const { frontmatter, body } = parseFrontmatter(md);
-
-  // Flip status + stamp approver
-  frontmatter.status = 'approved';
-  frontmatter.approved_by = approver;
-
-  // Remove all lines that are exactly the draft marker, then collapse triple+ newlines
-  const cleanedBody = body
-    .split('\n')
-    .filter((line) => line !== DRAFT_MARKER)
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n');
-
-  return serializeFrontmatter(frontmatter, cleanedBody);
 }

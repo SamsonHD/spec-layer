@@ -1,7 +1,8 @@
-import { extract, renderSpec, draftProse } from '@spec-layer/extractor';
-import type { SerializedNode, CacheStore } from '@spec-layer/extractor';
+import { extract, renderSpec } from '@spec-layer/extractor';
+import type { SerializedNode, IntermediateSpec } from '@spec-layer/extractor';
 import type { MainToUi, UiToMain } from '../messages';
-import { approveSpec, nextStatus, resetToIdle, toKebab, type UiPhase } from './state';
+import { nextStatus, resetToIdle, toKebab, type UiPhase } from './state';
+import { parseFigmaFileKey } from './fileKey';
 
 // ---------------------------------------------------------------------------
 // Message helpers
@@ -12,64 +13,16 @@ function send(msg: UiToMain): void {
 }
 
 // ---------------------------------------------------------------------------
-// clientStorage-backed CacheStore
-// Pending get-resolvers keyed by cache key so concurrent gets work correctly.
-// ---------------------------------------------------------------------------
-
-const pendingGets = new Map<string, Array<(v: string | null) => void>>();
-
-const CACHE_GET_TIMEOUT_MS = 5_000;
-
-const cacheStore: CacheStore = {
-  get(key: string): Promise<string | null> {
-    return new Promise((resolve) => {
-      const existing = pendingGets.get(key);
-      if (existing) {
-        existing.push(resolve);
-        // Timeout is already running for this key (set when the first waiter registered)
-      } else {
-        pendingGets.set(key, [resolve]);
-        // Start a timeout for this key — resolves all waiters with null on expiry
-        const timer = setTimeout(() => {
-          const waiters = pendingGets.get(key);
-          if (waiters) {
-            pendingGets.delete(key);
-            for (const r of waiters) r(null);
-          }
-        }, CACHE_GET_TIMEOUT_MS);
-        // Store the timer id alongside the resolvers so a real reply can cancel it
-        (pendingGets.get(key) as unknown as { _timer?: ReturnType<typeof setTimeout> })._timer = timer;
-      }
-      send({ type: 'cacheGet', key });
-    });
-  },
-  set(key: string, value: string): Promise<void> {
-    send({ type: 'cacheSet', key, value });
-    return Promise.resolve();
-  },
-};
-
-function resolvePendingGet(key: string, value: string | null): void {
-  const resolvers = pendingGets.get(key);
-  if (resolvers) {
-    // Cancel the timeout before we delete the entry and fire resolvers
-    const timer = (resolvers as unknown as { _timer?: ReturnType<typeof setTimeout> })._timer;
-    if (timer !== undefined) clearTimeout(timer);
-    pendingGets.delete(key);
-    for (const resolve of resolvers) resolve(value);
-  }
-}
-
-// ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
 
 let phase: UiPhase = 'idle';
 let currentNode: SerializedNode | null = null;
 let currentFileKey = '';
-let apiKey: string | null = null;
+let currentSpec: IntermediateSpec | null = null;
+let currentExtractedAt = '';
 let renderedMd = '';
-let banner = '';
+let docsEndpoint = 'http://localhost:3000';
 
 // ---------------------------------------------------------------------------
 // DOM — build once, wire once
@@ -86,10 +39,10 @@ document.body.innerHTML = `
              cursor: pointer; background: #18a0fb; color: #fff; }
     button:disabled { opacity: 0.4; cursor: default; }
     button.secondary { background: #e5e5e5; color: #1e1e1e; }
-    button.approve-btn { background: #1bc47d; }
+    button.send-btn { background: #1bc47d; }
     button.download-btn { background: #6c6c6c; }
     label { font-size: 11px; color: #666; }
-    input[type="password"], input[type="text"] {
+    input[type="text"] {
       font-size: 12px; padding: 5px 8px; border: 1px solid #ccc;
       border-radius: 4px; flex: 1; }
     textarea {
@@ -99,26 +52,24 @@ document.body.innerHTML = `
     .banner { padding: 8px 10px; border-radius: 4px; margin-bottom: 10px;
               font-size: 12px; display: none; }
     .banner.info  { background: #e8f4ff; color: #0060c0; }
-    .banner.warn  { background: #fff7e6; color: #8a5000; }
     .banner.error { background: #fff0f0; color: #c00; }
     .hint { font-size: 11px; color: #888; margin-bottom: 6px; }
     .section { margin-bottom: 12px; }
-    .status-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px;
-                    background: #f0f0f0; color: #555; }
-    .status-badge.approved { background: #e0f8ed; color: #1a7a4a; }
     hr { border: none; border-top: 1px solid #eee; margin: 10px 0; }
     #no-selection { color: #999; padding: 20px 0; text-align: center; }
     #main-area { display: none; }
-    .approver-row { display: flex; align-items: center; gap: 6px; }
-    .approver-row label { white-space: nowrap; }
   </style>
 
   <div class="section" id="settings">
     <div class="row">
-      <label for="api-key-input">API key</label>
-      <input type="password" id="api-key-input" placeholder="sk-ant-..." style="flex:1" />
+      <label for="endpoint-input">Docs URL</label>
+      <input type="text" id="endpoint-input" placeholder="http://localhost:3000" style="flex:1" />
     </div>
-    <div class="hint">No key → structural spec only, no AI drafts.</div>
+    <div class="row">
+      <label for="filekey-input">Figma file</label>
+      <input type="text" id="filekey-input" placeholder="paste Figma file URL or key" style="flex:1" />
+    </div>
+    <div class="hint" id="filekey-hint" style="padding-left:80px"></div>
   </div>
 
   <hr />
@@ -129,7 +80,6 @@ document.body.innerHTML = `
     <div class="section">
       <div class="row">
         <h2 id="component-name">Component</h2>
-        <span class="status-badge" id="status-badge">draft</span>
       </div>
       <div class="row">
         <button id="extract-btn">Extract</button>
@@ -138,19 +88,14 @@ document.body.innerHTML = `
     </div>
 
     <div class="banner info" id="banner-info"></div>
-    <div class="banner warn" id="banner-warn"></div>
     <div class="banner error" id="banner-error"></div>
 
     <div class="section" id="review-area" style="display:none">
-      <div class="hint" id="draft-hint"></div>
+      <div class="hint">Review the structural spec below. Edits here only affect the downloaded .md — "Send to docs" sends the extracted structure as-is.</div>
       <textarea id="spec-textarea" spellcheck="false"></textarea>
 
       <div class="row" style="margin-top:8px">
-        <div class="approver-row">
-          <label for="approver-input">Approver:</label>
-          <input type="text" id="approver-input" value="Designer" style="width:120px" />
-        </div>
-        <button class="approve-btn" id="approve-btn">Approve</button>
+        <button class="send-btn" id="send-btn">Send to docs</button>
         <button class="download-btn secondary" id="download-btn">Download .md</button>
       </div>
     </div>
@@ -161,33 +106,29 @@ document.body.innerHTML = `
 // Element refs
 // ---------------------------------------------------------------------------
 
-const apiKeyInput    = document.getElementById('api-key-input') as HTMLInputElement;
+const endpointInput  = document.getElementById('endpoint-input') as HTMLInputElement;
+const fileKeyInput   = document.getElementById('filekey-input') as HTMLInputElement;
+const fileKeyHint    = document.getElementById('filekey-hint') as HTMLDivElement;
 const noSelection    = document.getElementById('no-selection') as HTMLDivElement;
 const mainArea       = document.getElementById('main-area') as HTMLDivElement;
 const componentName  = document.getElementById('component-name') as HTMLHeadingElement;
-const statusBadge    = document.getElementById('status-badge') as HTMLSpanElement;
 const phaseLabel     = document.getElementById('phase-label') as HTMLSpanElement;
 const extractBtn     = document.getElementById('extract-btn') as HTMLButtonElement;
 const bannerInfo     = document.getElementById('banner-info') as HTMLDivElement;
-const bannerWarn     = document.getElementById('banner-warn') as HTMLDivElement;
 const bannerError    = document.getElementById('banner-error') as HTMLDivElement;
 const reviewArea     = document.getElementById('review-area') as HTMLDivElement;
-const draftHint      = document.getElementById('draft-hint') as HTMLDivElement;
 const specTextarea   = document.getElementById('spec-textarea') as HTMLTextAreaElement;
-const approverInput  = document.getElementById('approver-input') as HTMLInputElement;
-const approveBtn     = document.getElementById('approve-btn') as HTMLButtonElement;
+const sendBtn        = document.getElementById('send-btn') as HTMLButtonElement;
 const downloadBtn    = document.getElementById('download-btn') as HTMLButtonElement;
 
 // ---------------------------------------------------------------------------
 // Render helpers
 // ---------------------------------------------------------------------------
 
-function showBanner(type: 'info' | 'warn' | 'error' | null, text: string): void {
+function showBanner(type: 'info' | 'error' | null, text: string): void {
   bannerInfo.style.display  = type === 'info'  ? 'block' : 'none';
-  bannerWarn.style.display  = type === 'warn'  ? 'block' : 'none';
   bannerError.style.display = type === 'error' ? 'block' : 'none';
   if (type === 'info')  bannerInfo.textContent  = text;
-  if (type === 'warn')  bannerWarn.textContent  = text;
   if (type === 'error') bannerError.textContent = text;
 }
 
@@ -195,30 +136,16 @@ function clearBanners(): void {
   showBanner(null, '');
 }
 
-function countDraftSections(md: string): number {
-  return (md.match(/> ⚠️ Draft/g) ?? []).length;
-}
-
-function updateDraftHint(md: string): void {
-  const n = countDraftSections(md);
-  draftHint.textContent = n > 0
-    ? `${n} section${n > 1 ? 's' : ''} still contain AI-draft markers — review and edit before approving.`
-    : 'No draft markers — all sections reviewed.';
-}
-
 function renderPhase(): void {
-  phaseLabel.textContent = phase === 'idle' ? '' : phase;
-  extractBtn.disabled = phase === 'extracting' || phase === 'drafting';
-  reviewArea.style.display = (phase === 'review' || phase === 'approved') ? 'block' : 'none';
+  phaseLabel.textContent = phase === 'extracting' ? 'extracting…' : '';
+  extractBtn.disabled = phase === 'extracting';
 
-  statusBadge.textContent = phase === 'approved' ? 'approved' : 'draft';
-  statusBadge.className = 'status-badge' + (phase === 'approved' ? ' approved' : '');
-
-  approveBtn.disabled = phase === 'approved';
+  const hasSpec = currentSpec !== null;
+  reviewArea.style.display = hasSpec ? 'block' : 'none';
+  sendBtn.disabled = phase === 'extracting';
 
   if (renderedMd) {
     specTextarea.value = renderedMd;
-    updateDraftHint(renderedMd);
   }
 }
 
@@ -232,66 +159,65 @@ async function runExtract(): Promise<void> {
   clearBanners();
   phase = resetToIdle();
   phase = nextStatus(phase, 'selected');
-  extractBtn.disabled = true;
-  phaseLabel.textContent = 'extracting…';
+  renderPhase();
 
-  // Step 1: extract struct
-  const spec = extract(currentNode, { figmaFile: currentFileKey });
-
-  // Step 2: render structural markdown immediately
   const extractedAt = new Date().toISOString();
+  const spec = extract(currentNode, { figmaFile: currentFileKey });
   renderedMd = renderSpec(spec, { prose: null, extractedAt });
+
+  currentSpec = spec;
+  currentExtractedAt = extractedAt;
+
   phase = nextStatus(phase, 'rendered');
-  phaseLabel.textContent = 'drafting…';
   renderPhase();
 
-  // Step 3: try AI prose
-  try {
-    if (!apiKey) {
-      showBanner('warn', 'AI drafts unavailable — structural spec only (no API key set).');
-      phase = nextStatus(phase, 'prose-failed');
-    } else {
-      const prose = await draftProse(spec, {
-        apiKey,
-        fetcher: window.fetch.bind(window),
-        cacheStore,
-      });
-      if (prose) {
-        renderedMd = renderSpec(spec, { prose, extractedAt });
-        phase = nextStatus(phase, 'prose-done');
-      } else {
-        showBanner('warn', 'AI drafts unavailable — structural spec only.');
-        phase = nextStatus(phase, 'prose-failed');
-      }
-    }
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    showBanner('error', `AI draft failed: ${msg}`);
-    phase = nextStatus(phase, 'prose-failed');
-  }
-
-  renderPhase();
   send({ type: 'notify', message: `Spec extracted for ${spec.name}` });
 }
 
 // ---------------------------------------------------------------------------
-// Approve
+// Send to docs
 // ---------------------------------------------------------------------------
 
-function runApprove(): void {
-  const approver = approverInput.value.trim() || 'Designer';
+async function runSendToDocs(): Promise<void> {
+  if (!currentSpec) return;
+
+  const base = docsEndpoint.replace(/\/+$/, '');
+  const url = `${base}/api/specs/import`;
+
+  showBanner('info', 'Sending to docs…');
+  sendBtn.disabled = true;
+
   try {
-    const approved = approveSpec(specTextarea.value, approver);
-    renderedMd = approved;
-    specTextarea.value = approved;
-    phase = nextStatus(phase, 'approved');
+    const res = await window.fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ spec: currentSpec, extractedAt: currentExtractedAt }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => res.statusText);
+      showBanner('error', `Send failed (${res.status}): ${text}`);
+      return;
+    }
+
+    const data = await res.json() as { ok: boolean; path?: string; slug?: string; warning?: string };
+    phase = nextStatus(phase, 'sent');
     renderPhase();
-    clearBanners();
-    showBanner('info', `Approved by ${approver}.`);
-    send({ type: 'notify', message: 'Spec approved.' });
+
+    const slug = data.slug ?? '';
+    const successMsg = slug ? `Sent → _inbox/${slug}` : 'Sent to docs.';
+    showBanner('info', successMsg + (data.warning ? `  ⚠ ${data.warning}` : ''));
+    send({ type: 'notify', message: `Spec sent: ${currentSpec.name}` });
+
+    const browserUrl = slug
+      ? `${base}/components/_inbox/${slug}`
+      : `${base}/inbox`;
+    send({ type: 'openBrowser', url: browserUrl });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    showBanner('error', `Approve failed: ${msg}`);
+    showBanner('error', `Send failed: ${msg}`);
+  } finally {
+    sendBtn.disabled = false;
   }
 }
 
@@ -316,19 +242,35 @@ function runDownload(): void {
 // Event wiring
 // ---------------------------------------------------------------------------
 
-apiKeyInput.addEventListener('change', () => {
-  apiKey = apiKeyInput.value.trim() || null;
-  send({ type: 'setApiKey', value: apiKeyInput.value.trim() });
+endpointInput.addEventListener('change', () => {
+  docsEndpoint = endpointInput.value.trim() || 'http://localhost:3000';
+  send({ type: 'setDocsEndpoint', value: docsEndpoint });
+});
+
+fileKeyInput.addEventListener('change', () => {
+  const raw = fileKeyInput.value.trim();
+  if (!raw) {
+    fileKeyHint.textContent = '';
+    send({ type: 'setFileKeyOverride', value: null });
+    return;
+  }
+  const parsed = parseFigmaFileKey(raw);
+  if (!parsed) {
+    fileKeyHint.textContent = 'Could not detect a file key — paste the full Figma URL.';
+    return;
+  }
+  // Main is the single authority: it stores the override, recomputes the
+  // effective key, and echoes both back via a 'fileKeyOverride' message.
+  send({ type: 'setFileKeyOverride', value: parsed });
 });
 
 extractBtn.addEventListener('click', () => { runExtract().catch(() => { /* handled inside */ }); });
-approveBtn.addEventListener('click', runApprove);
+sendBtn.addEventListener('click', () => { runSendToDocs().catch(() => { /* handled inside */ }); });
 downloadBtn.addEventListener('click', runDownload);
 
 // Keep textarea in sync with renderedMd when user edits
 specTextarea.addEventListener('input', () => {
   renderedMd = specTextarea.value;
-  updateDraftHint(renderedMd);
 });
 
 // ---------------------------------------------------------------------------
@@ -342,12 +284,14 @@ window.onmessage = (event: MessageEvent) => {
   switch (msg.type) {
     case 'selection': {
       currentNode = msg.node;
+      // msg.fileKey is already the effective key computed by main.
       currentFileKey = msg.fileKey;
+      currentSpec = null;
+      currentExtractedAt = '';
       if (msg.node) {
         noSelection.style.display = 'none';
         mainArea.style.display = 'block';
         componentName.textContent = msg.node.name;
-        // Reset to idle on new selection
         phase = 'idle';
         renderedMd = '';
         clearBanners();
@@ -361,14 +305,23 @@ window.onmessage = (event: MessageEvent) => {
       break;
     }
 
-    case 'apiKey': {
-      apiKey = msg.value;
-      apiKeyInput.value = msg.value ?? '';
+    case 'docsEndpoint': {
+      docsEndpoint = msg.value ?? 'http://localhost:3000';
+      endpointInput.value = docsEndpoint;
       break;
     }
 
-    case 'cacheValue': {
-      resolvePendingGet(msg.key, msg.value);
+    case 'fileKeyOverride': {
+      // Main is the single authority; it sends both the stored override
+      // (for the input) and the computed effective key (for display/use).
+      currentFileKey = msg.effectiveFileKey;
+      if (msg.value) {
+        fileKeyInput.value = msg.value;
+        fileKeyHint.textContent = `Using file key ${msg.effectiveFileKey}`;
+      } else {
+        fileKeyInput.value = '';
+        fileKeyHint.textContent = '';
+      }
       break;
     }
   }

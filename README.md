@@ -2,7 +2,7 @@
 
 > **The approved contract between design and code: your design system as text — reviewed by humans, executed by AI, never out of sync.**
 
-A Figma plugin extracts components into structured Markdown specs, a human reviews and approves each one, and the result is version-controlled text that AI tools can trust without guesswork.
+A Figma plugin extracts components into structured intermediate specs, a local docs web app renders and stores them as Markdown, a human reviews and approves each one there, and the result is version-controlled text that AI tools can trust without guesswork.
 
 | | What you get |
 |---|---|
@@ -32,34 +32,44 @@ Then load it into Figma:
 Run through the flow:
 
 ```
-Extract → Review → Approve → Export
+Extract → review the structural draft → Send to docs (or Download .md)
 ```
 
-The plugin walks your selected component, extracts a draft spec, lets you edit it, and exports an approved `.md` file to commit to your repo.
+The plugin walks your selected component, extracts a structural draft spec, and lets you review it. **Send to docs** POSTs the extraction to the docs web app (`/api/specs/import`), where AI prose is drafted server-side and the spec lands in the inbox for filing and approval. **Download .md** saves the structural draft directly instead.
 
-**Optional — AI prose drafts:** open the plugin's Settings panel and paste an Anthropic API key. It's saved in Figma's local storage (`figma.clientStorage`) — no env var or rebuild needed. Without a key you still get a complete structural spec; the written sections (Definition, Code, Accessibility, Do's & Don'ts) come as stubs for you to fill in.
+**AI prose drafts** happen in the docs app, not the plugin: set the `ANTHROPIC_API_KEY` env var for `apps/web` (e.g. in `apps/web/.env.local`). Without a key, imports still produce a complete structural spec; the written sections (Definition, Code, Accessibility, Do's & Don'ts) come as stubs for the reviewer to fill in. The plugin's Settings panel holds only the docs endpoint URL (default `http://localhost:3000`) and an optional Figma file-key override (paste a Figma file URL or key — useful for dev plugins where `figma.fileKey` is unavailable).
 
 For the full manual walkthrough, see [`packages/plugin/TESTING.md`](packages/plugin/TESTING.md).
+
+### Run the docs app
+
+```bash
+cd apps/web && npm run dev     # or: npm run dev -w md-ds
+```
+
+The docs site serves at http://localhost:3000 — imported specs appear under **Inbox**, where you file, regenerate, and approve them. Point it at your own content folder with the in-app folder picker or `DS_CONTENT_DIR`.
 
 ### Develop
 
 ```bash
 npm test          # run all tests (Vitest)
-npm run typecheck # type-check every package
+npm run typecheck # type-check every package + apps/web
 ```
 
 ---
 
 ## Project architecture
 
-Spec Layer is an npm-workspaces monorepo with three packages that form a clean dependency chain:
+Spec Layer is an npm-workspaces monorepo: three packages forming a clean dependency chain, plus the docs web app that consumes them.
 
 ```
-@spec-layer/format          YAML frontmatter: parse / serialize / validate
+@spec-layer/format          YAML frontmatter: parse / serialize / validate + approveSpec
        ▲
 @spec-layer/extractor       Pure pipeline: serialized node → IntermediateSpec → Markdown
-       ▲                    (+ optional Anthropic prose layer)
-@spec-layer/plugin          Figma plugin: serialize, review, approve, export
+       ▲                    (+ Anthropic prose layer, invoked server-side by apps/web)
+@spec-layer/plugin          Figma plugin: serialize, extract, send to docs / download
+
+apps/web (md-ds)            Next.js docs app: import API, AI prose, inbox, approve, serve
 ```
 
 ```
@@ -68,12 +78,15 @@ spec/
   examples/        Reference specs: button, text-field, dialog
 
 packages/
-  format/          Parse, serialize, and validate the Markdown frontmatter
+  format/          Parse, serialize, validate the frontmatter; approveSpec
   extractor/       serialized Figma node tree → IntermediateSpec → spec Markdown
   plugin/          Figma plugin — manifest, main thread, serializer, review UI
+
+apps/
+  web/             Next.js 14 docs app — content store, /api/specs/*, review UI
 ```
 
-The pipeline in one line: **Extract → Approve → Store → Serve**. The plugin handles all Figma I/O, the extractor is pure (testable from JSON fixtures), and format owns the Markdown envelope.
+The pipeline in one line: **Extract → Approve → Store → Serve**. The plugin handles all Figma I/O, the extractor is pure (testable from JSON fixtures), format owns the Markdown envelope and approval, and the web app stores, enriches, and serves the specs.
 
 For the full breakdown — data flow, message protocol, design decisions, and diagrams — see [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
@@ -93,8 +106,9 @@ Each component is one `.md` file: a YAML frontmatter block (identity, status, co
 | Phase | Scope | Status |
 |---|---|---|
 | **0 — Format** | Open spec definition, YAML frontmatter, 10-section body | Done |
-| **1 — Extractor + Plugin** | Node-tree pipeline, LLM prose layer, Figma plugin | Done |
-| **2 — Sync + Drift** | GitHub push from plugin, drift detection | Roadmap |
+| **1 — Extractor + Plugin** | Node-tree pipeline, conditional token rules, thin Figma plugin | Done |
+| **1.5 — Docs app (Store/Serve, local)** | Next.js docs site, import/inbox flow, server-side AI prose, approve/regenerate API | Done |
+| **2 — Sync + Drift** | GitHub sync of the content folder, drift detection via `content_hash` | Roadmap |
 | **3 — MCP Server** | `get_spec` / `search_components` / `list_tokens` | Roadmap |
 
 ---

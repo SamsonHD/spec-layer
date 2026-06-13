@@ -28,9 +28,11 @@ describe('extractAnatomy — single-wrapper descent (bug 2)', () => {
     expect(chipResult.parts.map((p) => p.name)).not.toContain('Contents');
   });
 
-  // M-1: assert the FULL parts list so duplicate-named parts are never collapsed
-  it('lists the full parts inside the wrapper frame (including duplicate icon entries)', () => {
-    expect(chipResult.parts.map((p) => p.name)).toEqual(['icon', 'Label', 'icon']);
+  // Anatomy is a list of meaningful parts: a leading and trailing icon both
+  // named "icon" deliver one anatomy entry's worth of information. Duplicates
+  // by name collapse (first occurrence kept) so the list reads cleanly.
+  it('lists the parts inside the wrapper frame, deduped by name', () => {
+    expect(chipResult.parts.map((p) => p.name)).toEqual(['icon', 'Label']);
   });
 
   it('collects related atoms from inside the wrapper', () => {

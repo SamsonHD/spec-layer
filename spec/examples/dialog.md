@@ -17,20 +17,19 @@ A Dialog interrupts the user's workflow to convey critical information or requir
 
 ## Anatomy
 
-- Scrim
-- Container
-- Icon (component)
-- Headline text
-- Body text
-- Divider (Full-screen only)
-- Actions (component — Button)
-- State layer
+1. Scrim
+2. Container
+3. Icon (component)
+4. Headline text
+5. Body text
+6. Divider (Full-screen only)
+7. Actions (component — Button)
+8. State layer
 
 ## Configuration
 
 | Name | Kind | Options | Default |
 |---|---|---|---|
-| Type | variant | Basic · Full-screen | Basic |
 | Show icon | boolean | true / false | false |
 | Show headline | boolean | true / false | true |
 | Headline | text | — | Dialog headline |
@@ -38,7 +37,7 @@ A Dialog interrupts the user's workflow to convey critical information or requir
 
 ## Variants
 
-- **Type**: Basic · Full-screen
+- **Type**: Basic (default) · Full-screen
 
 ## States
 
@@ -46,18 +45,32 @@ A Dialog interrupts the user's workflow to convey critical information or requir
 
 ## Tokens used
 
+### Color
+
+#### Fixed
+
 | Part | Property | Token |
 |---|---|---|
-| Container | background | md.sys.color.surface-container-high |
-| Container | border-radius | md.sys.shape.corner.extra-large |
-| Container | elevation | md.sys.elevation.level3 |
-| Scrim | color | md.sys.color.scrim |
-| Scrim | opacity | 0.32 |
-| Icon | color | md.sys.color.secondary |
-| Headline text | color | md.sys.color.on-surface |
-| Headline text | typography | md.sys.typescale.headline-small |
-| Body text | color | md.sys.color.on-surface-variant |
-| Body text | typography | md.sys.typescale.body-medium |
+| Container | background | `md.sys.color.surface-container-high` |
+| Scrim | color | `md.sys.color.scrim` |
+| Icon | color | `md.sys.color.secondary` |
+| Headline text | color | `md.sys.color.on-surface` |
+| Body text | color | `md.sys.color.on-surface-variant` |
+
+### Typography
+
+| Part | Property | Condition | Token |
+|---|---|---|---|
+| Headline text | typography | — | `md.sys.typescale.headline-small` |
+| Body text | typography | — | `md.sys.typescale.body-medium` |
+
+### Measurements
+
+| Part | Property | Condition | Token |
+|---|---|---|---|
+| Container | border-radius | — | `md.sys.shape.corner.extra-large` |
+| Container | elevation | — | `md.sys.elevation.level3` |
+| Scrim | opacity | — | `0.32` |
 
 ## Code
 

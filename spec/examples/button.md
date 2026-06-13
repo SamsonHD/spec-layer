@@ -17,24 +17,21 @@ A Button triggers an action or event when activated. Use the Filled variant for 
 
 ## Anatomy
 
-- Container
-- Label
-- Leading icon (component)
-- State layer
+1. Container
+2. Label
+3. Leading icon (component)
+4. State layer
 
 ## Configuration
 
 | Name | Kind | Options | Default |
 |---|---|---|---|
-| Style | variant | Filled · Outlined · Text · Elevated · Tonal | Filled |
-| State | variant | Enabled · Hovered · Focused · Pressed · Disabled | Enabled |
 | Show icon | boolean | true / false | false |
 | Label | text | — | Button |
 
 ## Variants
 
-- **Style**: Filled · Outlined · Text · Elevated · Tonal
-- **State**: Enabled · Hovered · Focused · Pressed · Disabled
+- **Style**: Filled (default) · Outlined · Text · Elevated · Tonal
 
 ## States
 
@@ -46,17 +43,36 @@ A Button triggers an action or event when activated. Use the Filled variant for 
 
 ## Tokens used
 
+### Color
+
+#### Container
+
+| Property | Condition | Token |
+|---|---|---|
+| background | — | `md.sys.color.primary` |
+| border | Style=Outlined | `md.sys.color.outline` |
+
+#### Fixed
+
 | Part | Property | Token |
 |---|---|---|
-| Container | background | md.sys.color.primary |
-| Container | border-radius | md.sys.shape.corner.full |
-| Container | elevation (Elevated variant) | md.sys.elevation.level1 |
-| Container | border-color (Outlined variant) | md.sys.color.outline |
-| Label | color | md.sys.color.on-primary |
-| Label | typography | md.sys.typescale.label-large |
-| State layer | opacity (hovered) | md.sys.state.hover.state-layer-opacity |
-| State layer | opacity (pressed) | md.sys.state.pressed.state-layer-opacity |
-| State layer | color | md.sys.color.on-primary |
+| Label | color | `md.sys.color.on-primary` |
+| State layer | color | `md.sys.color.on-primary` |
+
+### Typography
+
+| Part | Property | Condition | Token |
+|---|---|---|---|
+| Label | typography | — | `md.sys.typescale.label-large` |
+
+### Measurements
+
+| Part | Property | Condition | Token |
+|---|---|---|---|
+| Container | border-radius | — | `md.sys.shape.corner.full` |
+| Container | elevation | Style=Elevated | `md.sys.elevation.level1` |
+| State layer | opacity | State=Hovered | `md.sys.state.hover.state-layer-opacity` |
+| State layer | opacity | State=Pressed | `md.sys.state.pressed.state-layer-opacity` |
 
 ## Code
 
