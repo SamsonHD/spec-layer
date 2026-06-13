@@ -21,17 +21,27 @@ describe('renderSpec', () => {
     expect(md).toBe(golden);
   });
 
-  it('round-trips through the format parser with status draft', () => {
+  it('round-trips through the format parser and omits status by default', () => {
     const { frontmatter } = parseFrontmatter(md);
-    expect(frontmatter.status).toBe('draft');
+    expect(frontmatter.status).toBeUndefined();
     expect(frontmatter.content_hash).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  it('judgment sections carry the draft marker', () => {
+  it('judgment sections carry no draft marker', () => {
+    expect(md).not.toContain('Draft — AI-suggested, not yet approved.');
     for (const section of ['## Definition', '## Code', '## Accessibility', "## Do's & Don'ts"]) {
       const idx = md.indexOf(section);
-      expect(md.slice(idx, idx + 200)).toContain('> ⚠️ Draft — AI-suggested, not yet approved.');
+      expect(md.slice(idx, idx + 200)).not.toContain('Draft —');
     }
+  });
+
+  it('includes a status in frontmatter only when the caller supplies one', () => {
+    const withStatus = renderSpec(extract(button as SerializedNode, { figmaFile: 'FILE1' }), {
+      prose: null,
+      extractedAt: '2026-06-10T00:00:00.000Z',
+      status: 'approved',
+    });
+    expect(parseFrontmatter(withStatus).frontmatter.status).toBe('approved');
   });
 
   it('slug sanitizes special chars in related-atoms links (bug 3)', () => {
@@ -65,7 +75,7 @@ describe('renderSpec', () => {
     expect(md).toContain('## Tokens used\n\n_None._');
   });
 
-  it('injects prose drafts into judgment sections (still marked draft)', () => {
+  it('injects prose drafts into judgment sections with no draft marker', () => {
     const prose: ProseDrafts = {
       definition: 'A button triggers an action.',
       accessibility: 'Ensure a 44px target.',
@@ -80,7 +90,7 @@ describe('renderSpec', () => {
     expect(mdWithProse).toContain('Ensure a 44px target.');
     expect(mdWithProse).toContain('- ✅ Use one primary button per view');
     expect(mdWithProse).toContain('- ❌ Do not use for navigation');
-    // still a draft until approved
-    expect(mdWithProse).toContain('> ⚠️ Draft — AI-suggested, not yet approved.');
+    // no draft marker is emitted anymore
+    expect(mdWithProse).not.toContain('Draft — AI-suggested, not yet approved.');
   });
 });

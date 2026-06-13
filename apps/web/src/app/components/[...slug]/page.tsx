@@ -3,7 +3,6 @@ import { getDoc } from "@/lib/content";
 import { readStoredSpec } from "@/lib/specWriter";
 import { partitionBody } from "@/lib/sections";
 import FigmaSection from "@/components/FigmaSection";
-import ReviewPanel from "@/components/ReviewPanel";
 import ComponentTabs from "@/components/ComponentTabs";
 
 // Read the content repo live on each request so edits/new files show up
@@ -21,8 +20,6 @@ export default function ComponentPage({ params }: { params: { slug: string[] } }
   if (!doc) notFound();
 
   const { frontmatter: fm, body, updated, missingRequired, issues, slug } = doc;
-  const status = fm.status ?? "unknown";
-  const hasDraftMarker = />\s*[^A-Za-z]*Draft\s*[—–-]/i.test(body);
   const breadcrumb = slug
     .slice(0, -1)
     .map((s) => s.replace(/[-_]/g, " "))
@@ -40,11 +37,11 @@ export default function ComponentPage({ params }: { params: { slug: string[] } }
   // JSON sidecar (preferred source for the Specs tab); null for legacy docs.
   const storedSpec = readStoredSpec(slug);
 
-  // Author/review chrome only shows when there's something to act on — readers
-  // of an approved, complete spec see a clean page.
-  const isDraft = status === "draft" || hasDraftMarker;
-  const needsReview =
-    isDraft || missingRequired.length > 0 || issues.length > 0 || !!gapsMarkdown;
+  // Gap data (missingRequired / issues / gapsMarkdown) stays available here for
+  // a later task that re-adds a lightweight gaps alert.
+  void missingRequired;
+  void issues;
+  void gapsMarkdown;
 
   return (
     <>
@@ -54,7 +51,7 @@ export default function ComponentPage({ params }: { params: { slug: string[] } }
             {breadcrumb && <div className="breadcrumb">{breadcrumb}</div>}
             <h1>{fm.name}</h1>
           </div>
-          <span className={`badge ${status}`}>{status}</span>
+          {fm.status && <span className={`badge ${fm.status}`}>{fm.status}</span>}
         </div>
         <div className="header-actions">
           {fm.figma && (
@@ -81,17 +78,7 @@ export default function ComponentPage({ params }: { params: { slug: string[] } }
           ))}
         </div>
 
-        <FigmaSection slug={slug} figma={fm.figma} figmaRef={fm.figmaRef} editable={isDraft} />
-
-        {needsReview && (
-          <ReviewPanel
-            slug={slug}
-            isDraft={isDraft}
-            missingRequired={missingRequired}
-            issues={issues}
-            gapsMarkdown={gapsMarkdown}
-          />
-        )}
+        <FigmaSection slug={slug} figma={fm.figma} figmaRef={fm.figmaRef} editable={true} />
 
         <ComponentTabs
           slug={slug}

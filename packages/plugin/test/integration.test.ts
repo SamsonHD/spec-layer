@@ -56,8 +56,8 @@ describe('full pipeline: serialize → extract → render → parse', () => {
 
     const draftMd = renderSpec(spec, { prose: null, extractedAt: '2026-06-10T00:00:00.000Z' });
     const draftParsed = parseFrontmatter(draftMd);
-    expect(draftParsed.frontmatter.status).toBe('draft');
-    expect(draftMd).toContain('> ⚠️ Draft — AI-suggested, not yet approved.');
+    expect(draftParsed.frontmatter.status).toBeUndefined();
+    expect(draftMd).not.toContain('Draft — AI-suggested, not yet approved.');
     // Single-variant mock: container/label fills are unconditioned, so they
     // collapse into the Fixed table.
     expect(draftMd).toContain('#### Fixed');

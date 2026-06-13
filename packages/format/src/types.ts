@@ -2,7 +2,7 @@ export type SpecStatus = 'draft' | 'approved' | 'deprecated';
 
 export interface SpecFrontmatter {
   spec_version: '0.1';
-  status: SpecStatus;
+  status?: SpecStatus;
   component: {
     name: string;
     figma_key: string;

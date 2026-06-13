@@ -18,6 +18,8 @@ export function OPTIONS(req: NextRequest) {
 interface ImportBody {
   spec?: IntermediateSpec;
   extractedAt?: string;
+  /** Opt-in AI prose enrichment. Defaults to false (structural-only spec). */
+  useAi?: boolean;
 }
 
 export async function POST(req: NextRequest) {
@@ -40,27 +42,30 @@ export async function POST(req: NextRequest) {
 
   const extractedAt = body.extractedAt ?? new Date().toISOString();
 
-  // Enrich with AI prose when a key is configured; otherwise emit a
-  // structural-only draft. Any failure degrades gracefully to prose: null.
+  // AI prose enrichment is opt-in. By default we write the structural spec
+  // only (no AI prose). When `useAi` is requested we enrich if a key is
+  // configured; any failure degrades gracefully to prose: null.
   let prose: ProseDrafts | null = null;
   let warning: string | undefined;
 
-  const apiKey = process.env.ANTHROPIC_API_KEY?.trim() || null;
-  if (apiKey) {
-    try {
-      prose = await draftProse(spec, {
-        apiKey,
-        fetcher: fetch,
-        cacheStore: createSpecCache(),
-      });
-    } catch (e) {
-      prose = null;
-      warning = `AI enrichment failed; wrote structural-only draft. ${
-        e instanceof Error ? e.message : String(e)
-      }`;
+  if (body.useAi === true) {
+    const apiKey = process.env.ANTHROPIC_API_KEY?.trim() || null;
+    if (apiKey) {
+      try {
+        prose = await draftProse(spec, {
+          apiKey,
+          fetcher: fetch,
+          cacheStore: createSpecCache(),
+        });
+      } catch (e) {
+        prose = null;
+        warning = `AI enrichment failed; wrote structural-only spec. ${
+          e instanceof Error ? e.message : String(e)
+        }`;
+      }
+    } else {
+      warning = "AI enrichment requested but ANTHROPIC_API_KEY is not set; wrote structural-only spec.";
     }
-  } else {
-    warning = "ANTHROPIC_API_KEY not set; wrote structural-only draft.";
   }
 
   let markdown: string;

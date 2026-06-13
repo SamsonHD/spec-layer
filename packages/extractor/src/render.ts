@@ -1,7 +1,7 @@
 import type { IntermediateSpec } from './extract';
 import { contentHash } from './hash';
 import type { TokenRule } from './tokens';
-import { serializeFrontmatter, DRAFT_MARKER, type SpecFrontmatter } from '@spec-layer/format';
+import { serializeFrontmatter, type SpecFrontmatter } from '@spec-layer/format';
 import type { ProseDrafts } from './prose/prompt';
 import {
   categorize, pivotColorPart, flatPartTable, flatGlobalTable, fixedTable,
@@ -14,9 +14,6 @@ const slug = (name: string) =>
     .replace(/[^a-z0-9-]/g, '')
     .replace(/-{2,}/g, '-')
     .replace(/^-+|-+$/g, '');
-
-// The draft-marker line is canonical in @spec-layer/format (approve.ts strips it).
-const DRAFT = `${DRAFT_MARKER}\n`;
 
 /**
  * Render `## Variants`: true style axes (one bullet each, default marked) plus a
@@ -125,11 +122,12 @@ function renderTokensSection(spec: IntermediateSpec): string[] {
 
 export function renderSpec(
   spec: IntermediateSpec,
-  opts: { prose: ProseDrafts | null; extractedAt: string },
+  opts: { prose: ProseDrafts | null; extractedAt: string; status?: SpecFrontmatter['status'] },
 ): string {
   const fm: SpecFrontmatter = {
     spec_version: '0.1',
-    status: 'draft',
+    // Status is optional: omitted unless the caller explicitly supplies one.
+    ...(opts.status ? { status: opts.status } : {}),
     component: { name: spec.name, figma_key: spec.figmaKey, figma_file: spec.figmaFile, figma_node: spec.figmaNode },
     content_hash: contentHash(spec),
     extracted_at: opts.extractedAt,
@@ -137,7 +135,7 @@ export function renderSpec(
   const p = opts.prose;
 
   const lines: string[] = [
-    '## Definition', '', DRAFT, p?.definition ?? '_To be written._', '',
+    '## Definition', '', p?.definition ?? '_To be written._', '',
     '## Anatomy', '',
     ...spec.anatomy.map((a, i) => `${i + 1}. ${a.name}${a.nested ? ' (component)' : ''}`), '',
     '## Configuration', '',
@@ -147,9 +145,9 @@ export function renderSpec(
     '## States', '', ...spec.states.map((s) => `- ${s}`), '',
     '## Tokens used', '',
     ...renderTokensSection(spec),
-    '## Code', '', DRAFT, '_Import path, prop mapping, and usage example to be filled in._', '',
-    '## Accessibility', '', DRAFT, p?.accessibility ?? '_To be written._', '',
-    "## Do's & Don'ts", '', DRAFT,
+    '## Code', '', '_Import path, prop mapping, and usage example to be filled in._', '',
+    '## Accessibility', '', p?.accessibility ?? '_To be written._', '',
+    "## Do's & Don'ts", '',
     ...(p ? [...p.dos.map((d) => `- ✅ ${d}`), ...p.donts.map((d) => `- ❌ ${d}`)] : ['_To be written._']), '',
     '## Related atoms', '',
     ...(spec.related.length ? spec.related.map((r) => `- [${r}](./${slug(r)}.md)`) : ['None.']), '',

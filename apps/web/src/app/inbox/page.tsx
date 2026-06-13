@@ -41,7 +41,7 @@ export default function InboxPage() {
       ) : (
         <div className="inbox-list">
           {docs.map((doc) => {
-            const status = doc.frontmatter.status ?? "unknown";
+            const status = doc.frontmatter.status;
             return (
               <section key={doc.slug.join("/")} className="inbox-item">
                 <div className="inbox-item-top">
@@ -49,7 +49,7 @@ export default function InboxPage() {
                     <h2>{doc.frontmatter.name}</h2>
                     <div className="inbox-item-path">{doc.slug.join(" / ")}</div>
                   </div>
-                  <span className={`badge ${status}`}>{status}</span>
+                  {status && <span className={`badge ${status}`}>{status}</span>}
                 </div>
 
                 <div className="inbox-item-meta">

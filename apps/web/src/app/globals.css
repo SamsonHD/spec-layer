@@ -371,34 +371,6 @@ button.btn-link { cursor: pointer; font-family: var(--sans); }
 }
 .figma-error-actions .btn-link:hover { border-color: var(--accent); text-decoration: none; }
 
-/* ---------- Review panel (consolidated author / validation chrome) ---------- */
-.review-panel {
-  border: 1px solid var(--warn-border);
-  background: var(--warn-surface);
-  border-radius: var(--radius);
-  padding: 16px 18px;
-  margin: 8px 0 28px;
-}
-.review-panel-head {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 13px; font-weight: 700; color: var(--warn-text);
-  text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;
-}
-.review-panel-sub { color: var(--text-muted); font-size: 13px; margin: 0 0 14px; }
-.review-panel .review-issues { margin: 0 0 14px; padding-left: 18px; }
-.review-panel .review-issues li { font-size: 13px; margin-bottom: 2px; color: var(--text); }
-.review-gaps { margin-top: 14px; border-top: 1px solid var(--warn-border); padding-top: 6px; }
-.review-gaps > summary {
-  cursor: pointer; font-size: 13px; font-weight: 600; color: var(--warn-text);
-  padding: 6px 0; list-style: none; user-select: none;
-}
-.review-gaps > summary::-webkit-details-marker { display: none; }
-.review-gaps > summary::before { content: "▸ "; }
-.review-gaps[open] > summary::before { content: "▾ "; }
-.review-gaps ul, .review-gaps ol { margin: 4px 0; padding-left: 20px; }
-.review-gaps li, .review-gaps p { font-size: 13px; }
-.review-panel .review-bar { border-top: 1px solid var(--warn-border); padding-top: 14px; }
-
 /* ---------- Markdown body ---------- */
 .md h2 { font-size: 19px; margin-top: 36px; padding-top: 8px; border-top: 1px solid var(--border); letter-spacing: -0.01em; }
 .md h3 { font-size: 16px; margin-top: 24px; }
@@ -411,18 +383,6 @@ button.btn-link { cursor: pointer; font-family: var(--sans); }
 .md th { background: var(--bg-subtle); }
 .md blockquote { border-left: 3px solid var(--accent); margin: 12px 0; padding: 4px 16px; color: var(--text-muted); }
 .md img { max-width: 100%; }
-
-/* draft marker blockquote → compact inline note */
-.draft-note {
-  border: 1px solid var(--warn-border);
-  background: var(--warn-surface);
-  color: var(--warn-text);
-  border-radius: var(--radius-sm);
-  padding: 6px 12px;
-  margin: 12px 0;
-  font-size: 13px;
-}
-.draft-note p { margin: 0; }
 
 /* ---------- Command palette (⌘K) ---------- */
 .cmdk-trigger {
@@ -930,23 +890,6 @@ button.btn-link { cursor: pointer; font-family: var(--sans); }
 }
 .figma-file-empty-row input:focus { outline: none; border-color: var(--accent); }
 .figma-file-empty-error { color: var(--danger-text); font-size: 12px; }
-
-/* ---------- Review bar ---------- */
-.review-actions { display: flex; align-items: end; gap: 8px; flex-wrap: wrap; }
-.review-approver { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-muted); }
-.review-approver input {
-  width: 140px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  padding: 7px 10px;
-  font-size: 13px;
-  color: var(--text);
-  background: var(--bg);
-  font-family: var(--sans);
-}
-.review-approver input:focus { outline: none; border-color: var(--accent); }
-.review-warning { margin-top: 8px; font-size: 12px; color: var(--warn-text); }
-.review-error { margin-top: 8px; font-size: 12px; color: var(--danger-text); }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 720px) {
