@@ -20,16 +20,19 @@ export default function InboxPage() {
       <div className="inbox-head">
         <h1>Inbox</h1>
         <p>
-          {docs.length} pending draft{docs.length === 1 ? "" : "s"} imported from the plugin.
-          File each one into its destination group and name.
+          Components sent from the Figma plugin land here. Review each one and file it into your
+          component groups — or delete it.{" "}
+          {docs.length > 0 && (
+            <>{docs.length} waiting to be filed.</>
+          )}
         </p>
       </div>
 
       {docs.length === 0 ? (
         <div className="empty-state">
-          <p>No inbox drafts right now.</p>
+          <p>Nothing to process right now.</p>
           <p>
-            New imports land under <code>_inbox</code> until they are filed.
+            When you send a component from the Figma plugin, it shows up here for review.
           </p>
           <p>
             <Link href="/">Back to docs home</Link>

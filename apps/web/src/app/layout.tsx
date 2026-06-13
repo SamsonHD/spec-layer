@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import fs from "node:fs";
 import "./globals.css";
 import { getNavTree, getAllDocs } from "@/lib/content";
-import { getContentDir, getContentDirSource } from "@/lib/config";
-import Sidebar, { type SourceInfo } from "@/components/Sidebar";
+import Sidebar from "@/components/Sidebar";
 import { getInboxCount, withoutInbox } from "@/lib/navInbox";
 import type { CommandItem } from "@/lib/commandPalette";
 
@@ -20,12 +18,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const allDocs = getAllDocs();
   const nav = withoutInbox(getNavTree());
   const inboxCount = getInboxCount(allDocs);
-  const contentDir = getContentDir();
-  const source: SourceInfo = {
-    contentDir,
-    source: getContentDirSource(),
-    mdCount: fs.existsSync(contentDir) ? allDocs.length : 0,
-  };
   const searchItems: CommandItem[] = allDocs
     .filter((doc) => doc.slug[0] !== "_inbox")
     .map((doc) => ({
@@ -40,7 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <div className="app">
-          <Sidebar nav={nav} source={source} inboxCount={inboxCount} searchItems={searchItems} />
+          <Sidebar nav={nav} inboxCount={inboxCount} searchItems={searchItems} />
           <main className="content">{children}</main>
         </div>
       </body>

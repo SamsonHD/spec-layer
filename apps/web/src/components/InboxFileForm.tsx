@@ -76,7 +76,7 @@ export default function InboxFileForm({
         />
       </label>
       <button className="btn-primary" onClick={onFileIt} disabled={busy}>
-        {busy ? "Filing..." : "File it"}
+        {busy ? "Filing..." : "File into group"}
       </button>
       {error && <div className="inbox-item-error">{error}</div>}
     </div>

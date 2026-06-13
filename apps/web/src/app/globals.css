@@ -137,11 +137,7 @@ a:hover { text-decoration: underline; }
   font-weight: 650;
   font-size: 15px;
   letter-spacing: -0.01em;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
-.sidebar .brand .mark { color: var(--accent); }
 .brand-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .sidebar .brand-sub { color: var(--text-muted); font-size: 12px; margin: 2px 0 16px; }
 
@@ -248,8 +244,10 @@ a.enav-label:hover { text-decoration: none; }
 .enav-error { color: var(--danger-text); font-size: 12px; padding: 6px 8px; }
 
 /* ---------- Content ---------- */
-.content { padding: 0; max-width: var(--content-max); }
-.content-inner { padding: 32px 48px 80px; }
+/* .content fills the full grid column so .doc-header spans the viewport width.
+   Readable body text is constrained via .content-inner. */
+.content { padding: 0; }
+.content-inner { padding: 32px 48px 80px; max-width: var(--content-max); margin-inline: auto; }
 
 h1 { letter-spacing: -0.02em; }
 
@@ -486,20 +484,6 @@ button.btn-link { cursor: pointer; font-family: var(--sans); }
 .empty-state { color: var(--text-muted); margin-top: 40px; max-width: 560px; }
 .empty-state code { font-family: var(--mono); background: var(--bg-subtle); padding: 2px 6px; border-radius: 4px; word-break: break-all; }
 
-.banner {
-  background: var(--accent-soft);
-  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
-  color: var(--text);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  font-size: 14px;
-  margin: 16px 0 8px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
 /* ---------- Buttons ---------- */
 .btn-primary {
   background: var(--accent);
@@ -518,19 +502,6 @@ button.btn-link { cursor: pointer; font-family: var(--sans); }
 /* ---------- Sidebar footer + inbox ---------- */
 .nav-spacer { flex: 1; min-height: 16px; }
 .nav-empty { color: var(--text-muted); font-size: 13px; margin-top: 12px; padding: 0 8px; }
-.source-footer {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
-}
-.source-label {
-  font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--text-faint); font-weight: 600; display: flex; align-items: center; gap: 8px;
-}
-.source-tag { background: var(--status-draft-bg); color: var(--status-draft-text); border-radius: 999px; padding: 0 7px; font-size: 9px; letter-spacing: 0; }
-.source-path { font-size: 13px; font-weight: 600; margin-top: 4px; word-break: break-all; }
-.source-meta { font-size: 12px; color: var(--text-muted); margin: 2px 0 8px; }
-.source-change { font-size: 12px; padding: 5px 10px; }
 
 .sidebar-inbox-link {
   margin: 10px 0 4px;

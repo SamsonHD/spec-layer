@@ -1,14 +1,10 @@
 import Link from "next/link";
 import { getAllDocs } from "@/lib/content";
-import { getContentDir, isDefaultDir } from "@/lib/config";
-import ChooseFolderButton from "@/components/ChooseFolderButton";
 
 export const dynamic = "force-dynamic";
 
 export default function Home() {
   const docs = getAllDocs();
-  const contentDir = getContentDir();
-  const onSample = isDefaultDir();
 
   return (
     <div className="content-inner">
@@ -18,29 +14,13 @@ export default function Home() {
         markdown and rendered live from your folder.
       </p>
 
-      {onSample && docs.length > 0 && (
-        <div className="banner">
-          <span style={{ flex: 1, minWidth: 200 }}>
-            You’re viewing the bundled <strong>sample content</strong>. Point this at your own design
-            system folder to see your specs.
-          </span>
-          <ChooseFolderButton label="Choose your folder…" />
-        </div>
-      )}
-
       {docs.length === 0 ? (
         <div className="empty-state">
-          <p>No component specs found in this folder.</p>
-          <p style={{ marginBottom: 4 }}>
-            Currently reading: <code>{contentDir}</code>
-          </p>
+          <p>No component specs found yet.</p>
           <p>
-            Select a folder that contains your component <code>.md</code> files — its subfolders
-            become the navigation.
+            Add component <code>.md</code> files to your content folder, or configure things in{" "}
+            <Link href="/settings">Settings</Link>.
           </p>
-          <div style={{ marginTop: 16 }}>
-            <ChooseFolderButton label="Choose your design system folder…" />
-          </div>
         </div>
       ) : (
         <div className="overview-grid">

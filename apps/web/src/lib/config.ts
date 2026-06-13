@@ -4,12 +4,13 @@ import path from "node:path";
 
 /**
  * Resolution of the content directory, in priority order:
- *   1. The folder chosen in-app (persisted to .ds-config.json) — set via the UI.
+ *   1. A contentDir value in .ds-config.json (a later phase reuses that file for API keys).
  *   2. The DS_CONTENT_DIR env var (.env.local or shell).
  *   3. The bundled sample content, so the app works out of the box.
  *
- * Read fresh on every call (not cached at module load) so picking a new folder
- * in the UI takes effect immediately, without a restart.
+ * Read fresh on every call (not cached at module load).
+ * There is no longer any UI to write .ds-config.json; the file is read-only from the app's
+ * perspective. A future phase will use it for API keys and other settings.
  */
 
 const CONFIG_PATH = path.join(process.cwd(), ".ds-config.json");
@@ -31,8 +32,6 @@ function readConfigDir(): string | null {
   return null;
 }
 
-export type ContentDirSource = "ui" | "env" | "default";
-
 export function getContentDir(): string {
   const fromConfig = readConfigDir();
   if (fromConfig) return fromConfig;
@@ -41,30 +40,3 @@ export function getContentDir(): string {
   return DEFAULT_DIR;
 }
 
-export function getContentDirSource(): ContentDirSource {
-  if (readConfigDir()) return "ui";
-  if (process.env.DS_CONTENT_DIR?.trim()) return "env";
-  return "default";
-}
-
-export function isDefaultDir(): boolean {
-  return getContentDirSource() === "default";
-}
-
-/** Persist the user's chosen folder. Throws if the path isn't a directory. */
-export function setContentDir(dir: string): string {
-  const resolved = expandPath(dir);
-  const stat = fs.statSync(resolved); // throws if missing
-  if (!stat.isDirectory()) throw new Error("Not a directory");
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify({ contentDir: resolved }, null, 2));
-  return resolved;
-}
-
-/** Clear the chosen folder, reverting to env/default. */
-export function clearContentDir(): void {
-  try {
-    fs.unlinkSync(CONFIG_PATH);
-  } catch {
-    // already gone
-  }
-}
