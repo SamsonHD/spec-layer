@@ -77,6 +77,25 @@ export const SPECS_SECTION_KEYS = [
   "tokens",
 ] as const;
 
+/**
+ * Classify a single heading into a logical bucket ("guidelines" | "specs" |
+ * "gaps" | "other") using the same alias table as `partitionBody`. Exposed so
+ * the inline-section editor can decide which full-body sections are editable
+ * prose (Guidelines + other) versus the read-only structured Specs tables.
+ */
+export function classifyHeading(heading: string): "guidelines" | "specs" | "gaps" | "other" {
+  const key = normalize(heading);
+  for (const [logical, names] of Object.entries(SECTION_ALIASES)) {
+    if (names.some((name) => normalize(name) === key)) {
+      if (logical === "gaps") return "gaps";
+      if ((GUIDELINES_SECTION_KEYS as readonly string[]).includes(logical)) return "guidelines";
+      if ((SPECS_SECTION_KEYS as readonly string[]).includes(logical)) return "specs";
+      return "other";
+    }
+  }
+  return "other";
+}
+
 export interface BodyPartition {
   guidelinesMarkdown: string;
   specsMarkdown: string;

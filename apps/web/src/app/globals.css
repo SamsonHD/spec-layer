@@ -285,6 +285,55 @@ h1 { letter-spacing: -0.02em; }
 .btn-link:hover { background: var(--bg-subtle); text-decoration: none; border-color: var(--accent); color: var(--accent); }
 button.btn-link { cursor: pointer; font-family: var(--sans); }
 
+/* ---------- Inline section editing ---------- */
+.editable-sections { display: flex; flex-direction: column; }
+.editable-section { position: relative; }
+.editable-section-toolbar {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  min-height: 28px;
+  margin-top: 12px;
+}
+.editable-section:hover .editable-section-toolbar,
+.editable-section:focus-within .editable-section-toolbar { opacity: 1; }
+.section-btn { padding: 3px 9px; font-size: 12px; }
+.section-btn-danger:hover { border-color: var(--status-deprecated-text, #b91c1c); color: var(--status-deprecated-text, #b91c1c); }
+
+.section-editor {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-subtle);
+  padding: 12px;
+  margin: 8px 0 16px;
+}
+.section-editor-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.section-editor-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--mono, monospace);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  resize: vertical;
+}
+.section-editor-textarea:focus { outline: none; border-color: var(--accent); }
+.section-editor-actions { display: flex; gap: 8px; margin-top: 10px; }
+.section-editor-error { color: var(--status-deprecated-text, #b91c1c); font-size: 13px; margin: 8px 0 0; }
+.add-section-row { margin-top: 20px; padding-top: 16px; border-top: 1px dashed var(--border); }
+
 /* ---------- Status badge ---------- */
 .badge {
   display: inline-block;

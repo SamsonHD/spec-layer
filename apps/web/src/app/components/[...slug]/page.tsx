@@ -25,14 +25,7 @@ export default function ComponentPage({ params }: { params: { slug: string[] } }
     .map((s) => s.replace(/[-_]/g, " "))
     .join(" / ");
 
-  const { guidelinesMarkdown, specsMarkdown, gapsMarkdown, otherMarkdown } =
-    partitionBody(body);
-
-  // Anything we couldn't classify still appears in Guidelines so no content
-  // is silently dropped.
-  const guidelinesBody = [guidelinesMarkdown, otherMarkdown]
-    .filter((s) => s.trim().length > 0)
-    .join("\n\n");
+  const { specsMarkdown, gapsMarkdown } = partitionBody(body);
 
   // JSON sidecar (preferred source for the Specs tab); null for legacy docs.
   const storedSpec = readStoredSpec(slug);
@@ -80,9 +73,12 @@ export default function ComponentPage({ params }: { params: { slug: string[] } }
 
         <FigmaSection slug={slug} figma={fm.figma} figmaRef={fm.figmaRef} editable={true} />
 
+        {/* Pass the FULL body (not the partitioned Guidelines subset): inline
+            editing operates on full-body section indices so the section API —
+            which reads the full file — edits the exact section the user clicked. */}
         <ComponentTabs
           slug={slug}
-          guidelinesMarkdown={guidelinesBody}
+          fullBody={body}
           specsMarkdownFallback={specsMarkdown}
           spec={storedSpec}
           figmaRef={fm.figmaRef}

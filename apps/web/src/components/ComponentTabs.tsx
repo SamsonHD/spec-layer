@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeSlug from "rehype-slug";
 import type { IntermediateSpec } from "@spec-layer/extractor";
+import { splitSections } from "@/lib/sectionEdit";
+import { classifyHeading } from "@/lib/sections";
 import SpecsTab from "./SpecsTab";
+import EditableSection, { AddSectionButton } from "./EditableSection";
 
 interface FigmaRefProp {
   fileKey: string;
@@ -16,18 +16,41 @@ type TabId = "guidelines" | "specs";
 
 export default function ComponentTabs({
   slug,
-  guidelinesMarkdown,
+  fullBody,
   specsMarkdownFallback,
   spec,
   figmaRef,
 }: {
   slug: string[];
-  guidelinesMarkdown: string;
+  /**
+   * The FULL markdown body (not a partitioned subset). The Guidelines tab edits
+   * prose sections inline; section indices map 1:1 to `splitSections(fullBody)`,
+   * which is exactly what the /api/specs/section route operates on — so client
+   * and server agree on indices and edits never hit the wrong section.
+   *
+   * The structured Specs-tab tables (anatomy/properties/variants/etc., rendered
+   * by <SpecsTab> from the spec JSON) are intentionally left read-only in v1 —
+   * inline editing is scoped to prose body sections only.
+   */
+  fullBody: string;
   specsMarkdownFallback: string;
   spec: IntermediateSpec | null;
   figmaRef?: FigmaRefProp;
 }) {
   const [active, setActive] = useState<TabId>("guidelines");
+
+  // Split the full body once; keep each section's TRUE full-body index so edits
+  // target the right section in the real file. Only prose sections (preamble,
+  // Guidelines-classified, and unknown/"other") are editable here; Specs and
+  // gaps sections are surfaced read-only by SpecsTab and are skipped.
+  const allSections = splitSections(fullBody);
+  const proseSections = allSections
+    .map((section, index) => ({ section, index }))
+    .filter(({ section }) => {
+      if (section.heading === "") return true; // preamble
+      const bucket = classifyHeading(section.heading);
+      return bucket === "guidelines" || bucket === "other";
+    });
 
   return (
     <div className="component-tabs">
@@ -51,20 +74,26 @@ export default function ComponentTabs({
       </div>
 
       <div role="tabpanel" hidden={active !== "guidelines"} className="tab-panel">
-        {guidelinesMarkdown.trim() ? (
-          <article className="md">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeSlug]}
-            >
-              {guidelinesMarkdown}
-            </ReactMarkdown>
-          </article>
+        {proseSections.length > 0 ? (
+          <div className="editable-sections">
+            {proseSections.map(({ section, index }) => (
+              <EditableSection
+                key={index}
+                section={section}
+                index={index}
+                total={allSections.length}
+                slug={slug}
+              />
+            ))}
+          </div>
         ) : (
           <div className="empty-state">
             <p>No written guidance yet. Add prose to the Definition, Code, Accessibility, or Do&apos;s &amp; Don&apos;ts sections.</p>
           </div>
         )}
+        {/* Insert at the end of the full body so new sections append after all
+            existing content (including the Specs sections that live in the same file). */}
+        <AddSectionButton slug={slug} index={allSections.length} />
       </div>
 
       <div role="tabpanel" hidden={active !== "specs"} className="tab-panel">
