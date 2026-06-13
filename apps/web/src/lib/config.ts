@@ -16,7 +16,7 @@ import path from "node:path";
 const CONFIG_PATH = path.join(process.cwd(), ".ds-config.json");
 const DEFAULT_DIR = path.join(process.cwd(), "content", "components");
 
-export function expandPath(raw: string): string {
+function expandPath(raw: string): string {
   const trimmed = raw.trim();
   const expanded = trimmed.startsWith("~") ? path.join(os.homedir(), trimmed.slice(1)) : trimmed;
   return path.isAbsolute(expanded) ? expanded : path.resolve(process.cwd(), expanded);

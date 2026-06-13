@@ -517,58 +517,6 @@ button.btn-link { cursor: pointer; font-family: var(--sans); }
 .sidebar-inbox-link.active { border-color: var(--accent); background: var(--accent-soft); }
 .sidebar-inbox-count { font-size: 12px; color: var(--text-muted); background: var(--bg-subtle); border-radius: 999px; padding: 0 8px; }
 
-/* ---------- Folder picker modal ---------- */
-.modal-overlay {
-  position: fixed; inset: 0; background: var(--overlay);
-  display: flex; align-items: center; justify-content: center; z-index: 100; padding: 24px;
-}
-.modal {
-  background: var(--bg); border-radius: var(--radius-lg); width: 560px; max-width: 100%;
-  max-height: 80vh; display: flex; flex-direction: column;
-  box-shadow: var(--shadow-lg); padding: 20px; border: 1px solid var(--border);
-}
-.modal-head { display: flex; align-items: center; justify-content: space-between; }
-.modal-head h3 { margin: 0; font-size: 17px; }
-.modal-x { border: none; background: none; font-size: 16px; cursor: pointer; color: var(--text-muted); }
-.modal-sub { color: var(--text-muted); font-size: 13px; margin: 6px 0 14px; }
-.modal-sub code { font-family: var(--mono); background: var(--bg-subtle); padding: 1px 5px; border-radius: 4px; }
-
-.picker-path { display: flex; gap: 8px; margin-bottom: 10px; }
-.picker-path input {
-  flex: 1; padding: 7px 10px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
-  font-family: var(--mono); font-size: 12px; background: var(--bg); color: var(--text);
-}
-.picker-path input:focus { outline: none; border-color: var(--accent); }
-
-.picker-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.picker-up, .picker-home {
-  border: 1px solid var(--border-strong); background: var(--bg); border-radius: var(--radius-sm);
-  padding: 5px 10px; font-size: 12px; cursor: pointer; font-family: var(--sans); color: var(--text);
-}
-.picker-up:disabled { opacity: 0.4; cursor: default; }
-.picker-here-count { margin-left: auto; font-size: 12px; color: var(--status-approved-text); background: var(--status-approved-bg); padding: 2px 9px; border-radius: 999px; }
-
-.picker-list {
-  flex: 1; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius);
-  min-height: 200px; max-height: 320px; padding: 6px;
-}
-.picker-row {
-  width: 100%; display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 10px; border: none; background: none; border-radius: var(--radius-sm);
-  font-size: 14px; cursor: pointer; text-align: left; font-family: var(--sans); color: var(--text);
-}
-.picker-row:hover { background: var(--accent-soft); }
-.picker-folder-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.picker-md-badge { flex-shrink: 0; font-size: 11px; color: var(--accent); background: var(--accent-soft); padding: 1px 8px; border-radius: 999px; }
-.picker-empty, .picker-error { color: var(--text-muted); font-size: 13px; padding: 16px; text-align: center; }
-.picker-error { color: var(--danger-text); }
-
-.modal-foot { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
-.picker-selected {
-  flex: 1; font-family: var(--mono); font-size: 12px; color: var(--text-muted);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-
 /* ---------- Inbox ---------- */
 .inbox-head h1 { margin: 0; letter-spacing: -0.02em; }
 .inbox-head p { margin: 6px 0 22px; color: var(--text-muted); }

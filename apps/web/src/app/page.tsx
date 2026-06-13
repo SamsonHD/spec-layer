@@ -17,10 +17,7 @@ export default function Home() {
       {docs.length === 0 ? (
         <div className="empty-state">
           <p>No component specs found yet.</p>
-          <p>
-            Add component <code>.md</code> files to your content folder, or configure things in{" "}
-            <Link href="/settings">Settings</Link>.
-          </p>
+          <p>Add component <code>.md</code> files to your content folder to get started.</p>
         </div>
       ) : (
         <div className="overview-grid">
