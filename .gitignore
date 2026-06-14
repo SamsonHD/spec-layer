@@ -7,3 +7,6 @@ dist/
 **/.claude/settings.local.json
 .next/
 *.tsbuildinfo
+# Local config file — may contain API keys; never commit
+.ds-config.json
+**/.ds-config.json

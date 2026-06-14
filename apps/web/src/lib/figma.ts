@@ -1,10 +1,12 @@
 /**
  * Resolve a Figma component link into a rendered preview image URL.
  *
- * Requires a Figma personal access token in FIGMA_TOKEN. Without it (or on any
- * error) the caller should degrade gracefully to the raw link — the docs still
- * work, they just won't show a live thumbnail.
+ * Requires a Figma personal access token in FIGMA_TOKEN or configured via
+ * Settings. Without it (or on any error) the caller should degrade gracefully
+ * to the raw link — the docs still work, they just won't show a live thumbnail.
  */
+
+import { getFigmaToken } from "./settings";
 
 export interface FigmaRef {
   fileKey: string;
@@ -41,8 +43,8 @@ export interface FigmaPreviewResult {
  * delegate here so the token check and HTTP logic live in one place.
  */
 async function fetchFigmaImages(fileKey: string, nodeId: string): Promise<FigmaPreviewResult> {
-  const token = process.env.FIGMA_TOKEN;
-  if (!token) return { status: "no-token", message: "Set FIGMA_TOKEN to show live previews." };
+  const token = getFigmaToken();
+  if (!token) return { status: "no-token", message: "Set FIGMA_TOKEN or configure it in Settings to show live previews." };
 
   try {
     const api = `https://api.figma.com/v1/images/${encodeURIComponent(
@@ -90,8 +92,8 @@ export interface FigmaImagesResult {
  * than one per variant. Returns a map keyed by the node ids passed in.
  */
 export async function getFigmaImages(fileKey: string, nodeIds: string[]): Promise<FigmaImagesResult> {
-  const token = process.env.FIGMA_TOKEN;
-  if (!token) return { status: "no-token", message: "Set FIGMA_TOKEN to show live previews." };
+  const token = getFigmaToken();
+  if (!token) return { status: "no-token", message: "Set FIGMA_TOKEN or configure it in Settings to show live previews." };
   if (!nodeIds.length) return { status: "ok", images: {} };
 
   try {

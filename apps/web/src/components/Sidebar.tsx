@@ -34,6 +34,9 @@ export default function Sidebar({
         <span>Inbox</span>
         <span className="sidebar-inbox-count">{inboxCount}</span>
       </Link>
+      <Link href="/settings" className={`sidebar-settings-link ${pathname === "/settings" ? "active" : ""}`}>
+        Settings
+      </Link>
 
       <EditableNav nav={nav} />
 

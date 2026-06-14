@@ -6,6 +6,7 @@ import { getContentDir } from "@/lib/config";
 import { createSpecCache } from "@/lib/specCache";
 import { readStoredSpec } from "@/lib/specWriter";
 import { corsHeaders, isSafeSlug } from "@/lib/specApi";
+import { getAnthropicKey } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
   }
 
   let warning: string | undefined;
-  const apiKey = process.env.ANTHROPIC_API_KEY?.trim() || null;
+  const apiKey = getAnthropicKey() ?? null;
   let prose = null;
 
   if (apiKey) {
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
       }`;
     }
   } else {
-    warning = "ANTHROPIC_API_KEY not set; regenerated structural-only draft.";
+    warning = "No Anthropic API key configured; regenerated structural-only draft.";
   }
 
   try {

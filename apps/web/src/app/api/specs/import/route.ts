@@ -8,6 +8,7 @@ import {
 import { createSpecCache } from "@/lib/specCache";
 import { writeInboxSpec } from "@/lib/specWriter";
 import { corsHeaders } from "@/lib/specApi";
+import { getAnthropicKey } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
   let warning: string | undefined;
 
   if (body.useAi === true) {
-    const apiKey = process.env.ANTHROPIC_API_KEY?.trim() || null;
+    const apiKey = getAnthropicKey() ?? null;
     if (apiKey) {
       try {
         prose = await draftProse(spec, {
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
         }`;
       }
     } else {
-      warning = "AI enrichment requested but ANTHROPIC_API_KEY is not set; wrote structural-only spec.";
+      warning = "AI enrichment requested but no Anthropic API key is configured; wrote structural-only spec.";
     }
   }
 
