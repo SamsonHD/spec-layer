@@ -10,3 +10,4 @@ dist/
 # Local config file — may contain API keys; never commit
 .ds-config.json
 **/.ds-config.json
+.worktrees/
