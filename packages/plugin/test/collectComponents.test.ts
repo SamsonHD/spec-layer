@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { collectExportTargets } from '../src/collectComponents';
+import { collectExportPlan, collectExportTargets, isAtomComponentName } from '../src/collectComponents';
 
 type InputNode = { id: string; name: string; type: string; parentType: string | null };
 
@@ -96,5 +96,43 @@ describe('collectExportTargets', () => {
     const result = collectExportTargets(nodes);
     expect(result[0]).not.toHaveProperty('parentType');
     expect(Object.keys(result[0]).sort()).toEqual(['id', 'name', 'type']);
+  });
+});
+
+describe('atom components', () => {
+  const nodes: InputNode[] = [
+    { id: '8:1', name: 'Button', type: 'COMPONENT_SET', parentType: 'PAGE' },
+    { id: '8:2', name: '.button-base', type: 'COMPONENT', parentType: 'FRAME' },
+    { id: '8:3', name: '.icon-parts', type: 'COMPONENT_SET', parentType: 'SECTION' },
+    { id: '8:4', name: '.variant-child', type: 'COMPONENT', parentType: 'COMPONENT_SET' },
+    { id: '8:5', name: 'Button/.label', type: 'COMPONENT', parentType: 'FRAME' },
+  ];
+
+  it('recognizes names that begin with a period as atom components', () => {
+    expect(isAtomComponentName('.button-base')).toBe(true);
+    expect(isAtomComponentName('Button/.label')).toBe(false);
+    expect(isAtomComponentName('Button')).toBe(false);
+  });
+
+  it('excludes atom components by default and reports how many were skipped', () => {
+    expect(collectExportPlan(nodes)).toEqual({
+      targets: [
+        { id: '8:1', name: 'Button', type: 'COMPONENT_SET' },
+        { id: '8:5', name: 'Button/.label', type: 'COMPONENT' },
+      ],
+      skippedAtoms: 2,
+    });
+  });
+
+  it('includes atom components when explicitly requested', () => {
+    expect(collectExportPlan(nodes, { includeAtoms: true })).toEqual({
+      targets: [
+        { id: '8:1', name: 'Button', type: 'COMPONENT_SET' },
+        { id: '8:2', name: '.button-base', type: 'COMPONENT' },
+        { id: '8:3', name: '.icon-parts', type: 'COMPONENT_SET' },
+        { id: '8:5', name: 'Button/.label', type: 'COMPONENT' },
+      ],
+      skippedAtoms: 0,
+    });
   });
 });

@@ -1,15 +1,23 @@
-// ---------------------------------------------------------------------------
-// effectiveFileKey — the single precedence rule for the Figma file key.
-//
-// The main thread is the sole authority: the user-supplied override only
-// fills in when figma.fileKey is missing (dev plugins / unsaved files). It
-// never wins over a real file key.
-// ---------------------------------------------------------------------------
+export type FileKeySource = 'figma' | 'override' | 'missing';
+
+export interface ResolvedFileKey {
+  fileKey: string;
+  source: FileKeySource;
+}
+
+/** Resolve both the effective key and the UX state that produced it. */
+export function resolveFileKey(
+  figmaFileKey: string | null | undefined,
+  override: string | null,
+): ResolvedFileKey {
+  if (figmaFileKey) return { fileKey: figmaFileKey, source: 'figma' };
+  if (override) return { fileKey: override, source: 'override' };
+  return { fileKey: 'unknown', source: 'missing' };
+}
 
 export function effectiveFileKey(
   figmaFileKey: string | null | undefined,
   override: string | null,
 ): string {
-  if (figmaFileKey) return figmaFileKey;
-  return override ?? 'unknown';
+  return resolveFileKey(figmaFileKey, override).fileKey;
 }

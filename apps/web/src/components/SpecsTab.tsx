@@ -7,7 +7,6 @@ import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
 import type { IntermediateSpec, VariantInstance } from "@spec-layer/extractor";
 import { resolveTokensForVariant } from "@spec-layer/extractor";
-import FigmaFileEmptyState from "./FigmaFileEmptyState";
 
 interface FigmaRefProp {
   fileKey: string;
@@ -18,12 +17,10 @@ interface FigmaRefProp {
 const UNKNOWN_FILE_KEY = "unknown";
 
 export default function SpecsTab({
-  slug,
   spec,
   fallbackMarkdown,
   figmaRef,
 }: {
-  slug: string[];
   spec: IntermediateSpec | null;
   fallbackMarkdown: string;
   figmaRef?: FigmaRefProp;
@@ -49,14 +46,8 @@ export default function SpecsTab({
   const fileKey = (figmaRef?.fileKey && figmaRef.fileKey !== UNKNOWN_FILE_KEY)
     ? figmaRef.fileKey
     : (spec.figmaFile && spec.figmaFile !== UNKNOWN_FILE_KEY ? spec.figmaFile : null);
-  const hasFigmaFile = !!fileKey;
-
   return (
     <div className="specs-tab">
-      {!hasFigmaFile && (
-        <FigmaFileEmptyState slug={slug} />
-      )}
-
       <AnatomySection spec={spec} />
       <ConfigurationSection spec={spec} />
       <VariantsSection spec={spec} fileKey={fileKey} />

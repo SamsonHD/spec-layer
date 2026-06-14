@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllDocs } from "@/lib/content";
+import { getAllDocs } from "@/lib/contentCache";
 
 export const dynamic = "force-dynamic";
 

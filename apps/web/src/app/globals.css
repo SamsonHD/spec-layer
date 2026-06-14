@@ -287,13 +287,16 @@ button.btn-link { cursor: pointer; font-family: var(--sans); }
 .editable-sections { display: flex; flex-direction: column; }
 .editable-section { position: relative; }
 .editable-section-toolbar {
+  position: absolute;
+  top: 40px;
+  right: 0;
   display: flex;
+  align-items: center;
   gap: 6px;
-  justify-content: flex-end;
+  height: 32px;
   opacity: 0;
   transition: opacity 0.12s ease;
-  min-height: 28px;
-  margin-top: 12px;
+  padding-right: 0;
 }
 .editable-section:hover .editable-section-toolbar,
 .editable-section:focus-within .editable-section-toolbar { opacity: 1; }
@@ -1119,10 +1122,10 @@ button.btn-link { cursor: pointer; font-family: var(--sans); }
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius);
   background: var(--accent-soft);
-  padding: 18px 20px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 .figma-file-empty-text strong { display: block; font-size: 14px; }
 .figma-file-empty-text p {

@@ -142,6 +142,15 @@ const TEMPLATE = `
     }
     .banner.info  { background: var(--figma-color-bg-secondary); color: var(--figma-color-text); }
     .banner.error { background: var(--figma-color-bg-secondary); color: var(--figma-color-bg-danger); }
+    .atom-notice {
+      display: none; margin-top: 8px; padding: 8px 10px; border-radius: 6px;
+      background: var(--figma-color-bg-secondary); color: var(--figma-color-text-secondary);
+      font-size: 11px;
+    }
+    .check-row { display: flex; align-items: flex-start; gap: 8px; font-size: 11px; }
+    .check-row input { margin: 1px 0 0; }
+    .check-row label { cursor: pointer; }
+    .check-row span { display: block; margin-top: 2px; color: var(--figma-color-text-secondary); }
 
     /* ---- Optional "Send to docs" disclosure ---- */
     details.docs-disclosure {
@@ -159,6 +168,20 @@ const TEMPLATE = `
     }
     details.docs-disclosure[open] > summary::before { transform: rotate(90deg); }
     .docs-body { padding: 0 10px 10px; }
+    .figma-source {
+      display: flex; gap: 8px; padding: 9px 10px; border-radius: 6px;
+      background: var(--figma-color-bg); border: 1px solid var(--figma-color-border);
+    }
+    .figma-source::before {
+      content: ""; width: 7px; height: 7px; margin-top: 4px; border-radius: 50%;
+      flex: 0 0 auto; background: var(--figma-color-text-secondary);
+    }
+    .figma-source.figma::before, .figma-source.override::before {
+      background: var(--figma-color-bg-success);
+    }
+    .figma-source.missing::before { background: var(--figma-color-bg-danger); }
+    .figma-source strong { display: block; font-size: 11px; font-weight: 600; }
+    .figma-source span { display: block; margin-top: 2px; font-size: 10px; color: var(--figma-color-text-secondary); }
 
     /* ---- Empty / placeholder states ---- */
     .empty {
@@ -195,6 +218,9 @@ const TEMPLATE = `
           <p class="hint" style="margin-top:0">
             Extract a Markdown spec from the selection. Download it locally — no account or server needed.
           </p>
+          <div class="atom-notice" id="atom-notice">
+            <strong>Atom component.</strong> It is normally used to build larger components, but you can still export it individually.
+          </div>
           <div class="row">
             <button class="btn btn-primary" id="extract-btn">Extract spec</button>
           </div>
@@ -215,17 +241,23 @@ const TEMPLATE = `
 
           <!-- Optional, de-emphasised docs platform integration -->
           <details class="docs-disclosure" id="docs-disclosure">
-            <summary>Optional: send to your docs platform</summary>
+            <summary>Send to docs platform</summary>
             <div class="docs-body stack">
               <p class="hint" style="margin-top:0">
-                Connect a Design System Docs instance to publish specs directly. Leave blank to work standalone.
+                Publish this spec directly. The Figma component reference is included automatically when available.
               </p>
               <div>
                 <label class="field-label" for="endpoint-input">Docs URL</label>
                 <input type="text" id="endpoint-input" placeholder="http://localhost:3000" />
               </div>
-              <div>
-                <label class="field-label" for="filekey-input">Figma file URL or key</label>
+              <div class="figma-source missing" id="filekey-status">
+                <div>
+                  <strong id="filekey-status-title">Checking Figma source…</strong>
+                  <span id="filekey-status-detail"></span>
+                </div>
+              </div>
+              <div id="filekey-field">
+                <label class="field-label" id="filekey-label" for="filekey-input">Figma file URL</label>
                 <input type="text" id="filekey-input" placeholder="paste Figma file URL or key" />
                 <p class="hint" id="filekey-hint"></p>
               </div>
@@ -243,12 +275,19 @@ const TEMPLATE = `
              aria-labelledby="tab-all">
       <div class="stack">
         <p class="hint" style="margin-top:0">
-          Export every component in the file as a Markdown spec, bundled into a
-          single <code>.zip</code>. No component needs to be selected.
+          Export documentation components as Markdown specs in a single
+          <code>.zip</code>. No component needs to be selected.
         </p>
         <div>
           <label class="field-label" for="folder-input">Folder / ZIP name</label>
           <input type="text" id="folder-input" placeholder="design-system" value="design-system" />
+        </div>
+        <div class="check-row">
+          <input type="checkbox" id="include-atoms-input" />
+          <label for="include-atoms-input">
+            Include atom components
+            <span>Components whose names start with <code>.</code> are excluded by default.</span>
+          </label>
         </div>
         <div class="row">
           <button class="btn btn-primary" id="export-all-btn">Export all components</button>
@@ -273,6 +312,7 @@ export interface Refs {
   noSelection: HTMLDivElement;
   mainArea: HTMLDivElement;
   componentName: HTMLHeadingElement;
+  atomNotice: HTMLDivElement;
   phaseLabel: HTMLSpanElement;
   extractBtn: HTMLButtonElement;
   // Banners
@@ -285,11 +325,17 @@ export interface Refs {
   // Optional docs platform
   docsDisclosure: HTMLDetailsElement;
   endpointInput: HTMLInputElement;
+  fileKeyStatus: HTMLDivElement;
+  fileKeyStatusTitle: HTMLElement;
+  fileKeyStatusDetail: HTMLElement;
+  fileKeyField: HTMLDivElement;
+  fileKeyLabel: HTMLLabelElement;
   fileKeyInput: HTMLInputElement;
   fileKeyHint: HTMLParagraphElement;
   sendBtn: HTMLButtonElement;
   // Export-all panel
   folderInput: HTMLInputElement;
+  includeAtomsInput: HTMLInputElement;
   exportAllBtn: HTMLButtonElement;
   exportStatus: HTMLDivElement;
 }
@@ -315,6 +361,7 @@ export function mount(): Refs {
     noSelection: byId<HTMLDivElement>('no-selection'),
     mainArea: byId<HTMLDivElement>('main-area'),
     componentName: byId<HTMLHeadingElement>('component-name'),
+    atomNotice: byId<HTMLDivElement>('atom-notice'),
     phaseLabel: byId<HTMLSpanElement>('phase-label'),
     extractBtn: byId<HTMLButtonElement>('extract-btn'),
     bannerInfo: byId<HTMLDivElement>('banner-info'),
@@ -324,10 +371,16 @@ export function mount(): Refs {
     downloadBtn: byId<HTMLButtonElement>('download-btn'),
     docsDisclosure: byId<HTMLDetailsElement>('docs-disclosure'),
     endpointInput: byId<HTMLInputElement>('endpoint-input'),
+    fileKeyStatus: byId<HTMLDivElement>('filekey-status'),
+    fileKeyStatusTitle: byId<HTMLElement>('filekey-status-title'),
+    fileKeyStatusDetail: byId<HTMLElement>('filekey-status-detail'),
+    fileKeyField: byId<HTMLDivElement>('filekey-field'),
+    fileKeyLabel: byId<HTMLLabelElement>('filekey-label'),
     fileKeyInput: byId<HTMLInputElement>('filekey-input'),
     fileKeyHint: byId<HTMLParagraphElement>('filekey-hint'),
     sendBtn: byId<HTMLButtonElement>('send-btn'),
     folderInput: byId<HTMLInputElement>('folder-input'),
+    includeAtomsInput: byId<HTMLInputElement>('include-atoms-input'),
     exportAllBtn: byId<HTMLButtonElement>('export-all-btn'),
     exportStatus: byId<HTMLDivElement>('export-status'),
   };

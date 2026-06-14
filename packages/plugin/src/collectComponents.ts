@@ -19,6 +19,15 @@ export interface ExportTarget {
   type: string;
 }
 
+export interface ExportPlan {
+  targets: ExportTarget[];
+  skippedAtoms: number;
+}
+
+export function isAtomComponentName(name: string): boolean {
+  return name.startsWith('.');
+}
+
 /**
  * From a flat list of COMPONENT / COMPONENT_SET candidates (e.g. the result
  * of figma.root.findAllWithCriteria), return the minimal set of export targets:
@@ -41,4 +50,16 @@ export function collectExportTargets(nodes: ComponentCandidate[]): ExportTarget[
     }
   }
   return targets;
+}
+
+/** Build the bulk-export list, excluding dot-prefixed atom components by default. */
+export function collectExportPlan(
+  nodes: ComponentCandidate[],
+  options: { includeAtoms?: boolean } = {},
+): ExportPlan {
+  const eligible = collectExportTargets(nodes);
+  if (options.includeAtoms) return { targets: eligible, skippedAtoms: 0 };
+
+  const targets = eligible.filter((node) => !isAtomComponentName(node.name));
+  return { targets, skippedAtoms: eligible.length - targets.length };
 }

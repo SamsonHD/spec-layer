@@ -103,7 +103,6 @@ export default function ComponentTabs({
 
       <div role="tabpanel" hidden={active !== "specs"} className="tab-panel">
         <SpecsTab
-          slug={slug}
           spec={spec}
           fallbackMarkdown={specsMarkdownFallback}
           figmaRef={figmaRef}

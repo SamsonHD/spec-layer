@@ -24,8 +24,11 @@ import {
   handleExportComponent,
   handleExportAllDone,
   handleExportAllError,
+  refreshRenderedSpecFileKey,
 } from './actions';
 import {
+  renderFigmaConnection,
+  renderPhase,
   renderSelection,
   switchTab,
   clearBanners,
@@ -107,11 +110,18 @@ window.onmessage = (event: MessageEvent) => {
       state.currentNode = msg.node;
       // msg.fileKey is already the effective key computed by main.
       state.currentFileKey = msg.fileKey;
+      state.currentFileKeySource = msg.fileKeySource;
       state.currentSpec = null;
       state.currentExtractedAt = '';
       state.phase = 'idle';
       state.renderedMd = '';
       renderSelection(refs, state);
+      renderFigmaConnection(
+        refs,
+        state.currentFileKeySource,
+        state.currentFileKey,
+        state.fileKeyOverride,
+      );
       break;
     }
 
@@ -124,14 +134,11 @@ window.onmessage = (event: MessageEvent) => {
     case 'fileKeyOverride': {
       // Main is the single authority; it sends both the stored override
       // (for the input) and the computed effective key (for display/use).
-      state.currentFileKey = msg.effectiveFileKey;
-      if (msg.value) {
-        refs.fileKeyInput.value = msg.value;
-        refs.fileKeyHint.textContent = `Using file key ${msg.effectiveFileKey}`;
-      } else {
-        refs.fileKeyInput.value = '';
-        refs.fileKeyHint.textContent = '';
-      }
+      state.fileKeyOverride = msg.value;
+      state.currentFileKeySource = msg.fileKeySource;
+      refreshRenderedSpecFileKey(state, msg.effectiveFileKey);
+      renderFigmaConnection(refs, msg.fileKeySource, msg.effectiveFileKey, msg.value);
+      renderPhase(refs, state);
       break;
     }
 
@@ -141,7 +148,7 @@ window.onmessage = (event: MessageEvent) => {
     }
 
     case 'exportAllStart': {
-      handleExportAllStart(refs, state, msg.total, msg.fileKey);
+      handleExportAllStart(refs, state, msg.total, msg.fileKey, msg.skippedAtoms);
       break;
     }
 

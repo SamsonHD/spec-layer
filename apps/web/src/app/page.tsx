@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAllDocs } from "@/lib/content";
+import { getAllDocs } from "@/lib/contentCache";
 import ManualImport from "@/components/ManualImport";
 
 export const dynamic = "force-dynamic";

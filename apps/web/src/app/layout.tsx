@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { getNavTree, getAllDocs } from "@/lib/content";
+import { getNavTree, getAllDocs } from "@/lib/contentCache";
 import Sidebar from "@/components/Sidebar";
 import { getInboxCount, withoutInbox } from "@/lib/navInbox";
 import type { CommandItem } from "@/lib/commandPalette";

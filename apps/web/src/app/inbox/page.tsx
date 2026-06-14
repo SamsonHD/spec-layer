@@ -1,7 +1,7 @@
 import Link from "next/link";
 import InboxFileForm from "@/components/InboxFileForm";
 import ManualImport from "@/components/ManualImport";
-import { getAllDocs, getNavTree } from "@/lib/content";
+import { getAllDocs, getNavTree } from "@/lib/contentCache";
 
 export const dynamic = "force-dynamic";
 

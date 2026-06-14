@@ -1,19 +1,15 @@
 ---
 spec_version: "0.1"
-status: draft
 component:
   name: Button
   figma_key: af07bb4ae9f6103f3611eef3a98a974395d2b79a
   figma_file: 65fY7adbGscN71qHdfCCgT
   figma_node: 7909:319930
-content_hash: 8c22654bff2ef1716b63de4e00ba50bba054f08496b45d22ee506745b80cf9c6
-extracted_at: 2026-06-13T08:10:23.714Z
-name: "Button"
+content_hash: 6e4a2294f563341c52b1f7d24493f826050daa15d4f73408dd9f80a22ffecf33
+extracted_at: 2026-06-14T10:03:14.989Z
 ---
 
 ## Definition
-
-> ⚠️ Draft — AI-suggested, not yet approved.
 
 _To be written._
 
@@ -161,19 +157,13 @@ _To be written._
 
 ## Code
 
-> ⚠️ Draft — AI-suggested, not yet approved.
-
 _Import path, prop mapping, and usage example to be filled in._
 
 ## Accessibility
 
-> ⚠️ Draft — AI-suggested, not yet approved.
-
 _To be written._
 
 ## Do's & Don'ts
-
-> ⚠️ Draft — AI-suggested, not yet approved.
 
 _To be written._
 

@@ -23,6 +23,7 @@ import {
   renderExportDone,
 } from './render';
 import { buildExportFiles, zipFiles } from '../exportFiles';
+import type { FileKeySource } from '../fileKey';
 
 // ---------------------------------------------------------------------------
 // State
@@ -32,6 +33,8 @@ export interface UiState {
   phase: UiPhase;
   currentNode: SerializedNode | null;
   currentFileKey: string;
+  currentFileKeySource: FileKeySource;
+  fileKeyOverride: string | null;
   currentSpec: IntermediateSpec | null;
   currentExtractedAt: string;
   renderedMd: string;
@@ -40,6 +43,7 @@ export interface UiState {
   exportItems: Array<{ name: string; markdown: string }>;
   exportFileKey: string;
   exportTotal: number;
+  exportSkippedAtoms: number;
   // Count of components that failed to render in the UI (kept out of the zip).
   exportFailed: number;
 }
@@ -49,6 +53,8 @@ export function createState(): UiState {
     phase: 'idle',
     currentNode: null,
     currentFileKey: '',
+    currentFileKeySource: 'missing',
+    fileKeyOverride: null,
     currentSpec: null,
     currentExtractedAt: '',
     renderedMd: '',
@@ -56,6 +62,7 @@ export function createState(): UiState {
     exportItems: [],
     exportFileKey: '',
     exportTotal: 0,
+    exportSkippedAtoms: 0,
     exportFailed: 0,
   };
 }
@@ -80,6 +87,17 @@ export function renderOne(
   const spec = extract(node, { figmaFile: fileKey });
   const markdown = renderSpec(spec, { prose: null, extractedAt });
   return { name: spec.name, markdown, spec, extractedAt };
+}
+
+/** Keep extracted output aligned with the latest effective Figma file key. */
+export function refreshRenderedSpecFileKey(state: UiState, fileKey: string): void {
+  state.currentFileKey = fileKey;
+  if (!state.currentNode || !state.currentSpec) return;
+
+  const refreshed = renderOne(state.currentNode, fileKey);
+  state.currentSpec = refreshed.spec;
+  state.currentExtractedAt = refreshed.extractedAt;
+  state.renderedMd = refreshed.markdown;
 }
 
 // ---------------------------------------------------------------------------
@@ -116,12 +134,13 @@ export function runExportAll(refs: Refs, state: UiState): void {
   state.exportItems = [];
   state.exportFileKey = '';
   state.exportTotal = 0;
+  state.exportSkippedAtoms = 0;
   state.exportFailed = 0;
   // Immediate feedback: the main thread's scan (loadAllPagesAsync +
   // findAllWithCriteria) runs before exportAllStart, so acknowledge the click
   // right away instead of leaving the panel silent.
   renderExportScanning(refs);
-  send({ type: 'requestExportAll' });
+  send({ type: 'requestExportAll', includeAtoms: refs.includeAtomsInput.checked });
 }
 
 export function handleExportAllScanning(refs: Refs): void {
@@ -137,9 +156,11 @@ export function handleExportAllStart(
   state: UiState,
   total: number,
   fileKey: string,
+  skippedAtoms: number,
 ): void {
   state.exportTotal = total;
   state.exportFileKey = fileKey;
+  state.exportSkippedAtoms = skippedAtoms;
   state.exportItems = [];
   renderExportProgress(refs, 0, total);
 }
@@ -168,7 +189,7 @@ export function handleExportAllDone(refs: Refs, state: UiState): void {
   // Nothing to zip (no components found, or all failed) — say so plainly
   // instead of downloading an empty/near-empty archive silently.
   if (state.exportItems.length === 0) {
-    renderExportDone(refs, 0, '', state.exportFailed);
+    renderExportDone(refs, 0, '', state.exportFailed, state.exportSkippedAtoms);
     refs.exportAllBtn.disabled = false;
     return;
   }
@@ -193,7 +214,13 @@ export function handleExportAllDone(refs: Refs, state: UiState): void {
   a.click();
   URL.revokeObjectURL(url);
 
-  renderExportDone(refs, state.exportItems.length, folderName, state.exportFailed);
+  renderExportDone(
+    refs,
+    state.exportItems.length,
+    folderName,
+    state.exportFailed,
+    state.exportSkippedAtoms,
+  );
   refs.exportAllBtn.disabled = false;
 }
 

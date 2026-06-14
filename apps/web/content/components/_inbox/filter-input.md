@@ -1,18 +1,15 @@
 ---
 spec_version: "0.1"
-status: draft
 component:
   name: Filter Input
   figma_key: 92bbfc3096fd67596b3ab481a225c429fc02f38a
-  figma_file: unknown
+  figma_file: 65fY7adbGscN71qHdfCCgT
   figma_node: 26146:40726
-content_hash: d675a09003318ab27a43f847e917c48a766d049a39ac8d561272099e02c32b46
-extracted_at: 2026-06-13T21:29:33.540Z
+content_hash: 0038fe89183d49b5f2db15149ce66a992cc54bb8d8123892975e96e1cd9c3c1e
+extracted_at: 2026-06-14T10:03:12.531Z
 ---
 
 ## Definition
-
-> ⚠️ Draft — AI-suggested, not yet approved.
 
 _To be written._
 
@@ -131,19 +128,13 @@ _To be written._
 
 ## Code
 
-> ⚠️ Draft — AI-suggested, not yet approved.
-
 _Import path, prop mapping, and usage example to be filled in._
 
 ## Accessibility
 
-> ⚠️ Draft — AI-suggested, not yet approved.
-
 _To be written._
 
 ## Do's & Don'ts
-
-> ⚠️ Draft — AI-suggested, not yet approved.
 
 _To be written._
 

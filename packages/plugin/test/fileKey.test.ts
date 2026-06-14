@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseFigmaFileKey } from '../src/ui/fileKey';
-import { effectiveFileKey } from '../src/fileKey';
+import { effectiveFileKey, resolveFileKey } from '../src/fileKey';
 
 describe('parseFigmaFileKey', () => {
   it('extracts the key from figma.com URLs', () => {
@@ -41,5 +41,28 @@ describe('effectiveFileKey', () => {
   it('returns "unknown" when neither is set', () => {
     expect(effectiveFileKey(undefined, null)).toBe('unknown');
     expect(effectiveFileKey('', null)).toBe('unknown');
+  });
+});
+
+describe('resolveFileKey', () => {
+  it('reports an automatically detected file key', () => {
+    expect(resolveFileKey('REALKEY', 'OVERRIDE')).toEqual({
+      fileKey: 'REALKEY',
+      source: 'figma',
+    });
+  });
+
+  it('reports a manually supplied fallback key', () => {
+    expect(resolveFileKey(undefined, 'OVERRIDE')).toEqual({
+      fileKey: 'OVERRIDE',
+      source: 'override',
+    });
+  });
+
+  it('reports a missing source', () => {
+    expect(resolveFileKey(undefined, null)).toEqual({
+      fileKey: 'unknown',
+      source: 'missing',
+    });
   });
 });

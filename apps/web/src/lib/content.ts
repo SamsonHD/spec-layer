@@ -180,7 +180,14 @@ function buildSpecFigmaRef(componentValue: unknown): FigmaRef | undefined {
   return { fileKey, nodeId };
 }
 
-function parseLegacyDoc(filePath: string, baseDir: string, raw: string, isSpecLayer: boolean, issue?: string): ComponentDoc {
+function parseLegacyDoc(
+  filePath: string,
+  baseDir: string,
+  raw: string,
+  isSpecLayer: boolean,
+  includeUpdated: boolean,
+  issue?: string,
+): ComponentDoc {
   const { data, content } = matter(raw);
   const slug = slugFromPath(filePath, baseDir);
   const sections = extractSections(content);
@@ -206,7 +213,7 @@ function parseLegacyDoc(filePath: string, baseDir: string, raw: string, isSpecLa
       approvedBy: asString(fm.approved_by),
     },
     body: content,
-    updated: lastUpdated(filePath),
+    updated: includeUpdated ? lastUpdated(filePath) : null,
     sections,
     missingRequired: computeMissing(sections, isSpecLayer),
     isSpecLayer,
@@ -214,14 +221,14 @@ function parseLegacyDoc(filePath: string, baseDir: string, raw: string, isSpecLa
   };
 }
 
-function parse(filePath: string, baseDir: string): ComponentDoc {
+function parse(filePath: string, baseDir: string, includeUpdated = false): ComponentDoc {
   const raw = fs.readFileSync(filePath, "utf-8");
   const { data } = matter(raw);
   const fm = asRecord(data);
   const hasSpecVersion = fm.spec_version !== undefined;
 
   if (!hasSpecVersion) {
-    return parseLegacyDoc(filePath, baseDir, raw, false);
+    return parseLegacyDoc(filePath, baseDir, raw, false, includeUpdated);
   }
 
   try {
@@ -251,7 +258,7 @@ function parse(filePath: string, baseDir: string): ComponentDoc {
         approvedBy: frontmatter.approved_by,
       },
       body,
-      updated: lastUpdated(filePath),
+      updated: includeUpdated ? lastUpdated(filePath) : null,
       sections,
       missingRequired: computeMissing(sections, true),
       isSpecLayer: true,
@@ -264,6 +271,7 @@ function parse(filePath: string, baseDir: string): ComponentDoc {
       baseDir,
       raw,
       true,
+      includeUpdated,
       `Spec Layer frontmatter parse failed; rendered with legacy parser fallback (${message}).`,
     );
   }
@@ -281,7 +289,7 @@ export function getDoc(slug: string[]): ComponentDoc | null {
   const dir = getContentDir();
   const filePath = path.join(dir, ...slug) + ".md";
   if (!fs.existsSync(filePath)) return null;
-  return parse(filePath, dir);
+  return parse(filePath, dir, true);
 }
 
 /**
@@ -330,9 +338,9 @@ export function setFigmaLink(slug: string[], url: string | null): void {
  * created via "Add subcategory" still appear), applying the persisted manifest
  * order with a folder-first/alphabetical fallback.
  */
-export function getNavTree(): NavNode[] {
+export function getNavTree(docs: ComponentDoc[] = getAllDocs()): NavNode[] {
   const dir = getContentDir();
-  const docBySlug = new Map(getAllDocs().map((d) => [d.slug.join("/"), d]));
+  const docBySlug = new Map(docs.map((d) => [d.slug.join("/"), d]));
   const order = readNavOrder(dir);
 
   const build = (absDir: string, parentSlug: string[]): NavNode[] => {

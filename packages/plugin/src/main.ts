@@ -2,8 +2,8 @@
 import { serializeNode, mainComponentRef } from './serialize';
 import type { NodeResolver } from './serialize';
 import type { MainToUi, UiToMain } from './messages';
-import { effectiveFileKey } from './fileKey';
-import { collectExportTargets } from './collectComponents';
+import { resolveFileKey } from './fileKey';
+import { collectExportPlan } from './collectComponents';
 
 // ---------------------------------------------------------------------------
 // NodeResolver — wraps async Figma APIs
@@ -94,29 +94,31 @@ const fileKeyOverrideReady: Promise<void> = figma.clientStorage
   .catch(() => {/* ignore */});
 
 function postFileKeyOverride(): void {
+  const resolved = resolveFileKey(figma.fileKey, fileKeyOverride);
   const msg: MainToUi = {
     type: 'fileKeyOverride',
     value: fileKeyOverride,
-    effectiveFileKey: effectiveFileKey(figma.fileKey, fileKeyOverride),
+    effectiveFileKey: resolved.fileKey,
+    fileKeySource: resolved.source,
   };
   figma.ui.postMessage(msg);
 }
 
 async function postSelection(): Promise<void> {
   await fileKeyOverrideReady;
-  const fileKey = effectiveFileKey(figma.fileKey, fileKeyOverride);
+  const resolved = resolveFileKey(figma.fileKey, fileKeyOverride);
   const component = findComponent(figma.currentPage.selection);
 
   if (!component) {
     figma.notify('Select a component or component set');
-    const msg: MainToUi = { type: 'selection', node: null, fileKey };
+    const msg: MainToUi = { type: 'selection', node: null, fileKey: resolved.fileKey, fileKeySource: resolved.source };
     figma.ui.postMessage(msg);
     return;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const node = await serializeNode(component as any, resolver);
-  const msg: MainToUi = { type: 'selection', node, fileKey };
+  const msg: MainToUi = { type: 'selection', node, fileKey: resolved.fileKey, fileKeySource: resolved.source };
   figma.ui.postMessage(msg);
 }
 
@@ -125,7 +127,7 @@ async function postSelection(): Promise<void> {
 // export targets. Requires documentAccess: "dynamic-page" in manifest.json
 // so that findAllWithCriteria is allowed across pages.
 // ---------------------------------------------------------------------------
-async function collectAllComponents(): Promise<Array<{ id: string; name: string; type: string }>> {
+async function collectAllComponents(includeAtoms: boolean) {
   // Load all pages before scanning — required under dynamic-page access mode.
   await figma.loadAllPagesAsync();
   const found = figma.root.findAllWithCriteria({ types: ['COMPONENT_SET', 'COMPONENT'] });
@@ -135,7 +137,7 @@ async function collectAllComponents(): Promise<Array<{ id: string; name: string;
     type: n.type,
     parentType: n.parent?.type ?? null,
   }));
-  return collectExportTargets(candidates);
+  return collectExportPlan(candidates, { includeAtoms });
 }
 
 // ---------------------------------------------------------------------------
@@ -202,13 +204,19 @@ figma.ui.onmessage = async (raw: unknown) => {
 
         // Honor the file key override before reading it, matching postSelection.
         await fileKeyOverrideReady;
-        const fileKey = effectiveFileKey(figma.fileKey, fileKeyOverride);
+        const fileKey = resolveFileKey(figma.fileKey, fileKeyOverride).fileKey;
 
-        const targets = await collectAllComponents();
+        const plan = await collectAllComponents(msg.includeAtoms);
+        const targets = plan.targets;
         const total = targets.length;
         console.log(`[export-all] found ${total} component(s) in ${Date.now() - t0}ms`);
 
-        const startMsg: MainToUi = { type: 'exportAllStart', total, fileKey };
+        const startMsg: MainToUi = {
+          type: 'exportAllStart',
+          total,
+          fileKey,
+          skippedAtoms: plan.skippedAtoms,
+        };
         figma.ui.postMessage(startMsg);
 
         let serialized = 0;

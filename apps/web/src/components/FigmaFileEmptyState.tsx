@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 /**
- * Shown in the Specs tab when the spec sidecar has no usable Figma file key
- * (the plugin couldn't read figma.fileKey when this spec was extracted).
+ * Shown once in the component preview area when an imported spec has no usable
+ * Figma file key.
  *
  * Lets the user paste the Figma file URL; persists it to both the markdown
  * frontmatter and the .spec-data JSON sidecar so variant images can be fetched.
@@ -43,16 +43,16 @@ export default function FigmaFileEmptyState({ slug }: { slug: string[] }) {
   return (
     <div className="figma-file-empty">
       <div className="figma-file-empty-text">
-        <strong>Connect this component to Figma</strong>
+        <strong>Figma previews aren&apos;t connected</strong>
         <p>
-          The plugin didn&apos;t capture a Figma file key. Paste the Figma file
-          URL (or key) to fetch variant previews directly from Figma.
+          This spec arrived without its Figma file reference. Paste the file URL
+          once to restore the component and variant previews.
         </p>
       </div>
       <div className="figma-file-empty-row">
         <input
           type="text"
-          placeholder="https://www.figma.com/design/…"
+          placeholder="Paste the Figma file URL"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           disabled={saving}
@@ -62,7 +62,7 @@ export default function FigmaFileEmptyState({ slug }: { slug: string[] }) {
           onClick={save}
           disabled={saving || !value.trim()}
         >
-          {saving ? "Saving…" : "Connect"}
+          {saving ? "Connecting…" : "Add source"}
         </button>
       </div>
       {error && <div className="figma-file-empty-error">{error}</div>}

@@ -1,12 +1,13 @@
 import type { SerializedNode } from '@spec-layer/extractor';
+import type { FileKeySource } from './fileKey';
 
 export type MainToUi =
-  | { type: 'selection'; node: SerializedNode | null; fileKey: string }
+  | { type: 'selection'; node: SerializedNode | null; fileKey: string; fileKeySource: FileKeySource }
   | { type: 'docsEndpoint'; value: string | null }
   // `value` is the stored override (for the settings input); `effectiveFileKey`
   // is the key computed by the main thread (figma.fileKey, falling back to the
   // override) — the UI displays/uses it and never re-derives precedence.
-  | { type: 'fileKeyOverride'; value: string | null; effectiveFileKey: string }
+  | { type: 'fileKeyOverride'; value: string | null; effectiveFileKey: string; fileKeySource: FileKeySource }
   // -----------------------------------------------------------------------
   // Bulk export stream — sent in response to 'requestExportAll'.
   // exportAllScanning is posted FIRST, before the (potentially slow) whole-file
@@ -17,7 +18,7 @@ export type MainToUi =
   // exportComponent uses 1-based index (1 … total).
   // -----------------------------------------------------------------------
   | { type: 'exportAllScanning' }
-  | { type: 'exportAllStart'; total: number; fileKey: string }
+  | { type: 'exportAllStart'; total: number; fileKey: string; skippedAtoms: number }
   | { type: 'exportComponent'; index: number; total: number; node: SerializedNode }
   | { type: 'exportAllDone' }
   | { type: 'exportAllError'; message: string };
@@ -28,4 +29,4 @@ export type UiToMain =
   | { type: 'setFileKeyOverride'; value: string | null }
   | { type: 'notify'; message: string }
   | { type: 'openBrowser'; url: string }
-  | { type: 'requestExportAll' };
+  | { type: 'requestExportAll'; includeAtoms: boolean };
