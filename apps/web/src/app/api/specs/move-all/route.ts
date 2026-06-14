@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { InboxMoveError, moveInboxSpecAs } from "@/lib/inboxMove";
+import { InboxMoveError, saveAllInboxSpecs } from "@/lib/inboxMove";
 import {
   validateJsonMutationRequest,
   validateSameOriginRequest,
 } from "@/lib/requestSecurity";
-import { corsHeaders, hasTraversal, isSafeSlug } from "@/lib/specApi";
-import { slugify } from "@/lib/specWriter";
+import { corsHeaders } from "@/lib/specApi";
 
 export const dynamic = "force-dynamic";
 
@@ -21,10 +20,9 @@ export function OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers });
 }
 
-interface MoveBody {
-  fromSlug?: unknown;
-  group?: unknown;
-  name?: unknown;
+interface MoveAllBody {
+  folder?: unknown;
+  items?: unknown;
 }
 
 export async function POST(req: NextRequest) {
@@ -51,39 +49,11 @@ export async function POST(req: NextRequest) {
   ) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400, headers });
   }
-  const body = parsedBody as MoveBody;
-
-  if (!isSafeSlug(body.fromSlug)) {
-    return NextResponse.json(
-      { error: "Missing or invalid 'fromSlug'" },
-      { status: 400, headers },
-    );
-  }
-
-  if (typeof body.group !== "string" || typeof body.name !== "string") {
-    return NextResponse.json(
-      { error: "Missing or invalid 'group' or 'name'" },
-      { status: 400, headers },
-    );
-  }
-
-  if (hasTraversal(body.group) || hasTraversal(body.name)) {
-    return NextResponse.json(
-      { error: "Group and name must not contain '/' or '..'" },
-      { status: 400, headers },
-    );
-  }
-
-  if (!slugify(body.group) || !slugify(body.name)) {
-    return NextResponse.json(
-      { error: "Group and name must contain at least one alphanumeric character" },
-      { status: 400, headers },
-    );
-  }
+  const body = parsedBody as MoveAllBody;
 
   try {
-    const slug = moveInboxSpecAs(body.fromSlug, body.group, body.name);
-    return NextResponse.json({ ok: true, slug }, { headers });
+    const result = saveAllInboxSpecs(body.items, body.folder);
+    return NextResponse.json({ ok: true, ...result }, { headers });
   } catch (error) {
     if (error instanceof InboxMoveError) {
       return NextResponse.json(
@@ -92,7 +62,7 @@ export async function POST(req: NextRequest) {
       );
     }
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to move spec" },
+      { error: "Failed to save Inbox items" },
       { status: 500, headers },
     );
   }
