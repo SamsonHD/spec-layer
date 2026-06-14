@@ -122,7 +122,7 @@ async function postSelection(): Promise<void> {
 // ---------------------------------------------------------------------------
 // Boot
 // ---------------------------------------------------------------------------
-figma.showUI(__html__, { width: 480, height: 640 });
+figma.showUI(__html__, { width: 480, height: 640, themeColors: true });
 
 // Send stored docs endpoint on startup
 figma.clientStorage.getAsync('docsEndpoint').then((value: string | undefined) => {
