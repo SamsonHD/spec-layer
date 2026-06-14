@@ -9,10 +9,14 @@ export type MainToUi =
   | { type: 'fileKeyOverride'; value: string | null; effectiveFileKey: string }
   // -----------------------------------------------------------------------
   // Bulk export stream — sent in response to 'requestExportAll'.
+  // exportAllScanning is posted FIRST, before the (potentially slow) whole-file
+  // enumeration (loadAllPagesAsync + findAllWithCriteria), so the UI can show
+  // activity during a phase that would otherwise be silent.
   // exportAllStart carries the authoritative fileKey (main-thread computed)
   // so the UI can use it even when no component is currently selected.
   // exportComponent uses 1-based index (1 … total).
   // -----------------------------------------------------------------------
+  | { type: 'exportAllScanning' }
   | { type: 'exportAllStart'; total: number; fileKey: string }
   | { type: 'exportComponent'; index: number; total: number; node: SerializedNode }
   | { type: 'exportAllDone' }

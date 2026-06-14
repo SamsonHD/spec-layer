@@ -78,16 +78,27 @@ export function switchTab(refs: Refs, tab: TabId): void {
 // ---------------------------------------------------------------------------
 
 /**
+ * Show the enumeration phase, which on the main thread runs before any
+ * progress count is known (loadAllPagesAsync + findAllWithCriteria). Without
+ * this the panel would sit empty during a potentially long scan on large files.
+ */
+export function renderExportScanning(refs: Refs): void {
+  refs.exportStatus.style.color = '';
+  refs.exportStatus.textContent = 'Scanning the file for components… (large files can take a while)';
+}
+
+/**
  * Update the export-status element during a bulk export.
  *
  * When `errorMsg` is provided the status shows an error instead of progress.
- * When `index` is 0 and `total` is 0 (error path) it renders the error only.
+ * `failed` (optional) appends a "(N failed)" note while progress streams.
  */
 export function renderExportProgress(
   refs: Refs,
   index: number,
   total: number,
   errorMsg?: string,
+  failed = 0,
 ): void {
   if (errorMsg) {
     refs.exportStatus.style.color = 'var(--figma-color-bg-danger)';
@@ -98,16 +109,32 @@ export function renderExportProgress(
   if (total === 0) {
     refs.exportStatus.textContent = 'Starting export…';
   } else {
-    refs.exportStatus.textContent = `Rendering ${index} / ${total}…`;
+    const failedNote = failed > 0 ? ` (${failed} failed)` : '';
+    refs.exportStatus.textContent = `Rendering ${index} / ${total}…${failedNote}`;
   }
 }
 
 /**
  * Render the success state after exportAllDone fires.
- * Uses `count` (actual items rendered) which may be < total (skipped nodes).
+ * Uses `count` (actual items zipped) which may be < total (skipped/failed
+ * nodes). `failed` (optional) is reported so silent drops are visible.
  */
-export function renderExportDone(refs: Refs, count: number, folderName: string): void {
+export function renderExportDone(
+  refs: Refs,
+  count: number,
+  folderName: string,
+  failed = 0,
+): void {
   refs.exportStatus.style.color = '';
+  if (count === 0) {
+    refs.exportStatus.style.color = 'var(--figma-color-bg-danger)';
+    refs.exportStatus.textContent =
+      failed > 0
+        ? `No components exported — all ${failed} failed to render. See the console for details.`
+        : 'No components found to export in this file.';
+    return;
+  }
+  const failedNote = failed > 0 ? `, ${failed} failed` : '';
   refs.exportStatus.textContent =
-    `Exported ${count} component${count === 1 ? '' : 's'} → ${folderName}.zip`;
+    `Exported ${count} component${count === 1 ? '' : 's'}${failedNote} → ${folderName}.zip`;
 }

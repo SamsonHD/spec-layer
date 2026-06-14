@@ -192,32 +192,60 @@ figma.ui.onmessage = async (raw: unknown) => {
       // postMessage payload small, gives ordered progress to the UI, and
       // avoids large memory spikes from parallelising many serializations.
       try {
+        // Signal the (potentially long) enumeration phase BEFORE doing it, so
+        // the UI isn't silent while loadAllPagesAsync + findAllWithCriteria run.
+        // A Figma toast also shows even while the editor is busy.
+        figma.ui.postMessage({ type: 'exportAllScanning' } as MainToUi);
+        figma.notify('Scanning file for components…');
+        const t0 = Date.now();
+        console.log('[export-all] scanning: loadAllPagesAsync + findAllWithCriteria…');
+
         // Honor the file key override before reading it, matching postSelection.
         await fileKeyOverrideReady;
         const fileKey = effectiveFileKey(figma.fileKey, fileKeyOverride);
 
         const targets = await collectAllComponents();
         const total = targets.length;
+        console.log(`[export-all] found ${total} component(s) in ${Date.now() - t0}ms`);
 
         const startMsg: MainToUi = { type: 'exportAllStart', total, fileKey };
         figma.ui.postMessage(startMsg);
 
+        let serialized = 0;
+        let skipped = 0;
+        const tSerialize = Date.now();
         for (let i = 0; i < targets.length; i++) {
           const target = targets[i];
-          const rawNode = await figma.getNodeByIdAsync(target.id);
-          if (!rawNode) continue; // node may have been deleted between enumeration and fetch
+          try {
+            const rawNode = await figma.getNodeByIdAsync(target.id);
+            if (!rawNode) { skipped++; continue; } // deleted between enumeration and fetch
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const node = await serializeNode(rawNode as any, resolver);
-          // index is 1-based (1 … total) so the UI can display "1 of N"
-          const compMsg: MainToUi = { type: 'exportComponent', index: i + 1, total, node };
-          figma.ui.postMessage(compMsg);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const node = await serializeNode(rawNode as any, resolver);
+            // index is 1-based (1 … total) so the UI can display "1 of N"
+            const compMsg: MainToUi = { type: 'exportComponent', index: i + 1, total, node };
+            figma.ui.postMessage(compMsg);
+            serialized++;
+          } catch (compErr) {
+            // One bad component must not abort the whole export.
+            skipped++;
+            const m = compErr instanceof Error ? compErr.message : String(compErr);
+            console.warn(`[export-all] skipped "${target.name}" (${target.id}): ${m}`);
+          }
+
+          // Yield to the main thread every 20 components so the Figma editor
+          // can repaint and stay responsive during a large export.
+          if (i % 20 === 19) await new Promise((r) => setTimeout(r, 0));
         }
+        console.log(
+          `[export-all] serialized ${serialized}, skipped ${skipped} in ${Date.now() - tSerialize}ms`,
+        );
 
         const doneMsg: MainToUi = { type: 'exportAllDone' };
         figma.ui.postMessage(doneMsg);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
+        console.error('[export-all] failed:', message);
         const errMsg: MainToUi = { type: 'exportAllError', message };
         figma.ui.postMessage(errMsg);
       }

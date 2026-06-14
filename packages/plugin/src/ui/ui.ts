@@ -19,6 +19,7 @@ import {
   runDownload,
   runSendToDocs,
   runExportAll,
+  handleExportAllScanning,
   handleExportAllStart,
   handleExportComponent,
   handleExportAllDone,
@@ -131,6 +132,11 @@ window.onmessage = (event: MessageEvent) => {
         refs.fileKeyInput.value = '';
         refs.fileKeyHint.textContent = '';
       }
+      break;
+    }
+
+    case 'exportAllScanning': {
+      handleExportAllScanning(refs);
       break;
     }
 

@@ -14,7 +14,14 @@ import type { UiToMain } from '../messages';
 import { nextStatus, resetToIdle, toKebab, type UiPhase } from './state';
 import { canSendToDocs } from './sendGuard';
 import type { Refs } from './dom';
-import { showBanner, clearBanners, renderPhase, renderExportProgress, renderExportDone } from './render';
+import {
+  showBanner,
+  clearBanners,
+  renderPhase,
+  renderExportScanning,
+  renderExportProgress,
+  renderExportDone,
+} from './render';
 import { buildExportFiles, zipFiles } from '../exportFiles';
 
 // ---------------------------------------------------------------------------
@@ -33,6 +40,8 @@ export interface UiState {
   exportItems: Array<{ name: string; markdown: string }>;
   exportFileKey: string;
   exportTotal: number;
+  // Count of components that failed to render in the UI (kept out of the zip).
+  exportFailed: number;
 }
 
 export function createState(): UiState {
@@ -47,6 +56,7 @@ export function createState(): UiState {
     exportItems: [],
     exportFileKey: '',
     exportTotal: 0,
+    exportFailed: 0,
   };
 }
 
@@ -106,7 +116,16 @@ export function runExportAll(refs: Refs, state: UiState): void {
   state.exportItems = [];
   state.exportFileKey = '';
   state.exportTotal = 0;
+  state.exportFailed = 0;
+  // Immediate feedback: the main thread's scan (loadAllPagesAsync +
+  // findAllWithCriteria) runs before exportAllStart, so acknowledge the click
+  // right away instead of leaving the panel silent.
+  renderExportScanning(refs);
   send({ type: 'requestExportAll' });
+}
+
+export function handleExportAllScanning(refs: Refs): void {
+  renderExportScanning(refs);
 }
 
 // ---------------------------------------------------------------------------
@@ -132,12 +151,28 @@ export function handleExportComponent(
   index: number,
   total: number,
 ): void {
-  const item = renderOne(node, state.exportFileKey);
-  state.exportItems.push(item);
-  renderExportProgress(refs, index, total);
+  // Isolate per-component failures: one component whose extract/render throws
+  // must not stall the whole stream or freeze progress at a fixed number.
+  try {
+    const item = renderOne(node, state.exportFileKey);
+    state.exportItems.push(item);
+  } catch (err) {
+    state.exportFailed++;
+    const m = err instanceof Error ? err.message : String(err);
+    console.warn(`[export-all] failed to render "${node.name}": ${m}`);
+  }
+  renderExportProgress(refs, index, total, undefined, state.exportFailed);
 }
 
 export function handleExportAllDone(refs: Refs, state: UiState): void {
+  // Nothing to zip (no components found, or all failed) — say so plainly
+  // instead of downloading an empty/near-empty archive silently.
+  if (state.exportItems.length === 0) {
+    renderExportDone(refs, 0, '', state.exportFailed);
+    refs.exportAllBtn.disabled = false;
+    return;
+  }
+
   const folderName = (refs.folderInput.value.trim() || 'design-system')
     .replace(/[^a-z0-9-_]/gi, '-')
     .replace(/-{2,}/g, '-')
@@ -158,7 +193,7 @@ export function handleExportAllDone(refs: Refs, state: UiState): void {
   a.click();
   URL.revokeObjectURL(url);
 
-  renderExportDone(refs, state.exportItems.length, folderName);
+  renderExportDone(refs, state.exportItems.length, folderName, state.exportFailed);
   refs.exportAllBtn.disabled = false;
 }
 
