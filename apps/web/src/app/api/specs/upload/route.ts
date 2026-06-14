@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import matter from "gray-matter";
 import { corsHeaders } from "@/lib/specApi";
 import { writeInboxMarkdown } from "@/lib/specWriter";
-import { slugify } from "@/lib/specWriter";
 
 export const dynamic = "force-dynamic";
 
@@ -114,7 +113,6 @@ export async function POST(req: NextRequest) {
         : null;
 
   const rawName = nameFromFm ?? filenameHint ?? "component";
-  const slug = slugify(rawName) || "component";
 
   let written: { path: string; slug: string };
   try {
