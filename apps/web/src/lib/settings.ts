@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import path from "node:path";
+import { configPath } from "./config";
 
 /**
  * Reads/writes API keys into the same .ds-config.json that config.ts uses.
@@ -19,10 +19,6 @@ interface DsConfig {
   contentDir?: string;
   anthropicKey?: string;
   figmaToken?: string;
-}
-
-function configPath(): string {
-  return process.env.DS_CONFIG_PATH ?? path.join(process.cwd(), ".ds-config.json");
 }
 
 function readConfig(): DsConfig {

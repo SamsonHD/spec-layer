@@ -13,8 +13,16 @@ import path from "node:path";
  * perspective. A future phase will use it for API keys and other settings.
  */
 
-const CONFIG_PATH = path.join(process.cwd(), ".ds-config.json");
 const DEFAULT_DIR = path.join(process.cwd(), "content", "components");
+
+/**
+ * The single source of truth for the .ds-config.json location, shared with
+ * settings.ts. Normally <cwd>/.ds-config.json; tests may override via
+ * DS_CONFIG_PATH so config and settings always resolve to the same file.
+ */
+export function configPath(): string {
+  return process.env.DS_CONFIG_PATH ?? path.join(process.cwd(), ".ds-config.json");
+}
 
 function expandPath(raw: string): string {
   const trimmed = raw.trim();
@@ -24,7 +32,7 @@ function expandPath(raw: string): string {
 
 function readConfigDir(): string | null {
   try {
-    const data = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8")) as { contentDir?: string };
+    const data = JSON.parse(fs.readFileSync(configPath(), "utf-8")) as { contentDir?: string };
     if (data.contentDir && data.contentDir.trim()) return expandPath(data.contentDir);
   } catch {
     // no config file yet, or unreadable — fall through
