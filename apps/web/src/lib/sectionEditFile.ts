@@ -6,8 +6,17 @@ import {
   insertSection,
   reorderSection,
   replaceSection,
+  splitSections,
   type Section,
 } from "./sectionEdit";
+
+/** Raised when the section at `index` no longer matches the heading the client loaded. */
+export class StaleSectionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "StaleSectionError";
+  }
+}
 
 /**
  * A single inline-section edit applied to a component's markdown BODY.
@@ -19,12 +28,20 @@ import {
  * preamble (content before the first heading) is index 0 when present.
  */
 export type SectionEdit =
-  | { action: "replace"; index: number; content: string }
+  | { action: "replace"; index: number; content: string; expectedHeading?: string }
   | { action: "insert"; index: number; heading: string; content: string; level?: number }
-  | { action: "delete"; index: number }
-  | { action: "reorder"; index: number; to: number };
+  | { action: "delete"; index: number; expectedHeading?: string }
+  | { action: "reorder"; index: number; to: number; expectedHeading?: string };
 
-/** Split a raw file into its (byte-for-byte) frontmatter block and the body. */
+/**
+ * Split a raw file into its (byte-for-byte) frontmatter block and the body.
+ *
+ * This is a hand-rolled regex rather than `@spec-layer/format`'s
+ * `parseFrontmatter` on purpose: that parser validates and reserializes the YAML,
+ * which would rewrite the frontmatter bytes (key order, quoting, spacing) and
+ * defeat the byte-for-byte preservation this writer guarantees. We only need the
+ * raw split here, so we keep the frontmatter block verbatim and never touch it.
+ */
 function splitFrontmatter(raw: string): { frontmatter: string; body: string } {
   const m = /^(---\r?\n[\s\S]*?\r?\n---)(\r?\n)?([\s\S]*)$/.exec(raw);
   if (!m) return { frontmatter: "", body: raw };
@@ -62,6 +79,20 @@ export function applySectionEdit(slug: string[], edit: SectionEdit): void {
 
   const raw = fs.readFileSync(filePath, "utf-8");
   const { frontmatter, body } = splitFrontmatter(raw);
+
+  // Stale-index guard: if the client told us which heading it believes lives at
+  // `index`, verify it still matches before mutating. This catches the case where
+  // the file changed since the page loaded (a section was added/removed/reordered
+  // elsewhere) so an edit never silently lands on the wrong section. `insert`
+  // targets a gap between sections, so there is no heading to check.
+  if (edit.action !== "insert" && edit.expectedHeading !== undefined) {
+    const sections = splitSections(body);
+    const actual = sections[edit.index]?.heading;
+    if (actual !== edit.expectedHeading) {
+      throw new StaleSectionError("section changed since load, refresh and retry");
+    }
+  }
+
   const newBody = applyEdit(body, edit);
 
   const next = frontmatter ? `${frontmatter}\n\n${newBody}\n` : `${newBody}\n`;

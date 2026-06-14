@@ -5,12 +5,7 @@ import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
-
-export interface EditableSectionData {
-  heading: string;
-  level: number;
-  content: string;
-}
+import type { Section } from "@/lib/sectionEdit";
 
 type Action = "replace" | "insert" | "delete" | "reorder";
 
@@ -20,6 +15,8 @@ interface SectionPayload {
   index: number;
   content?: string;
   heading?: string;
+  /** Section heading the client believes lives at `index`, for the server's stale-index guard. */
+  expectedHeading?: string;
   to?: number;
 }
 
@@ -42,7 +39,7 @@ async function postSection(payload: SectionPayload): Promise<void> {
 }
 
 /** Reconstruct the raw markdown for a section (heading line + content). */
-function toRawMarkdown(section: EditableSectionData): string {
+function toRawMarkdown(section: Section): string {
   if (!section.heading) return section.content;
   const hashes = "#".repeat(section.level || 2);
   return section.content
@@ -53,15 +50,23 @@ function toRawMarkdown(section: EditableSectionData): string {
 export default function EditableSection({
   section,
   index,
-  total,
+  prevIndex,
+  nextIndex,
   slug,
   startInEdit = false,
 }: {
-  section: EditableSectionData;
+  section: Section;
   /** Index into the FULL body's section list — matches what the API edits. */
   index: number;
-  /** Total number of sections, for enabling/disabling reorder controls. */
-  total: number;
+  /**
+   * Full-body index of the PREVIOUS visible prose section, or `null` if this is
+   * the first prose section. Reordering operates over the prose ordering the
+   * user actually sees, so "move up" swaps with this neighbor (skipping any
+   * hidden Specs sections that sit between them in the full body).
+   */
+  prevIndex: number | null;
+  /** Full-body index of the NEXT visible prose section, or `null` if this is the last. */
+  nextIndex: number | null;
   slug: string[];
   startInEdit?: boolean;
 }) {
@@ -89,7 +94,19 @@ export default function EditableSection({
   }
 
   async function onSave() {
-    const ok = await run({ slug, action: "replace", index, content: draft });
+    // No-op save: nothing changed, so just close the editor without a round-trip.
+    if (draft.trim() === section.content.trim()) {
+      setError(null);
+      setEditing(false);
+      return;
+    }
+    const ok = await run({
+      slug,
+      action: "replace",
+      index,
+      content: draft,
+      expectedHeading: section.heading,
+    });
     if (ok) setEditing(false);
   }
 
@@ -101,11 +118,16 @@ export default function EditableSection({
 
   async function onDelete() {
     if (!window.confirm(`Delete the "${label}" section?`)) return;
-    await run({ slug, action: "delete", index });
+    await run({ slug, action: "delete", index, expectedHeading: section.heading });
   }
 
-  async function onMove(direction: -1 | 1) {
-    await run({ slug, action: "reorder", index, to: index + direction });
+  /**
+   * Swap this prose section with its adjacent VISIBLE prose neighbor. The target
+   * is the neighbor's full-body index, so `reorderSection` swaps the two blocks
+   * the user actually sees even when hidden Specs sections sit between them.
+   */
+  async function onMove(to: number) {
+    await run({ slug, action: "reorder", index, to, expectedHeading: section.heading });
   }
 
   return (
@@ -127,8 +149,8 @@ export default function EditableSection({
             <button
               type="button"
               className="btn-link section-btn"
-              onClick={() => onMove(-1)}
-              disabled={busy || index === 0}
+              onClick={() => prevIndex !== null && onMove(prevIndex)}
+              disabled={busy || prevIndex === null}
               aria-label={`Move ${label} section up`}
             >
               ↑
@@ -136,8 +158,8 @@ export default function EditableSection({
             <button
               type="button"
               className="btn-link section-btn"
-              onClick={() => onMove(1)}
-              disabled={busy || index === total - 1}
+              onClick={() => nextIndex !== null && onMove(nextIndex)}
+              disabled={busy || nextIndex === null}
               aria-label={`Move ${label} section down`}
             >
               ↓

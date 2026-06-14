@@ -76,12 +76,17 @@ export default function ComponentTabs({
       <div role="tabpanel" hidden={active !== "guidelines"} className="tab-panel">
         {proseSections.length > 0 ? (
           <div className="editable-sections">
-            {proseSections.map(({ section, index }) => (
+            {proseSections.map(({ section, index }, i) => (
               <EditableSection
                 key={index}
                 section={section}
                 index={index}
-                total={allSections.length}
+                // Reorder swaps with the adjacent VISIBLE prose section, so pass
+                // the neighbor's full-body index (or null at the ends of the
+                // prose list). This skips hidden Specs sections that sit between
+                // prose blocks in the full body.
+                prevIndex={i > 0 ? proseSections[i - 1].index : null}
+                nextIndex={i < proseSections.length - 1 ? proseSections[i + 1].index : null}
                 slug={slug}
               />
             ))}

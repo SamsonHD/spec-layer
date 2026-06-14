@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { corsHeaders, isSafeSlug } from "@/lib/specApi";
-import { applySectionEdit, type SectionEdit } from "@/lib/sectionEditFile";
+import { applySectionEdit, StaleSectionError, type SectionEdit } from "@/lib/sectionEditFile";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +14,7 @@ interface SectionRequestBody {
   index?: unknown;
   content?: unknown;
   heading?: unknown;
+  expectedHeading?: unknown;
   to?: unknown;
 }
 
@@ -41,13 +42,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing or invalid 'index'" }, { status: 400, headers });
   }
 
+  // Optional stale-index guard: the client sends the heading it expects at
+  // `index`; the writer rejects the edit if the file has since changed.
+  const expectedHeading = typeof body.expectedHeading === "string" ? body.expectedHeading : undefined;
+
   let edit: SectionEdit;
   switch (body.action) {
     case "replace": {
       if (typeof body.content !== "string") {
         return NextResponse.json({ error: "'content' is required for replace" }, { status: 400, headers });
       }
-      edit = { action: "replace", index, content: body.content };
+      edit = { action: "replace", index, content: body.content, expectedHeading };
       break;
     }
     case "insert": {
@@ -59,7 +64,7 @@ export async function POST(req: NextRequest) {
       break;
     }
     case "delete": {
-      edit = { action: "delete", index };
+      edit = { action: "delete", index, expectedHeading };
       break;
     }
     case "reorder": {
@@ -67,7 +72,7 @@ export async function POST(req: NextRequest) {
       if (to === null) {
         return NextResponse.json({ error: "'to' is required for reorder" }, { status: 400, headers });
       }
-      edit = { action: "reorder", index, to };
+      edit = { action: "reorder", index, to, expectedHeading };
       break;
     }
     default:
@@ -77,6 +82,11 @@ export async function POST(req: NextRequest) {
   try {
     applySectionEdit(slug, edit);
   } catch (e) {
+    // The file changed since the client loaded it — surface as a conflict so the
+    // user refreshes rather than silently editing the wrong section.
+    if (e instanceof StaleSectionError) {
+      return NextResponse.json({ error: e.message }, { status: 409, headers });
+    }
     const message = e instanceof Error ? e.message : "Failed to edit section";
     // Missing file / out-of-range index are client errors.
     const status = /not found|out of range/i.test(message) ? 400 : 500;

@@ -84,6 +84,19 @@ describe("round-trip stability", () => {
     const twice = joinSections(splitSections(once));
     expect(twice).toBe(once);
   });
+
+  it("normalizes CRLF input to LF so a CRLF body round-trips with no mixed endings", () => {
+    const crlf = BODY.replace(/\n/g, "\r\n");
+    const sections = splitSections(crlf);
+    // No section content retains a carriage return.
+    for (const s of sections) {
+      expect(s.content).not.toContain("\r");
+    }
+    // The joined output is byte-for-byte the LF-normalized body.
+    const out = joinSections(sections);
+    expect(out).not.toContain("\r");
+    expect(out).toBe(BODY);
+  });
 });
 
 describe("replaceSection", () => {
@@ -150,5 +163,109 @@ describe("reorderSection", () => {
   it("is a no-op when from === to", () => {
     const out = reorderSection(BODY, 1, 1);
     expect(out).toBe(joinSections(splitSections(BODY)));
+  });
+
+  // Regression: the Guidelines tab shows only PROSE sections but reorder operates
+  // on FULL-body indices. With hidden Specs sections interleaved between prose,
+  // a UI "move down" must swap the two VISIBLE prose blocks while leaving the
+  // hidden Specs section content fully intact. This mirrors how ComponentTabs
+  // computes the neighbor's full-body index and EditableSection sends it as `to`.
+  it("swaps adjacent visible prose blocks across interleaved hidden Specs sections", () => {
+    // Full-body layout: prose(0), prose(1), Specs(2), Specs(3), Specs(4), prose(5).
+    // The user sees prose blocks "Definition", "Code", "Accessibility" (indices 0,1,5).
+    const interleaved = `## Definition
+
+A button triggers an action.
+
+## Code
+
+\`\`\`tsx
+<Button />
+\`\`\`
+
+## Anatomy
+
+1. container
+2. label
+
+## Variants
+
+| variant | use |
+| --- | --- |
+| primary | main action |
+
+## States
+
+Hover, focus, disabled.
+
+## Accessibility
+
+Use proper roles.`;
+
+    const before = splitSections(interleaved);
+    expect(before.map((s) => s.heading)).toEqual([
+      "Definition", // prose 0
+      "Code", // prose 1
+      "Anatomy", // Specs 2
+      "Variants", // Specs 3
+      "States", // Specs 4
+      "Accessibility", // prose 5
+    ]);
+
+    // User clicks "move down" on the FIRST prose block (Definition, full index 0).
+    // Its next VISIBLE prose neighbor is Code at full index 1, so the client sends
+    // { from: 0, to: 1 }. The two visible prose blocks must swap with each other.
+    const out = reorderSection(interleaved, 0, 1);
+    const after = splitSections(out);
+
+    expect(after.map((s) => s.heading)).toEqual([
+      "Code", // prose blocks swapped: Code now first
+      "Definition",
+      "Anatomy",
+      "Variants",
+      "States",
+      "Accessibility",
+    ]);
+
+    // The hidden Specs section content survives byte-for-byte.
+    const variants = after.find((s) => s.heading === "Variants");
+    expect(variants?.content).toContain("| primary | main action |");
+    const anatomy = after.find((s) => s.heading === "Anatomy");
+    expect(anatomy?.content).toContain("1. container");
+  });
+
+  // The harder case: the last prose block is separated from the previous prose
+  // block by hidden Specs sections. "Move up" on the last prose block must swap
+  // it with the previous VISIBLE prose block, not leapfrog into the Specs region.
+  it("move-up on the last prose block swaps it past hidden Specs with the prior prose block", () => {
+    const interleaved = `## Definition
+
+Def text.
+
+## Anatomy
+
+anat
+
+## States
+
+st
+
+## Accessibility
+
+a11y text.`;
+    // Full indices: Definition(0), Anatomy(1,Specs), States(2,Specs), Accessibility(3,prose).
+    // Visible prose order: Definition(0), Accessibility(3). User moves Accessibility UP:
+    // its previous visible prose neighbor is Definition at full index 0 -> { from: 3, to: 0 }.
+    const out = reorderSection(interleaved, 3, 0);
+    const after = splitSections(out);
+
+    // Accessibility now sits before Definition; the two visible prose blocks swapped.
+    const a11yPos = after.findIndex((s) => s.heading === "Accessibility");
+    const defPos = after.findIndex((s) => s.heading === "Definition");
+    expect(a11yPos).toBeLessThan(defPos);
+
+    // Specs content intact.
+    expect(after.find((s) => s.heading === "Anatomy")?.content).toBe("anat");
+    expect(after.find((s) => s.heading === "States")?.content).toBe("st");
   });
 });

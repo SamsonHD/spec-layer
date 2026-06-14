@@ -74,7 +74,11 @@ function parse(body: string): RawSection[] {
 }
 
 export function splitSections(body: string): Section[] {
-  return parse(body).map((s) => ({
+  // Normalize CRLF -> LF up front (intentional): editing a CRLF-saved file would
+  // otherwise re-emit LF-only joins and leave the file with mixed line endings.
+  // Standardizing on LF here keeps the whole edit pipeline single-line-ending.
+  const normalized = body.replace(/\r\n/g, "\n");
+  return parse(normalized).map((s) => ({
     heading: s.heading,
     level: s.level,
     content: s.contentLines.join("\n").trim(),

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { applySectionEdit } from "./sectionEditFile";
+import { applySectionEdit, StaleSectionError } from "./sectionEditFile";
 
 const FRONTMATTER = `---
 spec_version: "0.1"
@@ -91,5 +91,43 @@ describe("applySectionEdit", () => {
     expect(() =>
       applySectionEdit(slug, { action: "replace", index: 99, content: "x" }),
     ).toThrow();
+  });
+
+  it("rejects an edit whose expectedHeading does not match, without writing", () => {
+    const original = read();
+    expect(() =>
+      applySectionEdit(slug, {
+        action: "replace",
+        index: 0, // really "Definition"
+        content: "Should never be written.",
+        expectedHeading: "Accessibility", // stale / wrong
+      }),
+    ).toThrow(StaleSectionError);
+    // File is untouched: no partial write happened.
+    expect(read()).toBe(original);
+    expect(read()).not.toContain("Should never be written.");
+  });
+
+  it("applies the edit when expectedHeading matches", () => {
+    applySectionEdit(slug, {
+      action: "replace",
+      index: 0,
+      content: "Matched and written.",
+      expectedHeading: "Definition",
+    });
+    expect(read()).toContain("Matched and written.");
+  });
+
+  it("normalizes CRLF line endings so editing a CRLF file does not yield mixed endings", () => {
+    const filePath = path.join(dir, "f", "button.md");
+    const crlf = `${FRONTMATTER}\n\n${BODY}\n`.replace(/\n/g, "\r\n");
+    fs.writeFileSync(filePath, crlf, "utf-8");
+
+    applySectionEdit(slug, { action: "replace", index: 0, content: "LF only now." });
+    const raw = read();
+    expect(raw).toContain("LF only now.");
+    // The body must not contain any CR after a normalized edit.
+    const body = raw.slice(raw.lastIndexOf("---") + 3);
+    expect(body).not.toContain("\r");
   });
 });
