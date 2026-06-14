@@ -1,6 +1,6 @@
 /**
- * actions.ts — the action handlers (runExtract / runDownload / runSendToDocs)
- * plus the module-scoped UI state they read and mutate.
+ * actions.ts — the action handlers (runExtract / runDownload / runSendToDocs /
+ * runExportAll + export-message handlers) plus the module-scoped UI state.
  *
  * Logic only — DOM reads/writes that are view concerns live in render.ts; these
  * handlers call into render for banners/phase updates. The `canSendToDocs`
@@ -14,7 +14,8 @@ import type { UiToMain } from '../messages';
 import { nextStatus, resetToIdle, toKebab, type UiPhase } from './state';
 import { canSendToDocs } from './sendGuard';
 import type { Refs } from './dom';
-import { showBanner, clearBanners, renderPhase } from './render';
+import { showBanner, clearBanners, renderPhase, renderExportProgress, renderExportDone } from './render';
+import { buildExportFiles, zipFiles } from '../exportFiles';
 
 // ---------------------------------------------------------------------------
 // State
@@ -28,6 +29,10 @@ export interface UiState {
   currentExtractedAt: string;
   renderedMd: string;
   docsEndpoint: string;
+  // Export-all accumulator
+  exportItems: Array<{ name: string; markdown: string }>;
+  exportFileKey: string;
+  exportTotal: number;
 }
 
 export function createState(): UiState {
@@ -39,6 +44,9 @@ export function createState(): UiState {
     currentExtractedAt: '',
     renderedMd: '',
     docsEndpoint: 'http://localhost:3000',
+    exportItems: [],
+    exportFileKey: '',
+    exportTotal: 0,
   };
 }
 
@@ -48,6 +56,20 @@ export function createState(): UiState {
 
 export function send(msg: UiToMain): void {
   parent.postMessage({ pluginMessage: msg }, '*');
+}
+
+// ---------------------------------------------------------------------------
+// renderOne — shared extraction helper (used by runExtract and runExportAll).
+// ---------------------------------------------------------------------------
+
+export function renderOne(
+  node: SerializedNode,
+  fileKey: string,
+): { name: string; markdown: string } {
+  const extractedAt = new Date().toISOString();
+  const spec = extract(node, { figmaFile: fileKey });
+  const markdown = renderSpec(spec, { prose: null, extractedAt });
+  return { name: spec.name, markdown };
 }
 
 // ---------------------------------------------------------------------------
@@ -73,6 +95,81 @@ export async function runExtract(refs: Refs, state: UiState): Promise<void> {
   renderPhase(refs, state);
 
   send({ type: 'notify', message: `Spec extracted for ${spec.name}` });
+}
+
+// ---------------------------------------------------------------------------
+// Export all — initiates a bulk export via the main thread.
+// ---------------------------------------------------------------------------
+
+export function runExportAll(refs: Refs, state: UiState): void {
+  // Guard against double-runs.
+  refs.exportAllBtn.disabled = true;
+  // Reset accumulator.
+  state.exportItems = [];
+  state.exportFileKey = '';
+  state.exportTotal = 0;
+  send({ type: 'requestExportAll' });
+}
+
+// ---------------------------------------------------------------------------
+// Export-all message handlers — called from ui.ts window.onmessage.
+// ---------------------------------------------------------------------------
+
+export function handleExportAllStart(
+  refs: Refs,
+  state: UiState,
+  total: number,
+  fileKey: string,
+): void {
+  state.exportTotal = total;
+  state.exportFileKey = fileKey;
+  state.exportItems = [];
+  renderExportProgress(refs, 0, total);
+}
+
+export function handleExportComponent(
+  refs: Refs,
+  state: UiState,
+  node: SerializedNode,
+  index: number,
+  total: number,
+): void {
+  const item = renderOne(node, state.exportFileKey);
+  state.exportItems.push(item);
+  renderExportProgress(refs, index, total);
+}
+
+export function handleExportAllDone(refs: Refs, state: UiState): void {
+  const folderName = (refs.folderInput.value.trim() || 'design-system')
+    .replace(/[^a-z0-9-_]/gi, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-|-$/g, '') || 'design-system';
+
+  const files = buildExportFiles(state.exportItems, folderName);
+  const zipped = zipFiles(files);
+  // Copy into a plain ArrayBuffer to satisfy Blob constructor typings when
+  // fflate's result carries ArrayBufferLike (may include SharedArrayBuffer).
+  const zipBuffer: ArrayBuffer = zipped.buffer instanceof ArrayBuffer
+    ? zipped.buffer.slice(zipped.byteOffset, zipped.byteOffset + zipped.byteLength) as ArrayBuffer
+    : new Uint8Array(zipped).buffer as ArrayBuffer;
+  const blob = new Blob([zipBuffer], { type: 'application/zip' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${folderName}.zip`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  renderExportDone(refs, state.exportItems.length, folderName);
+  refs.exportAllBtn.disabled = false;
+}
+
+export function handleExportAllError(refs: Refs, state: UiState, message: string): void {
+  // Show error in the export-all banner (reuse the shared bannerError element
+  // from the "selected" panel is not appropriate here — the Export-all panel
+  // has its own status area; renderExportDone/Progress use it too).
+  renderExportProgress(refs, 0, 0, message);
+  refs.exportAllBtn.disabled = false;
 }
 
 // ---------------------------------------------------------------------------

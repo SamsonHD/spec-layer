@@ -169,16 +169,16 @@ const TEMPLATE = `
   </style>
 
   <div class="tabs" role="tablist">
-    <button class="tab" id="tab-selected" role="tab" aria-selected="true">Selected component</button>
-    <button class="tab" id="tab-all" role="tab" aria-selected="false" disabled
-            title="Bulk export arrives in a later build">
-      Export all<span class="badge">Soon</span>
-    </button>
+    <button class="tab" id="tab-selected" role="tab" aria-selected="true"
+            aria-controls="tab-panel-selected">Selected component</button>
+    <button class="tab" id="tab-all" role="tab" aria-selected="false"
+            aria-controls="tab-panel-all">Export all</button>
   </div>
 
   <div class="content">
     <!-- ============ Selected-component panel ============ -->
-    <section class="panel active" id="tab-panel-selected" role="tabpanel">
+    <section class="panel active" id="tab-panel-selected" role="tabpanel"
+             aria-labelledby="tab-selected">
       <!-- No selection -->
       <div class="empty" id="no-selection">
         <div class="empty-title">No component selected</div>
@@ -238,11 +238,22 @@ const TEMPLATE = `
       </div>
     </section>
 
-    <!-- ============ Export-all panel (Phase 3 seam) ============ -->
-    <section class="panel" id="tab-panel-all" role="tabpanel">
-      <div class="empty">
-        <div class="empty-title">Export all — coming soon</div>
-        <div>Bulk-export every component in the file to Markdown. This arrives in a later build.</div>
+    <!-- ============ Export-all panel ============ -->
+    <section class="panel" id="tab-panel-all" role="tabpanel"
+             aria-labelledby="tab-all">
+      <div class="stack">
+        <p class="hint" style="margin-top:0">
+          Export every component in the file as a Markdown spec, bundled into a
+          single <code>.zip</code>. No component needs to be selected.
+        </p>
+        <div>
+          <label class="field-label" for="folder-input">Folder / ZIP name</label>
+          <input type="text" id="folder-input" placeholder="design-system" value="design-system" />
+        </div>
+        <div class="row">
+          <button class="btn btn-primary" id="export-all-btn">Export all components</button>
+        </div>
+        <div id="export-status" class="hint" style="min-height:1.4em"></div>
       </div>
     </section>
   </div>
@@ -277,6 +288,10 @@ export interface Refs {
   fileKeyInput: HTMLInputElement;
   fileKeyHint: HTMLParagraphElement;
   sendBtn: HTMLButtonElement;
+  // Export-all panel
+  folderInput: HTMLInputElement;
+  exportAllBtn: HTMLButtonElement;
+  exportStatus: HTMLDivElement;
 }
 
 function byId<T extends HTMLElement>(id: string): T {
@@ -312,5 +327,8 @@ export function mount(): Refs {
     fileKeyInput: byId<HTMLInputElement>('filekey-input'),
     fileKeyHint: byId<HTMLParagraphElement>('filekey-hint'),
     sendBtn: byId<HTMLButtonElement>('send-btn'),
+    folderInput: byId<HTMLInputElement>('folder-input'),
+    exportAllBtn: byId<HTMLButtonElement>('export-all-btn'),
+    exportStatus: byId<HTMLDivElement>('export-status'),
   };
 }

@@ -18,6 +18,11 @@ import {
   runExtract,
   runDownload,
   runSendToDocs,
+  runExportAll,
+  handleExportAllStart,
+  handleExportComponent,
+  handleExportAllDone,
+  handleExportAllError,
 } from './actions';
 import {
   renderSelection,
@@ -33,7 +38,7 @@ const refs = mount();
 const state = createState();
 
 // ---------------------------------------------------------------------------
-// Tabs (Phase 3 "Export all" stays disabled; wiring kept ready)
+// Tabs
 // ---------------------------------------------------------------------------
 
 refs.tabSelected.addEventListener('click', () => switchTab(refs, 'selected'));
@@ -55,6 +60,12 @@ refs.sendBtn.addEventListener('click', () => {
 refs.specTextarea.addEventListener('input', () => {
   state.renderedMd = refs.specTextarea.value;
 });
+
+// ---------------------------------------------------------------------------
+// Export-all panel
+// ---------------------------------------------------------------------------
+
+refs.exportAllBtn.addEventListener('click', () => runExportAll(refs, state));
 
 // ---------------------------------------------------------------------------
 // Optional docs-platform inputs (endpoint + file key override)
@@ -120,6 +131,26 @@ window.onmessage = (event: MessageEvent) => {
         refs.fileKeyInput.value = '';
         refs.fileKeyHint.textContent = '';
       }
+      break;
+    }
+
+    case 'exportAllStart': {
+      handleExportAllStart(refs, state, msg.total, msg.fileKey);
+      break;
+    }
+
+    case 'exportComponent': {
+      handleExportComponent(refs, state, msg.node, msg.index, msg.total);
+      break;
+    }
+
+    case 'exportAllDone': {
+      handleExportAllDone(refs, state);
+      break;
+    }
+
+    case 'exportAllError': {
+      handleExportAllError(refs, state, msg.message);
       break;
     }
   }

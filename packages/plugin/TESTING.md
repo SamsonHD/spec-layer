@@ -152,6 +152,48 @@ Record any token resolution mismatches or missing anatomy parts under **Known ga
 
 ---
 
+## 12. Export all — bulk ZIP download
+
+Verify the "Export all" tab works end-to-end with no component selected.
+
+### Steps
+
+1. Run the plugin (no component needs to be selected in Figma).
+2. Click the **Export all** tab in the plugin header (it should now be fully enabled — no "Soon" badge).
+3. In the **Folder / ZIP name** field, clear the default value and type `my-ds` (or leave the default `design-system`).
+4. Click **Export all components**.
+
+**Verify during export:**
+
+- [ ] The status area shows progress like `Rendering 3 / 48…` (count advances as components stream in).
+- [ ] The **Export all components** button is disabled while the export runs (prevents double-submit).
+
+**Verify on completion:**
+
+- [ ] A `my-ds.zip` (or `design-system.zip`) file downloads automatically.
+- [ ] The status area shows a success message like `Exported 47 components → my-ds.zip` (count may be slightly less than the total shown during progress if any nodes were deleted between enumeration and fetch — this is expected).
+- [ ] The **Export all components** button re-enables.
+- [ ] Unzip the downloaded file and confirm:
+  - Each component has a corresponding `.md` file inside the `my-ds/` folder.
+  - File names are kebab-cased (e.g. `button.md`, `text-field.md`).
+  - Two components with the same name produce `name.md` and `name-2.md` (collision handling).
+  - Each `.md` file starts with `---` (YAML frontmatter).
+
+### Keyboard / accessibility
+
+- [ ] Tab key moves focus to the **Export all** tab; pressing Enter or Space switches to that panel.
+- [ ] Tab key within the panel moves through: Folder input → Export button.
+
+### Error path
+
+1. With the plugin open, disconnect from the network (or use Figma desktop in a file with zero components).
+2. Click **Export all components**.
+
+- [ ] An error banner appears in the status area (e.g. `Export failed: …`).
+- [ ] The **Export all components** button re-enables so the user can retry.
+
+---
+
 ## Known gaps
 
 _Fill in during testing. Include component name, step number, and observed vs expected._

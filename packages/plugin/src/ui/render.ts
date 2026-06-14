@@ -60,7 +60,7 @@ export function renderSelection(refs: Refs, state: UiState): void {
 }
 
 // ---------------------------------------------------------------------------
-// Tabs — Phase-1 only "selected" is enabled; "all" is the Phase-3 seam.
+// Tabs
 // ---------------------------------------------------------------------------
 
 export type TabId = 'selected' | 'all';
@@ -71,4 +71,43 @@ export function switchTab(refs: Refs, tab: TabId): void {
   refs.tabAll.setAttribute('aria-selected', String(!selected));
   refs.panelSelected.classList.toggle('active', selected);
   refs.panelAll.classList.toggle('active', !selected);
+}
+
+// ---------------------------------------------------------------------------
+// Export-all progress + completion
+// ---------------------------------------------------------------------------
+
+/**
+ * Update the export-status element during a bulk export.
+ *
+ * When `errorMsg` is provided the status shows an error instead of progress.
+ * When `index` is 0 and `total` is 0 (error path) it renders the error only.
+ */
+export function renderExportProgress(
+  refs: Refs,
+  index: number,
+  total: number,
+  errorMsg?: string,
+): void {
+  if (errorMsg) {
+    refs.exportStatus.style.color = 'var(--figma-color-bg-danger)';
+    refs.exportStatus.textContent = `Export failed: ${errorMsg}`;
+    return;
+  }
+  refs.exportStatus.style.color = '';
+  if (total === 0) {
+    refs.exportStatus.textContent = 'Starting export…';
+  } else {
+    refs.exportStatus.textContent = `Rendering ${index} / ${total}…`;
+  }
+}
+
+/**
+ * Render the success state after exportAllDone fires.
+ * Uses `count` (actual items rendered) which may be < total (skipped nodes).
+ */
+export function renderExportDone(refs: Refs, count: number, folderName: string): void {
+  refs.exportStatus.style.color = '';
+  refs.exportStatus.textContent =
+    `Exported ${count} component${count === 1 ? '' : 's'} → ${folderName}.zip`;
 }
