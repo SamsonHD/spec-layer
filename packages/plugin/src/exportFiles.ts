@@ -35,7 +35,7 @@ export function buildExportFiles(
   const seen = new Map<string, number>();
 
   for (const item of items) {
-    let slug = toKebab(item.name);
+    let slug = toKebab(item.name).replace(/^-+|-+$/g, '');
     if (!slug) slug = 'component';
 
     const count = seen.get(slug) ?? 0;

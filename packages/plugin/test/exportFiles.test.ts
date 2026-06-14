@@ -58,16 +58,20 @@ describe('buildExportFiles', () => {
     expect(result['ds/card-3.md']).toBe('third');
   });
 
-  it('uses a sane fallback when the name kebabs to empty', () => {
+  it('uses "component" fallback when the name reduces to only hyphens (---)', () => {
     const result = buildExportFiles(
       [{ name: '---', markdown: 'content' }],
       'ds',
     );
-    // Should produce some key ending in .md (either ds/component.md or similar)
-    const keys = Object.keys(result);
-    expect(keys.length).toBe(1);
-    expect(keys[0]).toMatch(/\.md$/);
-    expect(keys[0]).toMatch(/^ds\//);
+    expect(Object.keys(result)).toEqual(['ds/component.md']);
+  });
+
+  it('strips trailing hyphen from slash-only Figma names (Icon/)', () => {
+    const result = buildExportFiles(
+      [{ name: 'Icon/', markdown: 'content' }],
+      'ds',
+    );
+    expect(Object.keys(result)).toEqual(['ds/icon.md']);
   });
 
   it('handles multiple distinct names correctly', () => {

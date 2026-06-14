@@ -65,11 +65,11 @@ export function send(msg: UiToMain): void {
 export function renderOne(
   node: SerializedNode,
   fileKey: string,
-): { name: string; markdown: string } {
+): { name: string; markdown: string; spec: IntermediateSpec; extractedAt: string } {
   const extractedAt = new Date().toISOString();
   const spec = extract(node, { figmaFile: fileKey });
   const markdown = renderSpec(spec, { prose: null, extractedAt });
-  return { name: spec.name, markdown };
+  return { name: spec.name, markdown, spec, extractedAt };
 }
 
 // ---------------------------------------------------------------------------
@@ -84,17 +84,15 @@ export async function runExtract(refs: Refs, state: UiState): Promise<void> {
   state.phase = nextStatus(state.phase, 'selected');
   renderPhase(refs, state);
 
-  const extractedAt = new Date().toISOString();
-  const spec = extract(state.currentNode, { figmaFile: state.currentFileKey });
-  state.renderedMd = renderSpec(spec, { prose: null, extractedAt });
-
+  const { name, markdown, spec, extractedAt } = renderOne(state.currentNode, state.currentFileKey);
+  state.renderedMd = markdown;
   state.currentSpec = spec;
   state.currentExtractedAt = extractedAt;
 
   state.phase = nextStatus(state.phase, 'rendered');
   renderPhase(refs, state);
 
-  send({ type: 'notify', message: `Spec extracted for ${spec.name}` });
+  send({ type: 'notify', message: `Spec extracted for ${name}` });
 }
 
 // ---------------------------------------------------------------------------
@@ -165,9 +163,7 @@ export function handleExportAllDone(refs: Refs, state: UiState): void {
 }
 
 export function handleExportAllError(refs: Refs, state: UiState, message: string): void {
-  // Show error in the export-all banner (reuse the shared bannerError element
-  // from the "selected" panel is not appropriate here — the Export-all panel
-  // has its own status area; renderExportDone/Progress use it too).
+  // Surface the error in the export-all status area and re-enable the button.
   renderExportProgress(refs, 0, 0, message);
   refs.exportAllBtn.disabled = false;
 }
