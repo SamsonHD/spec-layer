@@ -33,7 +33,9 @@ export function parseFigmaUrl(url: string): FigmaRef | null {
 }
 
 export interface FigmaPreviewResult {
-  status: "ok" | "no-token" | "bad-url" | "error";
+  // "no-source": no Figma link attached (the "unknown" sentinel) — a clean
+  // empty state, not an error. The route short-circuits to this before any API call.
+  status: "ok" | "no-token" | "bad-url" | "error" | "no-source";
   imageUrl?: string;
   message?: string;
 }

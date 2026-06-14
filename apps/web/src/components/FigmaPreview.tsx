@@ -8,7 +8,7 @@ interface FigmaRefProp {
 }
 
 interface State {
-  status: "loading" | "ok" | "no-token" | "bad-url" | "error";
+  status: "loading" | "ok" | "no-token" | "bad-url" | "error" | "no-source";
   imageUrl?: string;
   message?: string;
 }
@@ -107,6 +107,24 @@ export default function FigmaPreview({
             Live preview disabled.
             <br />
             Set <code>FIGMA_TOKEN</code> to render the component from Figma.
+          </div>
+        )}
+
+        {/* Defence-in-depth: FigmaSection normally renders FigmaFileEmptyState
+            before mounting this component for a linkless ref, so this branch is
+            rarely hit — but the route can return "no-source", so handle it as a
+            clean empty state rather than letting it fall through to a blank body. */}
+        {state.status === "no-source" && (
+          <div className="figma-fallback">
+            {state.message ?? "No Figma source linked."}
+            {onEdit && (
+              <>
+                <br />
+                <button className="btn-link" onClick={onEdit}>
+                  Add a Figma link
+                </button>
+              </>
+            )}
           </div>
         )}
 
