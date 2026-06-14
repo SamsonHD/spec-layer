@@ -7,10 +7,10 @@
  *
  *   [ Selected component ]  [ Export all ]
  *
- * The "Selected component" tab is the full Phase-1 single-component flow. The
- * "Export all" tab is an inert placeholder seam for Phase 3 — its panel lives
- * in the markup (`#tab-panel-all`) and its tab button (`#tab-all`) is disabled,
- * so Phase 3 only has to fill the panel and flip the button on.
+ * The "Selected component" tab is the single-component flow (extract → preview →
+ * download / optional send). The "Export all" tab (`#tab-all` / `#tab-panel-all`)
+ * holds the bulk export: a folder-name input, an "Export all components" button,
+ * and a progress/status area; it works whether or not anything is selected.
  *
  * Styling uses Figma theme CSS variables (injected because main.ts passes
  * `themeColors: true` to figma.showUI) so the plugin tracks Figma light/dark.

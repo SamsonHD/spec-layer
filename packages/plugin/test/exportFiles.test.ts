@@ -58,6 +58,22 @@ describe('buildExportFiles', () => {
     expect(result['ds/card-3.md']).toBe('third');
   });
 
+  it('does not let a literal "Card-2" overwrite the suffixed form of duplicate "Card"', () => {
+    const result = buildExportFiles(
+      [
+        { name: 'Card', markdown: 'first' },
+        { name: 'Card', markdown: 'second' },
+        { name: 'Card-2', markdown: 'literal' },
+      ],
+      'ds',
+    );
+    // Three distinct inputs must yield three distinct files (no silent overwrite).
+    expect(Object.keys(result)).toHaveLength(3);
+    expect(result['ds/card.md']).toBe('first');
+    expect(result['ds/card-2.md']).toBe('second');
+    expect(result['ds/card-2-2.md']).toBe('literal');
+  });
+
   it('uses "component" fallback when the name reduces to only hyphens (---)', () => {
     const result = buildExportFiles(
       [{ name: '---', markdown: 'content' }],

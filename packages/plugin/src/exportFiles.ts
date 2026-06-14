@@ -23,7 +23,9 @@ import { toKebab } from './ui/state';
  *
  * - Names are kebab-cased via toKebab().
  * - If a name kebabs to empty, the fallback "component" is used.
- * - Collisions are resolved by appending -2, -3, … (first occurrence keeps no suffix).
+ * - Collisions are resolved by appending -2, -3, … (first occurrence keeps no
+ *   suffix); the candidate is also re-checked against already-emitted paths so a
+ *   literal "card-2" can't silently overwrite the suffixed form of "card".
  * - folder is prepended as "<folder>/" when non-empty.
  */
 export function buildExportFiles(
@@ -38,13 +40,21 @@ export function buildExportFiles(
     let slug = toKebab(item.name).replace(/^-+|-+$/g, '');
     if (!slug) slug = 'component';
 
-    const count = seen.get(slug) ?? 0;
-    seen.set(slug, count + 1);
-
     // First occurrence keeps the bare slug; subsequent ones get -2, -3, …
-    const suffix = count === 0 ? '' : `-${count + 1}`;
-    const filename = slug + suffix + '.md';
-    const path = folder ? `${folder}/${filename}` : filename;
+    // Then re-check against already-emitted paths and keep incrementing if the
+    // candidate is taken — this covers the edge where a literal name like
+    // "card-2" collides with the suffixed form of a duplicate "card".
+    let n = (seen.get(slug) ?? 0) + 1;
+    const pathFor = (suffix: string) => {
+      const filename = slug + suffix + '.md';
+      return folder ? `${folder}/${filename}` : filename;
+    };
+    let path = pathFor(n === 1 ? '' : `-${n}`);
+    while (result[path] !== undefined) {
+      n += 1;
+      path = pathFor(`-${n}`);
+    }
+    seen.set(slug, n);
 
     result[path] = item.markdown;
   }
