@@ -1,5 +1,6 @@
 import Link from "next/link";
 import InboxFileForm from "@/components/InboxFileForm";
+import ManualImport from "@/components/ManualImport";
 import { getAllDocs, getNavTree } from "@/lib/content";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +28,16 @@ export default function InboxPage() {
           )}
         </p>
       </div>
+
+      <details className="inbox-add-panel">
+        <summary>Add a component spec manually</summary>
+        <div className="inbox-add-panel-body">
+          <p style={{ margin: "0 0 12px", fontSize: "13px", color: "var(--text-muted)" }}>
+            Export an <code>.md</code> from the Figma plugin, or upload / paste one here.
+          </p>
+          <ManualImport />
+        </div>
+      </details>
 
       {docs.length === 0 ? (
         <div className="empty-state">

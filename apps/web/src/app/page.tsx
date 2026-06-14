@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getAllDocs } from "@/lib/content";
+import ManualImport from "@/components/ManualImport";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,10 @@ export default function Home() {
       {docs.length === 0 ? (
         <div className="empty-state">
           <p>No component specs found yet.</p>
-          <p>Add component <code>.md</code> files to your content folder to get started.</p>
+          <p>
+            Export an <code>.md</code> from the Figma plugin, or add one here.
+          </p>
+          <ManualImport />
         </div>
       ) : (
         <div className="overview-grid">

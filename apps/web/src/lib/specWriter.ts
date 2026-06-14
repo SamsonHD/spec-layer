@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { IntermediateSpec } from "@spec-layer/extractor";
-import { getContentDir } from "@/lib/config";
+import { getContentDir } from "./config";
 
 /**
  * Kebab-case a component name for use as a filename slug.
@@ -78,6 +78,21 @@ export function writeInboxSpec(
   fs.writeFileSync(filePath, markdown, "utf-8");
   if (opts.spec) writeSpecData(["_inbox", slug], opts.spec);
   return { path: filePath, slug };
+}
+
+/**
+ * Write a raw markdown file into the `_inbox` folder without requiring a
+ * structured spec. Used for manual uploads/pastes where no IntermediateSpec
+ * is available. The slug/collision logic is identical to `writeInboxSpec`.
+ * No `.spec-data` sidecar is written because there is no structured spec to
+ * persist — that is intentional, not an oversight.
+ */
+export function writeInboxMarkdown(
+  name: string,
+  markdown: string,
+  opts: Pick<WriteSpecOptions, "overwrite"> = {},
+): WrittenSpec {
+  return writeInboxSpec(name, markdown, { overwrite: opts.overwrite });
 }
 
 export function readStoredSpec(slug: string[]): IntermediateSpec | null {

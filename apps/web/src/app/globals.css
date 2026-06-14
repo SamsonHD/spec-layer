@@ -692,6 +692,71 @@ button.btn-link { cursor: pointer; font-family: var(--sans); }
 .inbox-file-form input:focus { outline: none; border-color: var(--accent); }
 .inbox-item-error { grid-column: 1 / -1; color: var(--danger-text); font-size: 12px; }
 
+/* ---------- Manual import ---------- */
+.manual-import {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 560px;
+}
+.manual-import-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.manual-import-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--sans);
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.manual-import-tab:hover { color: var(--text); }
+.manual-import-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.manual-import-body { display: flex; flex-direction: column; gap: 6px; }
+.manual-import-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+.manual-import-dropzone {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  padding: 16px;
+  background: var(--bg-subtle);
+}
+.manual-import-file-input { font-size: 13px; color: var(--text); font-family: var(--sans); cursor: pointer; }
+.manual-import-dropzone-hint { font-size: 12px; color: var(--text-faint); }
+.manual-import-textarea { min-height: 200px; }
+.manual-import-error { color: var(--danger-text); font-size: 13px; }
+.manual-import-submit { align-self: flex-start; }
+
+/* ---------- Inbox manual import panel ---------- */
+.inbox-add-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-subtle);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+.inbox-add-panel summary {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+.inbox-add-panel summary::-webkit-details-marker { display: none; }
+.inbox-add-panel summary::before { content: "+ "; color: var(--accent); }
+.inbox-add-panel[open] summary::before { content: "− "; }
+.inbox-add-panel-body { padding-top: 16px; }
+
 /* ---------- Component tabs ---------- */
 .component-tabs { margin-top: 24px; }
 .tabs-bar {
