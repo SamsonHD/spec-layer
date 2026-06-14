@@ -3,6 +3,7 @@ import { serializeNode, mainComponentRef } from './serialize';
 import type { NodeResolver } from './serialize';
 import type { MainToUi, UiToMain } from './messages';
 import { effectiveFileKey } from './fileKey';
+import { collectExportTargets } from './collectComponents';
 
 // ---------------------------------------------------------------------------
 // NodeResolver — wraps async Figma APIs
@@ -120,6 +121,24 @@ async function postSelection(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Enumerate every component in the file (all pages) and return deduplicated
+// export targets. Requires documentAccess: "dynamic-page" in manifest.json
+// so that findAllWithCriteria is allowed across pages.
+// ---------------------------------------------------------------------------
+async function collectAllComponents(): Promise<Array<{ id: string; name: string; type: string }>> {
+  // Load all pages before scanning — required under dynamic-page access mode.
+  await figma.loadAllPagesAsync();
+  const found = figma.root.findAllWithCriteria({ types: ['COMPONENT_SET', 'COMPONENT'] });
+  const candidates = found.map(n => ({
+    id: n.id,
+    name: n.name,
+    type: n.type,
+    parentType: n.parent?.type ?? null,
+  }));
+  return collectExportTargets(candidates);
+}
+
+// ---------------------------------------------------------------------------
 // Boot
 // ---------------------------------------------------------------------------
 figma.showUI(__html__, { width: 480, height: 640, themeColors: true });
@@ -166,5 +185,43 @@ figma.ui.onmessage = async (raw: unknown) => {
     case 'openBrowser':
       figma.openExternal(msg.url);
       break;
+
+    case 'requestExportAll': {
+      // Stream every component in the file to the UI one at a time.
+      // Sequential await (not Promise.all) is intentional: it keeps each
+      // postMessage payload small, gives ordered progress to the UI, and
+      // avoids large memory spikes from parallelising many serializations.
+      try {
+        // Honor the file key override before reading it, matching postSelection.
+        await fileKeyOverrideReady;
+        const fileKey = effectiveFileKey(figma.fileKey, fileKeyOverride);
+
+        const targets = await collectAllComponents();
+        const total = targets.length;
+
+        const startMsg: MainToUi = { type: 'exportAllStart', total, fileKey };
+        figma.ui.postMessage(startMsg);
+
+        for (let i = 0; i < targets.length; i++) {
+          const target = targets[i];
+          const rawNode = await figma.getNodeByIdAsync(target.id);
+          if (!rawNode) continue; // node may have been deleted between enumeration and fetch
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const node = await serializeNode(rawNode as any, resolver);
+          // index is 1-based (1 … total) so the UI can display "1 of N"
+          const compMsg: MainToUi = { type: 'exportComponent', index: i + 1, total, node };
+          figma.ui.postMessage(compMsg);
+        }
+
+        const doneMsg: MainToUi = { type: 'exportAllDone' };
+        figma.ui.postMessage(doneMsg);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        const errMsg: MainToUi = { type: 'exportAllError', message };
+        figma.ui.postMessage(errMsg);
+      }
+      break;
+    }
   }
 };

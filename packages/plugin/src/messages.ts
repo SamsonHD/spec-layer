@@ -6,11 +6,22 @@ export type MainToUi =
   // `value` is the stored override (for the settings input); `effectiveFileKey`
   // is the key computed by the main thread (figma.fileKey, falling back to the
   // override) — the UI displays/uses it and never re-derives precedence.
-  | { type: 'fileKeyOverride'; value: string | null; effectiveFileKey: string };
+  | { type: 'fileKeyOverride'; value: string | null; effectiveFileKey: string }
+  // -----------------------------------------------------------------------
+  // Bulk export stream — sent in response to 'requestExportAll'.
+  // exportAllStart carries the authoritative fileKey (main-thread computed)
+  // so the UI can use it even when no component is currently selected.
+  // exportComponent uses 1-based index (1 … total).
+  // -----------------------------------------------------------------------
+  | { type: 'exportAllStart'; total: number; fileKey: string }
+  | { type: 'exportComponent'; index: number; total: number; node: SerializedNode }
+  | { type: 'exportAllDone' }
+  | { type: 'exportAllError'; message: string };
 
 export type UiToMain =
   | { type: 'requestSelection' }
   | { type: 'setDocsEndpoint'; value: string }
   | { type: 'setFileKeyOverride'; value: string | null }
   | { type: 'notify'; message: string }
-  | { type: 'openBrowser'; url: string };
+  | { type: 'openBrowser'; url: string }
+  | { type: 'requestExportAll' };
