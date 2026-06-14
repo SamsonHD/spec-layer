@@ -4,6 +4,7 @@ import { readStoredSpec } from "@/lib/specWriter";
 import { partitionBody } from "@/lib/sections";
 import FigmaSection from "@/components/FigmaSection";
 import ComponentTabs from "@/components/ComponentTabs";
+import GapsAlert from "@/components/GapsAlert";
 
 // Read the content repo live on each request so edits/new files show up
 // without a rebuild (the "live backend" model).
@@ -29,12 +30,6 @@ export default function ComponentPage({ params }: { params: { slug: string[] } }
 
   // JSON sidecar (preferred source for the Specs tab); null for legacy docs.
   const storedSpec = readStoredSpec(slug);
-
-  // Gap data (missingRequired / issues / gapsMarkdown) stays available here for
-  // a later task that re-adds a lightweight gaps alert.
-  void missingRequired;
-  void issues;
-  void gapsMarkdown;
 
   return (
     <>
@@ -70,6 +65,12 @@ export default function ComponentPage({ params }: { params: { slug: string[] } }
             </span>
           ))}
         </div>
+
+        <GapsAlert
+          missingRequired={missingRequired}
+          issues={issues}
+          gapsMarkdown={gapsMarkdown}
+        />
 
         <FigmaSection slug={slug} figma={fm.figma} figmaRef={fm.figmaRef} editable={true} />
 
