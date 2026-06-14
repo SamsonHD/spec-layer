@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import FigmaPreview from "./FigmaPreview";
+import FigmaFileEmptyState from "./FigmaFileEmptyState";
+
+/** Sentinel produced by the plugin when figma.fileKey is unavailable. */
+const UNKNOWN_FILE_KEY = "unknown";
 
 interface FigmaRefProp {
   fileKey: string;
@@ -120,8 +124,17 @@ export default function FigmaSection({
     );
   }
 
-  // ---- Spec-layer figmaRef (read-only preview, no edit/remove for the ref itself) ----
+  // ---- Spec-layer figmaRef — only render a live preview when the key is real ----
+  // When the plugin couldn't resolve figma.fileKey (unsaved/dev file), the key
+  // is the sentinel "unknown". Passing that to FigmaPreview triggers a real API
+  // call that returns a 404, producing a misleading "Figma API 404" error.
+  // Instead we show the same FigmaFileEmptyState used by SpecsTab so the user
+  // sees a clear "no source linked" prompt rather than a false failure.
   if (figmaRef) {
+    const keyIsReal = figmaRef.fileKey && figmaRef.fileKey !== UNKNOWN_FILE_KEY;
+    if (!keyIsReal) {
+      return <FigmaFileEmptyState slug={slug} />;
+    }
     return <FigmaPreview figmaRef={figmaRef} figmaUrl={current} />;
   }
 

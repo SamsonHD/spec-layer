@@ -3,6 +3,7 @@ import type { SerializedNode, IntermediateSpec } from '@spec-layer/extractor';
 import type { MainToUi, UiToMain } from '../messages';
 import { nextStatus, resetToIdle, toKebab, type UiPhase } from './state';
 import { parseFigmaFileKey } from './fileKey';
+import { canSendToDocs } from './sendGuard';
 
 // ---------------------------------------------------------------------------
 // Message helpers
@@ -180,6 +181,17 @@ async function runExtract(): Promise<void> {
 
 async function runSendToDocs(): Promise<void> {
   if (!currentSpec) return;
+
+  // Guard: figma.fileKey is the only automatic source for the file key.
+  // When the file is unsaved/dev or detection failed, effectiveFileKey returns
+  // the sentinel "unknown". There is no API to fabricate a share link without a
+  // real key, so we block the send and prompt the user to paste the URL instead.
+  const guard = canSendToDocs(currentFileKey);
+  if (!guard.allowed) {
+    showBanner('error', guard.reason ?? 'No Figma file key — paste the file URL above.');
+    fileKeyInput.focus();
+    return;
+  }
 
   const base = docsEndpoint.replace(/\/+$/, '');
   const url = `${base}/api/specs/import`;
