@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import matter from "gray-matter";
+import { parseMarkdown } from "@spec-layer/format";
 import { authorizeApiRequest, corsHeaders } from "@/lib/specApi";
 import { writeInboxMarkdown } from "@/lib/specWriter";
 import { assertContentLength, PayloadTooLargeError } from "@/lib/requestLimits";
@@ -105,10 +105,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Markdown content is too large" }, { status: 413, headers });
   }
 
-  // Validate parseable with gray-matter.
-  let parsed: ReturnType<typeof matter>;
+  // Validate parseable frontmatter.
+  let parsed: ReturnType<typeof parseMarkdown>;
   try {
-    parsed = matter(markdown);
+    parsed = parseMarkdown(markdown);
   } catch (e) {
     return NextResponse.json(
       { error: `Could not parse markdown frontmatter: ${e instanceof Error ? e.message : String(e)}` },
