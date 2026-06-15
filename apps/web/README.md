@@ -10,7 +10,7 @@ cp apps/web/.env.example apps/web/.env.local
 npm run dev -w md-ds
 ```
 
-Open `http://localhost:3000`. The server binds to `127.0.0.1` by default.
+Open `http://localhost:3000`. The server binds to `localhost` (loopback only). Use the `localhost` hostname — not `127.0.0.1` — when pointing the Figma plugin at it, since the plugin manifest can only allowlist the hostname.
 
 ## Content
 

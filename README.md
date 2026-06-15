@@ -52,7 +52,7 @@ cp apps/web/.env.example apps/web/.env.local
 npm run dev -w md-ds
 ```
 
-Open [http://localhost:3000](http://localhost:3000). The development server binds to `127.0.0.1` by default.
+Open [http://localhost:3000](http://localhost:3000). The development server binds to `localhost` (loopback only).
 
 The app starts without credentials and with an empty inbox. To use your own Markdown folder, set `DS_CONTENT_DIR` in `apps/web/.env.local` and restart the server.
 
@@ -69,7 +69,9 @@ In Figma desktop, choose **Plugins → Development → Import plugin from manife
 To use **Send to docs**:
 
 1. Make sure the web app is running.
-2. Keep the docs URL at `http://localhost:3000` (configurable in the plugin's **Settings** tab) unless you also update the plugin manifest and server allowlists.
+2. In the plugin's **Settings** tab, set the docs URL using the **`localhost`** hostname — e.g. `http://localhost:3000`, or `http://localhost:3001` if your server started on that port. **Do not use `127.0.0.1`:** Figma's plugin manifest can only allowlist the `localhost` hostname (it rejects raw IP literals), so a `127.0.0.1` URL is blocked before the request leaves the plugin and surfaces as `Failed to fetch`. Both names point to the same loopback server.
+
+> The manifest (`packages/plugin/manifest.json`) allowlists `http://localhost:3000` and `http://localhost:3001`. To use any other host or port, add it to the manifest's `networkAccess.allowedDomains` (hostnames only — not IPs) and reload the plugin in Figma.
 
 No token or account is needed. The plugin posts from its opaque origin, which the server permits automatically; same-origin and host-allowlist checks protect the local API.
 
