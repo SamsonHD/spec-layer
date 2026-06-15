@@ -1,7 +1,8 @@
 import Link from "next/link";
-import InboxFileForm from "@/components/InboxFileForm";
+import InboxSaveAll from "@/components/InboxSaveAll";
 import ManualImport from "@/components/ManualImport";
 import { getAllDocs, getNavTree } from "@/lib/contentCache";
+import { formatComponentCount, summarizeInbox } from "@/lib/inboxSummary";
 
 export const dynamic = "force-dynamic";
 
@@ -15,19 +16,62 @@ function collectTopLevelGroups(): string[] {
 export default function InboxPage() {
   const docs = getAllDocs().filter((doc) => doc.slug[0] === "_inbox");
   const groups = collectTopLevelGroups();
+  const summary = summarizeInbox(docs);
 
   return (
     <div className="content-inner">
       <div className="inbox-head">
         <h1>Inbox</h1>
         <p>
-          Components sent from the Figma plugin land here. Review each one and file it into your
-          component groups — or delete it.{" "}
-          {docs.length > 0 && (
-            <>{docs.length} waiting to be filed.</>
-          )}
+          Components imported from Figma land here before they are added to your documentation.
         </p>
       </div>
+
+      {docs.length === 0 ? (
+        <div className="empty-state">
+          <p>Nothing to process right now.</p>
+          <p>
+            When you import components from the Figma plugin, a summary appears here.
+          </p>
+          <p>
+            <Link href="/">Back to docs home</Link>
+          </p>
+        </div>
+      ) : (
+        <section className="inbox-summary" aria-labelledby="inbox-summary-title">
+          <div className="inbox-summary-head">
+            <div>
+              <h2 id="inbox-summary-title">Import summary</h2>
+              <p>{formatComponentCount(summary.total)} ready to save.</p>
+            </div>
+            <InboxSaveAll items={summary.items} folderOptions={groups} />
+          </div>
+
+          <dl className="inbox-summary-stats">
+            <div>
+              <dt>Imported</dt>
+              <dd>{summary.total}</dd>
+            </div>
+            <div>
+              <dt>With issues</dt>
+              <dd>{summary.withIssues}</dd>
+            </div>
+            <div>
+              <dt>Missing required</dt>
+              <dd>{summary.missingRequired}</dd>
+            </div>
+          </dl>
+
+          <details className="inbox-component-list">
+            <summary>View component names</summary>
+            <ul>
+              {summary.items.map((item) => (
+                <li key={item.slug.join("/")}>{item.name}</li>
+              ))}
+            </ul>
+          </details>
+        </section>
+      )}
 
       <details className="inbox-add-panel">
         <summary>Add a component spec manually</summary>
@@ -38,54 +82,6 @@ export default function InboxPage() {
           <ManualImport />
         </div>
       </details>
-
-      {docs.length === 0 ? (
-        <div className="empty-state">
-          <p>Nothing to process right now.</p>
-          <p>
-            When you send a component from the Figma plugin, it shows up here for review.
-          </p>
-          <p>
-            <Link href="/">Back to docs home</Link>
-          </p>
-        </div>
-      ) : (
-        <div className="inbox-list">
-          {docs.map((doc) => {
-            const status = doc.frontmatter.status;
-            return (
-              <section key={doc.slug.join("/")} className="inbox-item">
-                <div className="inbox-item-top">
-                  <div>
-                    <h2>{doc.frontmatter.name}</h2>
-                    <div className="inbox-item-path">{doc.slug.join(" / ")}</div>
-                  </div>
-                  {status && <span className={`badge ${status}`}>{status}</span>}
-                </div>
-
-                <div className="inbox-item-meta">
-                  <span>Missing required: {doc.missingRequired.length}</span>
-                  <span>Issues: {doc.issues.length}</span>
-                </div>
-
-                {doc.issues.length > 0 && (
-                  <ul className="issues-list inbox-issues">
-                    {doc.issues.map((issue, index) => (
-                      <li key={index}>{issue}</li>
-                    ))}
-                  </ul>
-                )}
-
-                <InboxFileForm
-                  fromSlug={doc.slug}
-                  initialName={doc.frontmatter.name}
-                  groupOptions={groups}
-                />
-              </section>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
