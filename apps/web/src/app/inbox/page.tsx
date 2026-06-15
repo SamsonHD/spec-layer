@@ -1,5 +1,7 @@
 import Link from "next/link";
 import InboxSaveAll from "@/components/InboxSaveAll";
+import InboxFillAll from "@/components/InboxFillAll";
+import InboxClearAll from "@/components/InboxClearAll";
 import ManualImport from "@/components/ManualImport";
 import { getAllDocs, getNavTree } from "@/lib/contentCache";
 import { formatComponentCount, summarizeInbox } from "@/lib/inboxSummary";
@@ -44,7 +46,11 @@ export default function InboxPage() {
               <h2 id="inbox-summary-title">Import summary</h2>
               <p>{formatComponentCount(summary.total)} ready to save.</p>
             </div>
-            <InboxSaveAll items={summary.items} folderOptions={groups} />
+            <div className="inbox-summary-actions">
+              <InboxFillAll items={summary.items} />
+              <InboxSaveAll items={summary.items} folderOptions={groups} />
+              <InboxClearAll items={summary.items} />
+            </div>
           </div>
 
           <dl className="inbox-summary-stats">
