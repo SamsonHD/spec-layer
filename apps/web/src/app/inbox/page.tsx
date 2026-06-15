@@ -2,6 +2,7 @@ import Link from "next/link";
 import InboxSaveAll from "@/components/InboxSaveAll";
 import InboxFillAll from "@/components/InboxFillAll";
 import InboxClearAll from "@/components/InboxClearAll";
+import InboxComponentList from "@/components/InboxComponentList";
 import ManualImport from "@/components/ManualImport";
 import { getAllDocs, getNavTree } from "@/lib/contentCache";
 import { formatComponentCount, summarizeInbox } from "@/lib/inboxSummary";
@@ -68,14 +69,7 @@ export default function InboxPage() {
             </div>
           </dl>
 
-          <details className="inbox-component-list">
-            <summary>View component names</summary>
-            <ul>
-              {summary.items.map((item) => (
-                <li key={item.slug.join("/")}>{item.name}</li>
-              ))}
-            </ul>
-          </details>
+          <InboxComponentList items={summary.items} />
         </section>
       )}
 
