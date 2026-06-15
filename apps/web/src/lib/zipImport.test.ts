@@ -8,7 +8,8 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { selectMarkdownEntries } from "./zipImport";
+import { strToU8, zipSync } from "fflate";
+import { selectMarkdownEntries, unzipWithLimits, ZipLimitError } from "./zipImport";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -36,13 +37,6 @@ status: beta
 ## Definition
 
 A text input.
-`;
-
-const MALFORMED_FM = `---
-name: [unclosed
----
-
-## Definition
 `;
 
 // gray-matter is lenient with most frontmatter; to trigger a real parse error
@@ -98,6 +92,39 @@ describe("selectMarkdownEntries — basic filtering", () => {
     expect(files).toHaveLength(1);
     // directory entries are silently ignored, not counted as skipped
     expect(skipped).toHaveLength(0);
+  });
+});
+
+describe("unzipWithLimits", () => {
+  it("rejects an entry whose expanded bytes exceed the per-file limit", () => {
+    const archive = zipSync({ "large.md": strToU8("x".repeat(101)) });
+
+    expect(() =>
+      unzipWithLimits(archive, { maxEntries: 10, maxFileBytes: 100, maxTotalBytes: 1000 }),
+    ).toThrow(ZipLimitError);
+  });
+
+  it("rejects total expanded bytes while streaming entries", () => {
+    const archive = zipSync({
+      "one.md": strToU8("x".repeat(60)),
+      "two.md": strToU8("y".repeat(60)),
+    });
+
+    expect(() =>
+      unzipWithLimits(archive, { maxEntries: 10, maxFileBytes: 100, maxTotalBytes: 100 }),
+    ).toThrow("Total decompressed size exceeds 100 bytes");
+  });
+
+  it("returns bounded entries for a valid archive", () => {
+    const archive = zipSync({ "button.md": strToU8(VALID_MD_1) });
+
+    const entries = unzipWithLimits(archive, {
+      maxEntries: 10,
+      maxFileBytes: 1000,
+      maxTotalBytes: 1000,
+    });
+
+    expect(new TextDecoder().decode(entries["button.md"])).toContain("name: Button");
   });
 });
 

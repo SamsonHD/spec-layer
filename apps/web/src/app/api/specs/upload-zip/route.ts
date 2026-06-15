@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { unzipSync } from "fflate";
-import { corsHeaders } from "@/lib/specApi";
+import { authorizeApiRequest, corsHeaders } from "@/lib/specApi";
 import { writeInboxMarkdown } from "@/lib/specWriter";
-import { selectMarkdownEntries } from "@/lib/zipImport";
+import { selectMarkdownEntries, unzipWithLimits } from "@/lib/zipImport";
+import { assertContentLength, PayloadTooLargeError } from "@/lib/requestLimits";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +18,9 @@ const MAX_FILE_BYTES = 2 * 1024 * 1024;
 
 /** Maximum total decompressed size across all files (50 MB). */
 const MAX_TOTAL_BYTES = 50 * 1024 * 1024;
+
+/** Maximum compressed request size (10 MB). */
+const MAX_ZIP_BYTES = 10 * 1024 * 1024;
 
 export function OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req) });
@@ -36,7 +39,18 @@ export function OPTIONS(req: NextRequest) {
  * Errors are returned as JSON with an appropriate HTTP status.
  */
 export async function POST(req: NextRequest) {
-  const headers = corsHeaders(req);
+  const access = authorizeApiRequest(req);
+  if (access.response) return access.response;
+  const { headers } = access;
+
+  try {
+    assertContentLength(req.headers, MAX_ZIP_BYTES);
+  } catch (error) {
+    if (error instanceof PayloadTooLargeError) {
+      return NextResponse.json({ error: error.message }, { status: 413, headers });
+    }
+    throw error;
+  }
 
   const contentType = req.headers.get("content-type") ?? "";
 
@@ -53,6 +67,13 @@ export async function POST(req: NextRequest) {
     const file = formData.get("file");
     if (!file || !(file instanceof File)) {
       return NextResponse.json({ error: "Missing 'file' field in form data" }, { status: 400, headers });
+    }
+
+    if (file.size > MAX_ZIP_BYTES) {
+      return NextResponse.json(
+        { error: `Zip file exceeds ${MAX_ZIP_BYTES} bytes` },
+        { status: 413, headers },
+      );
     }
 
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
@@ -83,45 +104,18 @@ export async function POST(req: NextRequest) {
   }
 
   // Decompress.
-  let rawEntries: ReturnType<typeof unzipSync>;
+  let rawEntries: Record<string, Uint8Array>;
   try {
-    rawEntries = unzipSync(zipBytes);
+    rawEntries = unzipWithLimits(zipBytes, {
+      maxEntries: MAX_ENTRIES,
+      maxFileBytes: MAX_FILE_BYTES,
+      maxTotalBytes: MAX_TOTAL_BYTES,
+    });
   } catch (e) {
     return NextResponse.json(
-      { error: `Invalid or corrupt zip file: ${e instanceof Error ? e.message : String(e)}` },
+      { error: e instanceof Error ? e.message : String(e) },
       { status: 400, headers },
     );
-  }
-
-  // Safety caps.
-  const entryNames = Object.keys(rawEntries);
-  if (entryNames.length > MAX_ENTRIES) {
-    return NextResponse.json(
-      { error: `Zip contains ${entryNames.length} entries; maximum allowed is ${MAX_ENTRIES}` },
-      { status: 400, headers },
-    );
-  }
-
-  let totalBytes = 0;
-  for (const [name, bytes] of Object.entries(rawEntries)) {
-    const size = bytes.byteLength;
-    if (size > MAX_FILE_BYTES) {
-      return NextResponse.json(
-        {
-          error: `Entry "${name}" decompresses to ${size} bytes; maximum per-file size is ${MAX_FILE_BYTES} bytes (2 MB)`,
-        },
-        { status: 400, headers },
-      );
-    }
-    totalBytes += size;
-    if (totalBytes > MAX_TOTAL_BYTES) {
-      return NextResponse.json(
-        {
-          error: `Total decompressed size exceeds the ${MAX_TOTAL_BYTES / (1024 * 1024)} MB limit`,
-        },
-        { status: 400, headers },
-      );
-    }
   }
 
   // Filter and decode entries.

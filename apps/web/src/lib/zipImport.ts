@@ -7,6 +7,75 @@
 
 import matter from "gray-matter";
 import path from "node:path";
+import { Unzip, UnzipInflate } from "fflate";
+
+export class ZipLimitError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ZipLimitError";
+  }
+}
+
+export interface ZipLimits {
+  maxEntries: number;
+  maxFileBytes: number;
+  maxTotalBytes: number;
+}
+
+function joinChunks(chunks: Uint8Array[], size: number): Uint8Array {
+  const output = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    output.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return output;
+}
+
+export function unzipWithLimits(
+  archive: Uint8Array,
+  limits: ZipLimits,
+): Record<string, Uint8Array> {
+  const entries: Record<string, Uint8Array> = {};
+  let entryCount = 0;
+  let totalBytes = 0;
+
+  const unzip = new Unzip((file) => {
+    entryCount += 1;
+    if (entryCount > limits.maxEntries) {
+      throw new ZipLimitError(`Zip contains more than ${limits.maxEntries} entries`);
+    }
+    if (file.originalSize !== undefined && file.originalSize > limits.maxFileBytes) {
+      throw new ZipLimitError(
+        `Entry "${file.name}" exceeds ${limits.maxFileBytes} decompressed bytes`,
+      );
+    }
+
+    const chunks: Uint8Array[] = [];
+    let fileBytes = 0;
+    file.ondata = (error, chunk, final) => {
+      if (error) throw error;
+      fileBytes += chunk.length;
+      totalBytes += chunk.length;
+      if (fileBytes > limits.maxFileBytes) {
+        throw new ZipLimitError(
+          `Entry "${file.name}" exceeds ${limits.maxFileBytes} decompressed bytes`,
+        );
+      }
+      if (totalBytes > limits.maxTotalBytes) {
+        throw new ZipLimitError(
+          `Total decompressed size exceeds ${limits.maxTotalBytes} bytes`,
+        );
+      }
+      chunks.push(chunk);
+      if (final) entries[file.name] = joinChunks(chunks, fileBytes);
+    };
+    file.start();
+  });
+  unzip.register(UnzipInflate);
+  unzip.push(archive, true);
+  return entries;
+}
 
 export interface SelectedFile {
   /** Component name: from frontmatter `name` / `component.name`, else the filename stem. */

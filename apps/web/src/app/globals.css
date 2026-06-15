@@ -283,6 +283,20 @@ h1 { letter-spacing: -0.02em; }
 .btn-link:hover { background: var(--bg-subtle); text-decoration: none; border-color: var(--accent); color: var(--accent); }
 button.btn-link { cursor: pointer; font-family: var(--sans); }
 
+:where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* ---------- Inline section editing ---------- */
 .editable-sections { display: flex; flex-direction: column; }
 .editable-section { position: relative; }

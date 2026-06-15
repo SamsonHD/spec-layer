@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getFigmaImages } from "@/lib/figma";
+import { authorizeApiRequest } from "@/lib/specApi";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,9 @@ export const dynamic = "force-dynamic";
  * to load every variant image with a single API call.
  */
 export async function GET(req: NextRequest) {
+  const access = authorizeApiRequest(req);
+  if (access.response) return access.response;
+  const { headers } = access;
   const { searchParams } = req.nextUrl;
   const fileKey = searchParams.get("fileKey");
   const rawIds = searchParams.get("ids");
@@ -18,7 +22,7 @@ export async function GET(req: NextRequest) {
   if (!fileKey || !rawIds) {
     return NextResponse.json(
       { status: "error", message: "Provide ?fileKey= and ?ids=." },
-      { status: 400 },
+      { status: 400, headers },
     );
   }
   const ids = rawIds
@@ -27,15 +31,15 @@ export async function GET(req: NextRequest) {
     .filter((id) => id.length > 0);
 
   if (!ids.length) {
-    return NextResponse.json({ status: "ok", images: {} });
+    return NextResponse.json({ status: "ok", images: {} }, { headers });
   }
   if (ids.length > 200) {
     return NextResponse.json(
       { status: "error", message: "Too many ids (max 200)." },
-      { status: 400 },
+      { status: 400, headers },
     );
   }
 
   const result = await getFigmaImages(fileKey, ids);
-  return NextResponse.json(result);
+  return NextResponse.json(result, { headers });
 }

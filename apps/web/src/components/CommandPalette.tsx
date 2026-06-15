@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { filterCommandItems, type CommandItem } from "@/lib/commandPalette";
 
@@ -22,11 +22,13 @@ export default function CommandPalette({ items }: { items: CommandItem[] }) {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const close = useCallback(() => {
     setOpen(false);
     setQuery("");
     setActive(0);
+    requestAnimationFrame(() => triggerRef.current?.focus());
   }, []);
 
   // Build the flat, ordered list of navigable targets for the current query.
@@ -40,10 +42,7 @@ export default function CommandPalette({ items }: { items: CommandItem[] }) {
     return [...QUICK_LINKS, ...matches];
   }, [items, query]);
 
-  // Keep the active index in range as the list changes.
-  useEffect(() => {
-    setActive((a) => Math.min(a, Math.max(0, targets.length - 1)));
-  }, [targets.length]);
+  const activeIndex = Math.min(active, Math.max(0, targets.length - 1));
 
   // Global ⌘K / Ctrl-K to toggle, Escape to close.
   useEffect(() => {
@@ -52,12 +51,12 @@ export default function CommandPalette({ items }: { items: CommandItem[] }) {
         e.preventDefault();
         setOpen((v) => !v);
       } else if (e.key === "Escape") {
-        setOpen(false);
+        close();
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [close]);
 
   // Focus the input when opening; lock body scroll while open.
   useEffect(() => {
@@ -86,7 +85,7 @@ export default function CommandPalette({ items }: { items: CommandItem[] }) {
       setActive((a) => (a - 1 + targets.length) % Math.max(1, targets.length));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      const t = targets[active];
+      const t = targets[activeIndex];
       if (t) go(t.href);
     }
   }
@@ -95,7 +94,7 @@ export default function CommandPalette({ items }: { items: CommandItem[] }) {
 
   return (
     <>
-      <button className="cmdk-trigger" onClick={() => setOpen(true)} aria-label="Search components">
+      <button ref={triggerRef} className="cmdk-trigger" onClick={() => setOpen(true)} aria-label="Search components">
         <span>Search…</span>
         <kbd className="cmdk-kbd">⌘K</kbd>
       </button>
@@ -108,7 +107,18 @@ export default function CommandPalette({ items }: { items: CommandItem[] }) {
           }}
           role="presentation"
         >
-          <div className="cmdk-panel" role="dialog" aria-modal="true" aria-label="Command palette">
+          <div
+            className="cmdk-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Command palette"
+            onKeyDown={(event) => {
+              if (event.key === "Tab") {
+                event.preventDefault();
+                inputRef.current?.focus();
+              }
+            }}
+          >
             <input
               ref={inputRef}
               className="cmdk-input"
@@ -120,9 +130,13 @@ export default function CommandPalette({ items }: { items: CommandItem[] }) {
               }}
               onKeyDown={onInputKey}
               spellCheck={false}
+              role="combobox"
+              aria-expanded="true"
+              aria-controls="command-palette-results"
+              aria-activedescendant={targets[activeIndex] ? `command-option-${activeIndex}` : undefined}
             />
-            <ul className="cmdk-list">
-              {showQuickHeading && <li className="cmdk-section">Go to</li>}
+            <ul id="command-palette-results" className="cmdk-list" role="listbox">
+              {showQuickHeading && <li className="cmdk-section" role="presentation">Go to</li>}
               {targets.length === 0 ? (
                 <li className="cmdk-empty">No matches.</li>
               ) : (
@@ -130,10 +144,13 @@ export default function CommandPalette({ items }: { items: CommandItem[] }) {
                   const isQuick = !query.trim() && i < QUICK_LINKS.length;
                   const firstComponent = !query.trim() && i === QUICK_LINKS.length;
                   return (
-                    <div key={t.href}>
-                      {firstComponent && <li className="cmdk-section">Components</li>}
+                    <Fragment key={t.href}>
+                      {firstComponent && <li className="cmdk-section" role="presentation">Components</li>}
                       <li
-                        className={`cmdk-item${i === active ? " active" : ""}`}
+                        id={`command-option-${i}`}
+                        role="option"
+                        aria-selected={i === activeIndex}
+                        className={`cmdk-item${i === activeIndex ? " active" : ""}`}
                         onMouseEnter={() => setActive(i)}
                         onMouseDown={(e) => {
                           e.preventDefault();
@@ -143,7 +160,7 @@ export default function CommandPalette({ items }: { items: CommandItem[] }) {
                         <span>{t.label}</span>
                         {!isQuick && t.hint && <span className="cmdk-path">{t.hint}</span>}
                       </li>
-                    </div>
+                    </Fragment>
                   );
                 })
               )}

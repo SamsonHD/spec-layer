@@ -5,7 +5,7 @@ import { draftProse, renderSpec } from "@spec-layer/extractor";
 import { getContentDir } from "@/lib/config";
 import { createSpecCache } from "@/lib/specCache";
 import { readStoredSpec } from "@/lib/specWriter";
-import { corsHeaders, isSafeSlug } from "@/lib/specApi";
+import { authorizeApiRequest, corsHeaders, isSafeSlug } from "@/lib/specApi";
 import { getAnthropicKey } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,9 @@ interface RegenerateBody {
 }
 
 export async function POST(req: NextRequest) {
-  const headers = corsHeaders(req);
+  const access = authorizeApiRequest(req);
+  if (access.response) return access.response;
+  const { headers } = access;
 
   let body: RegenerateBody;
   try {

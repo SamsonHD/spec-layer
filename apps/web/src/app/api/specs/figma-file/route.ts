@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseFrontmatter, serializeFrontmatter } from "@spec-layer/format";
 import type { IntermediateSpec } from "@spec-layer/extractor";
 import { getContentDir } from "@/lib/config";
-import { corsHeaders, isSafeSlug } from "@/lib/specApi";
+import { authorizeApiRequest, corsHeaders, isSafeSlug } from "@/lib/specApi";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +42,9 @@ function sidecarPath(contentDir: string, slug: string[]): string {
  *  - the `.spec-data/*.json` sidecar (`figmaFile`)       — what the Specs tab reads
  */
 export async function POST(req: NextRequest) {
-  const headers = corsHeaders(req);
+  const access = authorizeApiRequest(req);
+  if (access.response) return access.response;
+  const { headers } = access;
 
   let body: Body;
   try {

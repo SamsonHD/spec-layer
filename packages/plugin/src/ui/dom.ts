@@ -134,6 +134,10 @@ const TEMPLATE = `
       background: var(--figma-color-bg-secondary); color: var(--figma-color-text);
     }
     textarea:focus { outline: none; border-color: var(--figma-color-bg-brand); }
+    button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible {
+      outline: 2px solid var(--figma-color-border-brand-strong);
+      outline-offset: 2px;
+    }
 
     /* ---- Banners ---- */
     .banner {
@@ -189,13 +193,16 @@ const TEMPLATE = `
       padding: 32px 16px;
     }
     .empty .empty-title { font-size: 13px; font-weight: 600; color: var(--figma-color-text); margin-bottom: 4px; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+    }
   </style>
 
   <div class="tabs" role="tablist">
     <button class="tab" id="tab-selected" role="tab" aria-selected="true"
             aria-controls="tab-panel-selected">Selected component</button>
     <button class="tab" id="tab-all" role="tab" aria-selected="false"
-            aria-controls="tab-panel-all">Export all</button>
+            aria-controls="tab-panel-all" tabindex="-1">Export all</button>
   </div>
 
   <div class="content">
@@ -249,6 +256,11 @@ const TEMPLATE = `
               <div>
                 <label class="field-label" for="endpoint-input">Docs URL</label>
                 <input type="text" id="endpoint-input" placeholder="http://localhost:3000" />
+              </div>
+              <div>
+                <label class="field-label" for="token-input">Local access token</label>
+                <input type="password" id="token-input" placeholder="SPEC_LAYER_TOKEN" autocomplete="off" />
+                <p class="hint">Must match the docs app's <code>SPEC_LAYER_TOKEN</code>.</p>
               </div>
               <div class="figma-source missing" id="filekey-status">
                 <div>
@@ -325,6 +337,7 @@ export interface Refs {
   // Optional docs platform
   docsDisclosure: HTMLDetailsElement;
   endpointInput: HTMLInputElement;
+  tokenInput: HTMLInputElement;
   fileKeyStatus: HTMLDivElement;
   fileKeyStatusTitle: HTMLElement;
   fileKeyStatusDetail: HTMLElement;
@@ -371,6 +384,7 @@ export function mount(): Refs {
     downloadBtn: byId<HTMLButtonElement>('download-btn'),
     docsDisclosure: byId<HTMLDetailsElement>('docs-disclosure'),
     endpointInput: byId<HTMLInputElement>('endpoint-input'),
+    tokenInput: byId<HTMLInputElement>('token-input'),
     fileKeyStatus: byId<HTMLDivElement>('filekey-status'),
     fileKeyStatusTitle: byId<HTMLElement>('filekey-status-title'),
     fileKeyStatusDetail: byId<HTMLElement>('filekey-status-detail'),

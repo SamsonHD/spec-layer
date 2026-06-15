@@ -1,15 +1,23 @@
 {
   "name": "spec-layer",
   "private": true,
+  "engines": { "node": ">=20.9.0" },
   "workspaces": ["packages/*", "apps/*"],
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc -p packages/format/tsconfig.json --noEmit && tsc -p packages/extractor/tsconfig.json --noEmit && tsc -p packages/plugin/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit"
+    "typecheck": "tsc -p packages/format/tsconfig.json --noEmit && tsc -p packages/extractor/tsconfig.json --noEmit && tsc -p packages/plugin/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "build": "npm run build -w md-ds",
+    "build:plugin": "node packages/plugin/build.mjs",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build && npm run build:plugin"
+  },
+  "overrides": {
+    "postcss": "^8.5.10"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "typescript": "^5.6.0",
-    "vitest": "^2.1.0"
+    "vitest": "^4.1.8"
   }
 }

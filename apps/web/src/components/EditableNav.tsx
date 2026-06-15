@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { NavNode } from "@/lib/content";
@@ -70,7 +70,8 @@ export default function EditableNav({ nav }: { nav: NavNode[] }) {
   const toggle = (k: string) =>
     setCollapsed((prev) => {
       const next = new Set(prev);
-      next.has(k) ? next.delete(k) : next.add(k);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
       persistCollapsed(next);
       return next;
     });
@@ -203,6 +204,9 @@ export default function EditableNav({ nav }: { nav: NavNode[] }) {
     const isFolder = node.type === "folder";
     const isCollapsed = collapsed.has(k);
     const active = node.type === "doc" && pathname === docHref(node.slug);
+    const parentSlug = node.slug.slice(0, -1);
+    const siblings = childrenOf(keyOf(parentSlug));
+    const siblingIndex = siblings.findIndex((item) => keyOf(item.slug) === k);
     const dropCls =
       dropTarget?.key === k ? ` drop-${dropTarget.pos}` : "";
 
@@ -277,6 +281,26 @@ export default function EditableNav({ nav }: { nav: NavNode[] }) {
                 }}
               >
                 Rename
+              </button>
+              <button
+                disabled={siblingIndex <= 0}
+                onClick={() => {
+                  const previous = siblings[siblingIndex - 1];
+                  if (previous) void reorderWithin(parentSlug, node.slug.at(-1)!, previous.slug.at(-1)!, "before");
+                  setMenuFor(null);
+                }}
+              >
+                Move up
+              </button>
+              <button
+                disabled={siblingIndex < 0 || siblingIndex >= siblings.length - 1}
+                onClick={() => {
+                  const next = siblings[siblingIndex + 1];
+                  if (next) void reorderWithin(parentSlug, node.slug.at(-1)!, next.slug.at(-1)!, "after");
+                  setMenuFor(null);
+                }}
+              >
+                Move down
               </button>
               <button className="enav-menu-danger" onClick={() => remove(node)}>
                 Delete

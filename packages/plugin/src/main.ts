@@ -151,6 +151,11 @@ figma.clientStorage.getAsync('docsEndpoint').then((value: string | undefined) =>
   figma.ui.postMessage(msg);
 }).catch(() => {/* ignore */});
 
+figma.clientStorage.getAsync('docsToken').then((value: string | undefined) => {
+  const msg: MainToUi = { type: 'docsToken', value: value ?? null };
+  figma.ui.postMessage(msg);
+}).catch(() => {/* ignore */});
+
 // Send stored Figma file key override (and the effective file key computed
 // from it) on startup; the UI uses it for the input and display only.
 fileKeyOverrideReady.then(() => { postFileKeyOverride(); });
@@ -169,6 +174,10 @@ figma.ui.onmessage = async (raw: unknown) => {
 
     case 'setDocsEndpoint':
       await figma.clientStorage.setAsync('docsEndpoint', msg.value);
+      break;
+
+    case 'setDocsToken':
+      await figma.clientStorage.setAsync('docsToken', msg.value);
       break;
 
     case 'setFileKeyOverride':

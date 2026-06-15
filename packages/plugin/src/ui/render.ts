@@ -106,6 +106,8 @@ export function switchTab(refs: Refs, tab: TabId): void {
   const selected = tab === 'selected';
   refs.tabSelected.setAttribute('aria-selected', String(selected));
   refs.tabAll.setAttribute('aria-selected', String(!selected));
+  refs.tabSelected.tabIndex = selected ? 0 : -1;
+  refs.tabAll.tabIndex = selected ? -1 : 0;
   refs.panelSelected.classList.toggle('active', selected);
   refs.panelAll.classList.toggle('active', !selected);
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { corsHeaders, isSafeSlug } from "@/lib/specApi";
+import { authorizeApiRequest, corsHeaders, isSafeSlug } from "@/lib/specApi";
 import { applySectionEdit, StaleSectionError, type SectionEdit } from "@/lib/sectionEditFile";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +23,9 @@ function asInt(value: unknown): number | null {
 }
 
 export async function POST(req: NextRequest) {
-  const headers = corsHeaders(req);
+  const access = authorizeApiRequest(req);
+  if (access.response) return access.response;
+  const { headers } = access;
 
   let body: SectionRequestBody;
   try {

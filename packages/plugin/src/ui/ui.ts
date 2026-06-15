@@ -47,6 +47,21 @@ const state = createState();
 
 refs.tabSelected.addEventListener('click', () => switchTab(refs, 'selected'));
 refs.tabAll.addEventListener('click', () => switchTab(refs, 'all'));
+const tabs = [refs.tabSelected, refs.tabAll];
+tabs.forEach((tab, index) => {
+  tab.addEventListener('keydown', (event) => {
+    let next: number | null = null;
+    if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+    else if (event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = tabs.length - 1;
+    if (next === null) return;
+    event.preventDefault();
+    const target = next === 0 ? 'selected' : 'all';
+    switchTab(refs, target);
+    tabs[next].focus();
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Action buttons
@@ -78,6 +93,11 @@ refs.exportAllBtn.addEventListener('click', () => runExportAll(refs, state));
 refs.endpointInput.addEventListener('change', () => {
   state.docsEndpoint = refs.endpointInput.value.trim() || 'http://localhost:3000';
   send({ type: 'setDocsEndpoint', value: state.docsEndpoint });
+});
+
+refs.tokenInput.addEventListener('change', () => {
+  state.docsToken = refs.tokenInput.value.trim();
+  send({ type: 'setDocsToken', value: state.docsToken });
 });
 
 refs.fileKeyInput.addEventListener('change', () => {
@@ -128,6 +148,12 @@ window.onmessage = (event: MessageEvent) => {
     case 'docsEndpoint': {
       state.docsEndpoint = msg.value ?? 'http://localhost:3000';
       refs.endpointInput.value = state.docsEndpoint;
+      break;
+    }
+
+    case 'docsToken': {
+      state.docsToken = msg.value ?? '';
+      refs.tokenInput.value = state.docsToken;
       break;
     }
 

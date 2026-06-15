@@ -84,8 +84,8 @@ export default function FigmaSection({
           <span className="label">{current ? "Edit Figma link" : "Add Figma preview link"}</span>
         </div>
         <p className="figma-editor-sub">
-          Paste a Figma component URL (must include a <code>node-id</code>). It's saved to this
-          component's <code>.md</code> frontmatter.
+          Paste a Figma component URL (must include a <code>node-id</code>). It&apos;s saved to this
+          component&apos;s <code>.md</code> frontmatter.
         </p>
         <div className="figma-editor-row">
           <input

@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAllDocs } from "@/lib/contentCache";
+import { authorizeApiRequest } from "@/lib/specApi";
 
 export const dynamic = "force-dynamic";
 
 export function GET(req: NextRequest) {
+  const { headers, response } = authorizeApiRequest(req);
+  if (response) return response;
+
   const q = (req.nextUrl.searchParams.get("q") || "").trim().toLowerCase();
-  if (q.length < 2) return NextResponse.json({ hits: [] });
+  if (q.length < 2) return NextResponse.json({ hits: [] }, { headers });
 
   const docs = getAllDocs();
   const hits = docs
@@ -33,5 +37,5 @@ export function GET(req: NextRequest) {
       path: r.doc.slug.join(" / "),
     }));
 
-  return NextResponse.json({ hits });
+  return NextResponse.json({ hits }, { headers });
 }

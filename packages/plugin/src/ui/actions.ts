@@ -39,6 +39,7 @@ export interface UiState {
   currentExtractedAt: string;
   renderedMd: string;
   docsEndpoint: string;
+  docsToken: string;
   // Export-all accumulator
   exportItems: Array<{ name: string; markdown: string }>;
   exportFileKey: string;
@@ -59,12 +60,20 @@ export function createState(): UiState {
     currentExtractedAt: '',
     renderedMd: '',
     docsEndpoint: 'http://localhost:3000',
+    docsToken: '',
     exportItems: [],
     exportFileKey: '',
     exportTotal: 0,
     exportSkippedAtoms: 0,
     exportFailed: 0,
   };
+}
+
+export function docsRequestHeaders(token: string): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const trimmed = token.trim();
+  if (trimmed) headers.Authorization = `Bearer ${trimmed}`;
+  return headers;
 }
 
 // ---------------------------------------------------------------------------
@@ -275,7 +284,7 @@ export async function runSendToDocs(refs: Refs, state: UiState): Promise<void> {
   try {
     const res = await window.fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: docsRequestHeaders(state.docsToken),
       body: JSON.stringify({ spec: state.currentSpec, extractedAt: state.currentExtractedAt }),
     });
 

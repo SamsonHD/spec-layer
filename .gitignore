@@ -5,9 +5,14 @@ dist/
 !.env.example
 .DS_Store
 **/.claude/settings.local.json
+.claude/
 .next/
 *.tsbuildinfo
 # Local config file — may contain API keys; never commit
 .ds-config.json
 **/.ds-config.json
 .worktrees/
+**/.spec-cache/
+**/.spec-data/
+apps/web/content/components/_inbox/*
+!apps/web/content/components/_inbox/.gitkeep

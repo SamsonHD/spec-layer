@@ -50,6 +50,16 @@ describe("setKeys — persists and reads back", () => {
     expect(getAnthropicKey()).toBe("sk-ant-abc");
     expect(getFigmaToken()).toBe("figd-xyz");
   });
+
+  it("writes the local config with owner-only permissions", () => {
+    setKeys({ anthropic: "sk-ant-test" });
+    expect(fs.statSync(configPath).mode & 0o777).toBe(0o600);
+  });
+
+  it("does not leave temporary config files behind", () => {
+    setKeys({ figma: "figd-test" });
+    expect(fs.readdirSync(tmpDir)).toEqual([".ds-config.json"]);
+  });
 });
 
 describe("setKeys — does NOT clobber existing contentDir", () => {

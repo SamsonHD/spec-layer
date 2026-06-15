@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getContentDir } from "@/lib/config";
-import { corsHeaders } from "@/lib/specApi";
+import { authorizeApiRequest, corsHeaders } from "@/lib/specApi";
 import { isSafeParent } from "@/lib/navFs";
 import { readNavOrder, writeNavOrder, reorderParent } from "@/lib/navOrder";
 
@@ -30,7 +30,9 @@ function isSafeSegList(value: unknown): value is string[] {
 }
 
 export async function POST(req: NextRequest) {
-  const headers = corsHeaders(req);
+  const access = authorizeApiRequest(req);
+  if (access.response) return access.response;
+  const { headers } = access;
 
   let body: ReorderBody;
   try {
