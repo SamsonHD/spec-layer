@@ -50,13 +50,18 @@ Replaces the missing user signal. Without it, "cleaner output" is a vibe. The ha
 
 The current request sends everything as one user message with a one-sentence instruction and no system prompt. Move house rules into a real `system` field and anchor output with 1–2 golden exemplars.
 
+The house voice is already defined in `docs/prose-style-guide.md` (distilled from
+best-in-class docs — Atlassian, Material, Polaris, Carbon) and the golden corpus has
+been rewritten to it (every Do/Don't carries its reason, imperative and person-centered,
+Don'ts name their alternative). This task wires that voice into the request.
+
 **Files:**
 - Modify: `packages/extractor/src/prose/prompt.ts` (export a system prompt; add few-shot selection)
 - Modify: `packages/extractor/src/prose/client.ts` (send `system` + exemplar messages)
 - Modify: `packages/extractor/test/prose.test.ts`
 
 - [ ] Add a failing test asserting the request body includes a `system` string with the house-style rules.
-- [ ] Author the system prompt: imperative voice, no filler, Do's/Don'ts must reference real variant names and be paired, Accessibility must flag what the design file cannot encode (mirrors the golden corpus conventions).
+- [ ] Author the system prompt from `docs/prose-style-guide.md`: core rule (state the rule *and* the reason), imperative + person-centered voice, no filler, Do's/Don'ts reference real variant names / are paired with alternatives, Accessibility flags what the design file cannot encode.
 - [ ] Add few-shot: select the closest golden example(s) and include them as prior turns so the model sees target length/specificity/voice before generating.
 - [ ] Re-run the eval harness (Task 2) and record the score delta vs. baseline.
 - [ ] Run `npx vitest run packages/extractor/test/prose.test.ts`.

@@ -13,7 +13,7 @@ approved_by: "Spec Layer reference"
 
 ## Definition
 
-A Text field lets users enter and edit short-form text. Use the Filled variant on surfaces where the input should feel embedded (e.g. search bars, forms on coloured backgrounds); use the Outlined variant when the input needs a clear boundary against a white or light surface. Always pair a text field with a visible label so users understand what input is expected; use supporting text to provide hints, character counts, or error messages.
+A Text field lets people enter and edit short-form text. Use the Filled variant on surfaces where the input should feel embedded (e.g. search bars, forms on coloured backgrounds); use the Outlined variant when the input needs a clear boundary against a white or light surface. Always pair a text field with a visible label so people understand what input is expected; use supporting text to provide hints, character counts, or error messages.
 
 ## Anatomy
 
@@ -145,14 +145,14 @@ import { TextField } from '@material/react-text-field';
 
 ## Do's & Don'ts
 
-- ✅ Always include a visible label — floating or persistent — so users know what the field expects.
-- ✅ Use supporting text to provide format hints (e.g. "MM/DD/YYYY") before the user interacts, not only on error.
-- ✅ Use the Error state with a descriptive supporting text message so users understand how to correct the input.
-- ✅ Use Outlined style when the field appears on a white or very light surface to maintain visual distinction.
-- ❌ Don't rely on placeholder text as a substitute for a label — it disappears when the user types.
-- ❌ Don't use the Disabled state to show read-only data; use a read-only text element or a separate read-only input variant.
-- ❌ Don't place two text fields of the same purpose side-by-side (e.g. two "Email" fields); use a single field and clarify scope in the label.
-- ❌ Don't show an error state before the user has had a chance to interact with the field (avoid pre-validation on page load).
+- ✅ Always include a visible label, floating or persistent, so people know what the field expects without guessing from context.
+- ✅ Put format hints (e.g. "MM/DD/YYYY") in supporting text before someone types, not only after an error — it's easier to get it right than to fix it.
+- ✅ Pair the Error state with a specific supporting-text message that says how to fix the input; "Invalid" alone leaves people stuck.
+- ✅ Use the Outlined style on white or very light surfaces, where a Filled field's subtle background would barely register as an input.
+- ❌ Don't use placeholder text in place of a label — it vanishes as soon as someone types, leaving no reminder of what the field was for.
+- ❌ Don't use the Disabled state to show read-only data. Disabled text is low-contrast and skipped by the tab order, so people can't reliably read or copy it — use a read-only element instead.
+- ❌ Don't place two fields of the same purpose side by side (two "Email" fields); it's ambiguous which to fill — use one field and clarify scope in the label.
+- ❌ Don't show an error before someone has interacted with the field. Pre-validation on load flags problems people haven't had a chance to cause, which reads as nagging.
 
 ## Related atoms
 

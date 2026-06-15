@@ -13,7 +13,7 @@ approved_by: "Spec Layer reference"
 
 ## Definition
 
-Tabs organise related content into separate views within the same context, where only one view is visible at a time. Use tabs to let the user switch between peer sections of a single page or panel — not to navigate to different pages, and not to walk through a sequence of steps (use a stepper for that). Keep the set small and stable: tabs work best when every option is visible at once and the labels do not change as the user moves between them. Place the most important or default view first, since it is the one shown when the component loads.
+Tabs organise related content into separate views within the same context, where only one view is visible at a time. Use tabs to let people switch between peer sections of a single page or panel — not to navigate to different pages, and not to walk through a sequence of steps (use a stepper for that). Keep the set small and stable: tabs work best when every option is visible at once and the labels do not change as the user moves between them. Place the most important or default view first, since it is the one shown when the component loads.
 
 ## Anatomy
 
@@ -120,14 +120,14 @@ import { Tabs, TabList, TabPanels, Item } from '@adobe/react-spectrum';
 
 ## Do's & Don'ts
 
-- ✅ Use tabs for peer views of the same content where only one is shown at a time.
-- ✅ Keep labels short, parallel in phrasing, and stable as the user switches tabs.
-- ✅ Order tabs by importance or expected frequency, with the default view first.
-- ✅ Make sure every tab is visible at once; if they would scroll or wrap, reconsider the pattern.
-- ❌ Don't use tabs for page-level navigation that changes the URL to a different destination; use links or a nav.
-- ❌ Don't use tabs for sequential steps that must be completed in order; use a stepper or wizard.
-- ❌ Don't hide critical or time-sensitive information inside a non-default tab.
-- ❌ Don't disable a tab without making the reason discoverable elsewhere.
+- ✅ Use tabs for peer views of the same content where only one is shown at a time, so people can switch context without leaving the page.
+- ✅ Keep labels short, parallel in phrasing, and stable as people switch; labels that rewrite themselves between tabs make the set hard to scan and trust.
+- ✅ Order tabs by importance or expected frequency with the default view first, since the first tab is what people see and reach for most.
+- ✅ Make sure every tab is visible at once; if they'd scroll or wrap, the set is too large for the pattern — people can't weigh options they can't see, so reconsider the layout.
+- ❌ Don't use tabs for page-level navigation that changes the URL to a different destination. Tabs imply staying in place, so people don't expect a full page change — use links or a nav.
+- ❌ Don't use tabs for sequential steps that must be completed in order; tabs let people jump around freely, which breaks a required sequence — use a stepper or wizard.
+- ❌ Don't hide critical or time-sensitive information in a non-default tab; people may never open it, so anything they must see belongs in the default view.
+- ❌ Don't disable a tab without making the reason discoverable elsewhere — a greyed-out tab with no explanation just leaves people stuck.
 
 ## Related atoms
 

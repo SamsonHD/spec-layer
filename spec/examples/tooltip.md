@@ -13,7 +13,7 @@ approved_by: "Spec Layer reference"
 
 ## Definition
 
-A Tooltip shows a brief, supplementary text label for an element when the user hovers over or focuses its trigger. Use it to clarify the purpose of an icon-only control or to expand a truncated label — short, non-essential context that helps but is never required to complete a task. Because a tooltip is transient and unavailable on touch, it must only ever supplement information that is already discoverable another way. Keep the content to a few words; anything longer, interactive, or essential belongs in a popover, inline help, or the visible UI.
+A Tooltip shows a brief, supplementary text label for an element when someone hovers over or focuses its trigger. Use it to clarify the purpose of an icon-only control or to expand a truncated label — short, non-essential context that helps but is never required to complete a task. Because a tooltip is transient and unavailable on touch, it must only ever supplement information that is already discoverable another way. Keep the content to a few words; anything longer, interactive, or essential belongs in a popover, inline help, or the visible UI.
 
 ## Anatomy
 
@@ -94,13 +94,13 @@ import Tooltip from '@atlaskit/tooltip';
 
 ## Do's & Don'ts
 
-- ✅ Use a tooltip to label an icon-only button or to reveal a truncated label.
-- ✅ Keep the content to a short phrase — ideally a single noun or verb.
-- ✅ Make sure the same information is available without the tooltip, since it is unavailable on touch.
-- ❌ Don't put essential instructions, links, or buttons inside a tooltip.
-- ❌ Don't use a tooltip as the only accessible name for a control; provide `aria-label` as well.
-- ❌ Don't trigger a tooltip on click or make it persist; that behaviour belongs to a Popover.
-- ❌ Don't show a tooltip that merely repeats a visible adjacent label.
+- ✅ Use a tooltip to name an icon-only button or reveal a truncated label — a small clarification for something already on screen.
+- ✅ Keep the content to a short phrase, ideally a single noun or verb, since a tooltip is read in a glance and then disappears.
+- ✅ Make sure the same information is reachable without the tooltip; it's unavailable on touch and easy to miss, so it can never be the only path to something people need.
+- ❌ Don't put essential instructions, links, or buttons in a tooltip. It's transient, not in the tab order, and absent on touch — people who need that content may never get it. Use helper text or inline UI instead.
+- ❌ Don't use a tooltip as a control's only accessible name; screen readers may not announce it reliably — give the control its own `aria-label` as well.
+- ❌ Don't open a tooltip on click or keep it pinned; that's a Popover's job, and overloading the tooltip blurs what each pattern means.
+- ❌ Don't show a tooltip that just repeats a visible adjacent label; it adds hover noise without telling people anything new.
 
 ## Related atoms
 

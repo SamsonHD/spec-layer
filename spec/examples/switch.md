@@ -13,7 +13,7 @@ approved_by: "Spec Layer reference"
 
 ## Definition
 
-A Switch toggles a single option between two opposite states — on and off — and applies the change immediately, without a separate submit step. Use it for binary settings whose effect the user can see or feel right away, such as enabling notifications or turning on a feature. Each switch is independent; it is not a way to choose between two alternatives (use radio buttons for that) and it is not for selecting items from a list (use checkboxes). Because the action takes effect instantly, never use a Switch for a choice that should be confirmed or that has a destructive, hard-to-reverse outcome.
+A Switch toggles a single option between two opposite states — on and off — and applies the change immediately, without a separate submit step. Use it for binary settings whose effect people can see or feel right away, such as enabling notifications or turning on a feature. Each switch is independent; it is not a way to choose between two alternatives (use radio buttons for that) and it is not for selecting items from a list (use checkboxes). Because the action takes effect instantly, never use a Switch for a choice that should be confirmed or that has a destructive, hard-to-reverse outcome.
 
 ## Anatomy
 
@@ -113,13 +113,13 @@ import { Switch } from '@fluentui/react-components';
 
 ## Do's & Don'ts
 
-- ✅ Use a Switch for a binary setting that takes effect the moment it is toggled.
-- ✅ Label the setting itself so the on/off meaning is obvious without reading the action.
-- ✅ Keep the on state visually distinct using the brand fill plus the thumb position, not colour alone.
-- ❌ Don't use a Switch inside a form that requires a separate submit; use a Checkbox so the value is committed on save.
-- ❌ Don't use a Switch to pick between two labelled alternatives; use radio buttons.
-- ❌ Don't use a Switch for destructive or irreversible actions that should be confirmed first.
-- ❌ Don't pair a Switch with a redundant "On"/"Off" text label that repeats the state already shown by the control.
+- ✅ Use a Switch for a binary setting that takes effect the instant it's toggled, so people see the result without hunting for a save button.
+- ✅ Label the setting itself ("Wi-Fi", not "Turn on Wi-Fi") so the on/off meaning is clear from the control's state rather than the words.
+- ✅ Signal the on state with both the brand fill and the thumb position, not colour alone, so the state survives for colour-blind people.
+- ❌ Don't put a Switch in a form that's committed by a separate submit. People expect a switch to apply immediately, so a deferred one is misleading — use a Checkbox instead.
+- ❌ Don't use a Switch to choose between two labelled alternatives; it only expresses on/off, not "this or that" — use radio buttons.
+- ❌ Don't use a Switch for destructive or irreversible actions. A single tap with instant effect leaves no room to reconsider — use a button that opens a confirmation step.
+- ❌ Don't add a redundant "On"/"Off" text label; it repeats what the control already shows and just adds clutter.
 
 ## Related atoms
 

@@ -13,7 +13,7 @@ approved_by: "Spec Layer reference"
 
 ## Definition
 
-A Select lets the user choose one or more values from a list that opens in a dropdown. Use it when the option set is too long to show inline as radio buttons or checkboxes (roughly seven or more items) but is still well-defined and finite. Enable search when the list is long enough that scanning becomes slow, and use the multiple variant when the user may pick several values at once. For a small set of mutually exclusive options that benefit from being visible at all times, prefer radio buttons; for a binary on/off setting, use a Switch.
+A Select lets people choose one or more values from a list that opens in a dropdown. Use it when the option set is too long to show inline as radio buttons or checkboxes (roughly seven or more items) but is still well-defined and finite. Enable search when the list is long enough that scanning becomes slow, and use the multiple variant when people may pick several values at once. For a small set of mutually exclusive options that benefit from being visible at all times, prefer radio buttons; for a binary on/off setting, use a Switch.
 
 ## Anatomy
 
@@ -133,14 +133,14 @@ import { Select } from 'antd';
 
 ## Do's & Don'ts
 
-- ✅ Use a Select when the list of options is long enough that inline controls would crowd the layout.
-- ✅ Enable search once the list passes roughly a dozen options so users can type to narrow it.
-- ✅ Provide a clear, persistent label above the field, not just a placeholder.
-- ✅ Order options predictably (alphabetical, by frequency, or grouped) so they are easy to scan.
-- ❌ Don't use a Select for a small set of visible, mutually exclusive options; use radio buttons.
-- ❌ Don't use a Select for a binary choice; use a Switch or two radio buttons.
-- ❌ Don't truncate option labels so they become ambiguous; widen the dropdown or shorten the source text.
-- ❌ Don't rely on the placeholder as the field's label — it disappears once a value is chosen.
+- ✅ Use a Select when the option list is long enough that radios or checkboxes would crowd the layout — the dropdown keeps the choices tucked away until they're needed.
+- ✅ Enable search once the list passes roughly a dozen options, so people can type to narrow it instead of scrolling a long menu.
+- ✅ Give the field a clear, persistent label above it, not just a placeholder, so its purpose stays visible after a value is chosen.
+- ✅ Order options predictably — alphabetical, by frequency, or grouped — so people can find a value where they expect it to be.
+- ❌ Don't use a Select for a small set of mutually exclusive options. Hiding three choices behind a click costs a step for no gain — show them as radio buttons.
+- ❌ Don't use a Select for a binary choice; opening a menu to pick between two values is overkill — use a Switch or two radio buttons.
+- ❌ Don't truncate option labels until they're ambiguous; people can't choose what they can't read — widen the dropdown or shorten the source text.
+- ❌ Don't lean on the placeholder as the field's label — it disappears once someone selects a value, leaving no reminder of what the field controls.
 
 ## Related atoms
 

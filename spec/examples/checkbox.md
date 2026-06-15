@@ -13,7 +13,7 @@ approved_by: "Spec Layer reference"
 
 ## Definition
 
-A Checkbox lets the user select one or more independent options from a set, or toggle a single setting on or off. Use a group of checkboxes when choices are not mutually exclusive — each box is selected independently and any number can be checked at once. Use the indeterminate state only to represent a parent whose children are partially selected; it is a visual summary, never a value the user can set directly. For a single binary setting that takes effect immediately, prefer a Toggle; reserve the checkbox for selections that are committed by a later submit action.
+A Checkbox lets people select one or more independent options from a set, or toggle a single setting on or off. Use a group of checkboxes when choices are not mutually exclusive — each box is selected independently and any number can be checked at once. Use the indeterminate state only to represent a parent whose children are partially selected; it is a visual summary, never a value someone can set directly. For a single binary setting that takes effect immediately, prefer a Toggle; reserve the checkbox for selections that are committed by a later submit action.
 
 ## Anatomy
 
@@ -120,14 +120,14 @@ import { Checkbox } from '@carbon/react';
 
 ## Do's & Don'ts
 
-- ✅ Use checkboxes when the user can select zero, one, or several options from a list.
-- ✅ Write each label as a positive statement so a checked box has an unambiguous meaning (e.g. "Send me updates", not "Don't send updates").
-- ✅ Use the indeterminate state only on a parent control that summarises a partially-selected group of child checkboxes.
-- ✅ Keep the full hit target — box plus label — clickable, not just the 16px box.
-- ❌ Don't use a checkbox for a single setting that applies instantly; use a Toggle so the immediate effect is clear.
-- ❌ Don't use checkboxes for mutually exclusive options; use radio buttons instead.
-- ❌ Don't let the user set the indeterminate state directly — it is derived, not chosen.
-- ❌ Don't rely on the checked colour alone to indicate selection; the checkmark must remain visible for colour-blind users.
+- ✅ Use a checkbox group when choices aren't mutually exclusive — each box toggles independently, so people can select any number at once.
+- ✅ Write each label as a positive statement ("Send me updates", not "Don't send updates") so a checked box has one unambiguous meaning and people aren't parsing a double negative.
+- ✅ Use the indeterminate state only on a parent that summarises a partially-selected group; it shows "some, not all" at a glance without making people scan every child.
+- ✅ Make the whole target — box plus label — clickable, not just the 16px box, so the control is easy to hit on touch and for anyone with limited motor precision.
+- ❌ Don't use a checkbox for a setting that takes effect immediately. A checkbox implies its value is committed later on submit, so an instant change surprises people — use a Toggle, which reads as on/off.
+- ❌ Don't use checkboxes for mutually exclusive options. People can check several at once, which contradicts a single choice and allows invalid states — use radio buttons instead.
+- ❌ Don't let people set the indeterminate state directly — it represents a derived "partially selected" summary, so toggling it by hand has no clear meaning.
+- ❌ Don't rely on the checked colour alone to signal selection; the checkmark must stay visible so the state survives for colour-blind people.
 
 ## Related atoms
 

@@ -104,14 +104,14 @@ import { Button } from '@material/react-button';
 
 ## Do's & Don'ts
 
-- ✅ Use the Filled variant for the single most important action on a screen.
-- ✅ Keep labels concise — one to three words, verb-first (e.g. "Save", "Add item").
-- ✅ Use the Tonal variant for important but secondary actions that need more emphasis than Outlined.
-- ✅ Use the Text variant inside dialogs or dense toolbars where visual weight should be minimal.
-- ❌ Don't place more than one Filled button in the same visible viewport area.
-- ❌ Don't use a button for navigation that has no side effects — use a link (`<a>`) instead.
-- ❌ Don't disable a button without providing context about why it is unavailable.
-- ❌ Don't truncate label text; resize the container or shorten the label.
+- ✅ Use the Filled variant for the single most important action in a view — its weight tells people where to go next.
+- ✅ Keep labels to one to three words, verb-first ("Save", "Add item"), so people can scan the action without reading a sentence.
+- ✅ Use the Tonal variant for important secondary actions that need more presence than Outlined but shouldn't compete with the primary action.
+- ✅ Use the Text variant in dialogs and dense toolbars, where a filled or outlined button would add visual noise to an already busy area.
+- ❌ Don't place more than one Filled button in the same view. Multiple primary actions compete for attention, so people can't tell which one matters most.
+- ❌ Don't use a button for plain navigation with no side effect. Screen readers announce buttons and links differently, so people expect a link (`<a>`) to take them somewhere — use a link instead.
+- ❌ Don't disable a button without explaining why it's unavailable. A disabled button gives no reason and is skipped by the tab order — use inline validation to show what's needed instead.
+- ❌ Don't truncate label text; a clipped label hides the action. Shorten the label or widen the container.
 
 ## Related atoms
 

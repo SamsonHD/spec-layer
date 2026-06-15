@@ -112,14 +112,14 @@ import { Banner } from '@shopify/polaris';
 
 ## Do's & Don'ts
 
-- ✅ Use a banner for information that affects the whole page or section and should persist until resolved.
-- ✅ Match the tone to the message: Critical for blocking errors, Warning for attention, Success for confirmation, Info for neutral context.
-- ✅ Write a specific, scannable title and keep the body to the essential detail and next step.
-- ✅ Provide an action button when there is a clear thing the merchant can do about the message.
-- ❌ Don't stack multiple banners; consolidate or prioritise the single most important message.
-- ❌ Don't use a banner for transient confirmations that don't need to persist — use a Toast instead.
-- ❌ Don't use the Critical tone for non-blocking issues; overusing it erodes its urgency.
-- ❌ Don't use a banner for marketing or promotional content.
+- ✅ Use a banner for information that affects the whole page or section and should stay put until it's resolved, so merchants don't lose track of it while they work.
+- ✅ Match the tone to the message — Critical for blocking errors, Warning for attention, Success for confirmation, Info for neutral context — so the colour and icon set the right expectation before the text is read.
+- ✅ Write a specific, scannable title and keep the body to the essential detail and the next step; a merchant should know what to do without reading a paragraph.
+- ✅ Include an action button when there's a clear thing the merchant can do about the message, so the fix is one click away rather than a hunt.
+- ❌ Don't stack multiple banners. A column of competing messages buries the one that matters — consolidate, or show only the highest-priority banner.
+- ❌ Don't use a banner for a transient confirmation that doesn't need to persist; a permanent element for a momentary message is heavy — use a Toast instead.
+- ❌ Don't use the Critical tone for non-blocking issues. If everything looks urgent, nothing does, and merchants start ignoring it — reserve Critical for things that truly block progress.
+- ❌ Don't use a banner for marketing or promotional content; it trains merchants to dismiss banners and erodes trust in genuine status messages.
 
 ## Related atoms
 
