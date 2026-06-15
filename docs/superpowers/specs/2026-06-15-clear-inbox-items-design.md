@@ -25,11 +25,11 @@ Both scopes use this one endpoint: individual delete sends a one-item array; `Cl
 
 ## Components and Boundaries
 
-- A filesystem helper `clearInboxSpecs(items)` lives alongside the existing move helpers in `inboxMove.ts`, reusing its private guards (`requireInboxSlug`, `getSidecarPath`, `assertNoSymbolicLinks`). It returns `{ deleted: string[][], failures: Array<{ source: string[]; error: string }> }`, matching the shape of `saveAllInboxSpecs`.
+- A filesystem helper `clearInboxSpecs(items)` lives alongside the existing move helpers in `inboxMove.ts`, reusing its private guards (`requireInboxSlug`, `getSidecarPath`, `assertNoSymbolicLinks`). It returns `{ deleted: string[][], failures: Array<{ source: string[]; error: string }> }` — the same `{ <successes>, failures }` shape as `saveAllInboxSpecs`, with `deleted` as the parallel of that helper's `saved` key. Like `saveAllInboxSpecs`, it rejects a non-array or empty `items` with a 400 (`InboxMoveError`).
 - A `POST /api/specs/clear` route mirrors `move-all/route.ts`: same-origin and JSON-mutation validation, `corsHeaders`, and `InboxMoveError` status mapping. It accepts `{ items: string[][] }`.
 - A client `InboxClearAll` button owns the confirm gate, loading state, request, and error summary; it renders in the summary header next to `InboxSaveAll`.
-- A client `InboxComponentList` replaces the server-rendered name list, rendering each component name with a one-click `Delete` button, loading state, and error summary.
-- A shared client helper `clearInboxItems(slugs)` owns the fetch and response parsing so `InboxClearAll` and `InboxComponentList` do not duplicate request logic.
+- A client `InboxComponentList` replaces the server-rendered name list. The collapsible `<details>`/`<summary>View component names</summary>` wrapper moves into this client component so the collapsible affordance is preserved; each component name renders with a one-click `Delete` button, loading state, and error summary.
+- A shared client helper `clearInboxItems(slugs)` owns the fetch and response parsing so `InboxClearAll` and `InboxComponentList` do not duplicate request logic. It reads the success count from the `deleted` key (not `saved`).
 
 The endpoint receives explicit source slugs from the rendered Inbox and revalidates each before deleting.
 
@@ -38,7 +38,7 @@ The endpoint receives explicit source slugs from the rendered Inbox and revalida
 - Reuse the move path's guards: source slugs outside `_inbox`, path-traversal characters, and symlinked paths are rejected.
 - A missing Markdown file becomes a per-item failure; the bulk operation continues with the remaining entries.
 - Sidecar deletion is best-effort after the Markdown is removed; a leftover sidecar is harmless and recoverable via git.
-- Return a request-level error for malformed JSON or a non-array `items` body.
+- Return a request-level error for malformed JSON, or a non-array or empty `items` body.
 - Disable clearing controls while a request is running to prevent duplicate submissions.
 - Refresh the page after any successful deletion so the summary reflects only remaining entries.
 - Display failed component names when some entries could not be deleted.
