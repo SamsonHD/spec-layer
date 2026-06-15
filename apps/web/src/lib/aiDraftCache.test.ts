@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { contentHash, type IntermediateSpec, type ProseDrafts } from "@spec-layer/extractor";
+import { proseCacheKey, type IntermediateSpec, type ProseDrafts } from "@spec-layer/extractor";
 import { createSpecCache } from "./specCache";
 import { readCachedDrafts } from "./aiDraftCache";
 
@@ -49,7 +49,7 @@ describe("readCachedDrafts", () => {
 
   it("reads a text-only cached draft", async () => {
     const cache = createSpecCache();
-    await cache.set(`prose:${contentHash(SPEC)}`, JSON.stringify(DRAFT));
+    await cache.set(proseCacheKey(SPEC), JSON.stringify(DRAFT));
     const drafts = await readCachedDrafts(SPEC);
     expect(drafts).toHaveLength(1);
     expect(drafts[0].definition).toBe("A badge.");
@@ -57,15 +57,15 @@ describe("readCachedDrafts", () => {
 
   it("reads both the text-only and vision variants when present", async () => {
     const cache = createSpecCache();
-    await cache.set(`prose:${contentHash(SPEC)}`, JSON.stringify(DRAFT));
-    await cache.set(`prose:${contentHash(SPEC)}:img`, JSON.stringify({ ...DRAFT, definition: "Vision badge." }));
+    await cache.set(proseCacheKey(SPEC), JSON.stringify(DRAFT));
+    await cache.set(proseCacheKey(SPEC, { image: true }), JSON.stringify({ ...DRAFT, definition: "Vision badge." }));
     const drafts = await readCachedDrafts(SPEC);
     expect(drafts.map((d) => d.definition).sort()).toEqual(["A badge.", "Vision badge."]);
   });
 
   it("ignores a malformed cache entry", async () => {
     const cache = createSpecCache();
-    await cache.set(`prose:${contentHash(SPEC)}`, "not json");
+    await cache.set(proseCacheKey(SPEC), "not json");
     expect(await readCachedDrafts(SPEC)).toEqual([]);
   });
 });

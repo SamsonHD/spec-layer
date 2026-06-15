@@ -11,7 +11,8 @@ import { getContentDir } from "@/lib/config";
  *   set(key, value): Promise<void>
  *
  * Used so prose (LLM) calls are cached by content_hash — draftProse keys its
- * cache as `prose:<content_hash>`, so identical extractions never re-hit the API.
+ * cache via `proseCacheKey(spec)` (a versioned `prose:<version>:<content_hash>`),
+ * so identical extractions never re-hit the API until the prompt version changes.
  *
  * Cache dir resolution: a sibling `.spec-cache` next to the resolved content
  * dir, falling back to the OS tmpdir if that location isn't writable.

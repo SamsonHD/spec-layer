@@ -8,7 +8,18 @@ import type { SerializedNode } from '../src/tree';
 const spec = extract(button as SerializedNode, { figmaFile: 'FILE1' });
 
 interface AnthropicRequestBody {
-  messages: Array<{ content: unknown }>;
+  system?: unknown;
+  messages: Array<{ role?: string; content: unknown }>;
+}
+
+function parseBody(fetcherMock: { mock: { calls: unknown[][] } }): AnthropicRequestBody {
+  return JSON.parse(
+    String((fetcherMock.mock.calls[0][1] as RequestInit | undefined)?.body),
+  ) as AnthropicRequestBody;
+}
+
+function lastMessage(body: AnthropicRequestBody): { role?: string; content: unknown } {
+  return body.messages[body.messages.length - 1];
 }
 
 describe('prose', () => {
@@ -145,10 +156,8 @@ describe('prose', () => {
       cacheStore: store,
       imageUrl: 'https://figma.example/img.png',
     });
-    const sentBody = JSON.parse(
-      String(fetcherMock.mock.calls[0][1]?.body),
-    ) as AnthropicRequestBody;
-    const content = sentBody.messages[0].content as Array<Record<string, unknown>>;
+    const sentBody = parseBody(fetcherMock);
+    const content = lastMessage(sentBody).content as Array<Record<string, unknown>>;
     expect(Array.isArray(content)).toBe(true);
     expect(content[0]).toEqual({ type: 'image', source: { type: 'url', url: 'https://figma.example/img.png' } });
     expect(content[1].type).toBe('text');
@@ -165,10 +174,33 @@ describe('prose', () => {
       fetcher: fetcherMock as unknown as typeof fetch,
       cacheStore: store,
     });
-    const sentBody = JSON.parse(
-      String(fetcherMock.mock.calls[0][1]?.body),
-    ) as AnthropicRequestBody;
-    expect(typeof sentBody.messages[0].content).toBe('string');
+    const sentBody = parseBody(fetcherMock);
+    expect(typeof lastMessage(sentBody).content).toBe('string');
+  });
+
+  it('sends the house-style system prompt and a valid few-shot exemplar', async () => {
+    const fetcherMock = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => {
+      return { ok: true, json: async () => ({ content: [{ text: '{"definition":"D","accessibility":"A","dos":[],"donts":[]}' }] }) };
+    });
+    const store = { get: vi.fn(async () => null), set: vi.fn(async () => {}) };
+    await draftProse(spec, {
+      apiKey: 'sk-test',
+      fetcher: fetcherMock as unknown as typeof fetch,
+      cacheStore: store,
+    });
+    const body = parseBody(fetcherMock);
+
+    // House-style system prompt is present and governs voice (the billed-every-call artifact).
+    expect(typeof body.system).toBe('string');
+    expect(body.system as string).toMatch(/rule AND the reason/i);
+
+    // A user→assistant few-shot pair precedes the real turn, and the exemplar
+    // response is valid ProseDrafts JSON (so it teaches the exact output shape).
+    expect(body.messages.length).toBeGreaterThanOrEqual(3);
+    expect(body.messages[0].role).toBe('user');
+    expect(body.messages[1].role).toBe('assistant');
+    expect(() => parseProseResponse(String(body.messages[1].content))).not.toThrow();
+    expect(lastMessage(body).role).toBe('user');
   });
 
   it('keys the cache separately for vision vs text-only runs', async () => {

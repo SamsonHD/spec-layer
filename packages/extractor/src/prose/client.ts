@@ -1,6 +1,29 @@
 import type { IntermediateSpec } from '../extract';
 import { contentHash } from '../hash';
-import { buildProsePrompt, parseProseResponse, type ProseDrafts } from './prompt';
+import {
+  PROSE_SYSTEM_PROMPT,
+  buildProsePrompt,
+  parseProseResponse,
+  proseFewShot,
+  type ProseDrafts,
+} from './prompt';
+
+/**
+ * Bumped whenever the prompt, system prompt, or few-shot changes the produced
+ * voice. It is part of the cache key so old-voice drafts are never served after
+ * a prompt change. v1 = original single-shot prompt; v2 = house-style system
+ * prompt + few-shot.
+ */
+export const PROSE_PROMPT_VERSION = 'v2';
+
+/**
+ * The cache key for a prose draft. Centralised so the writer (`draftProse`) and
+ * every reader (e.g. the detail page's pristine-draft check) stay in lockstep —
+ * a key built two different ways is a silent cache miss.
+ */
+export function proseCacheKey(spec: IntermediateSpec, opts: { image?: boolean } = {}): string {
+  return `prose:${PROSE_PROMPT_VERSION}:${contentHash(spec)}${opts.image ? ':img' : ''}`;
+}
 
 export interface CacheStore {
   get(key: string): Promise<string | null>;
@@ -27,7 +50,7 @@ export async function draftProse(spec: IntermediateSpec, opts: DraftOptions): Pr
   // Vision and text-only runs produce different output, so they must not share a
   // cache entry. Key on the (stable) content hash plus a vision marker — NOT the
   // image URL, which is a signed URL that rotates hourly for an unchanged render.
-  const key = `prose:${contentHash(spec)}${opts.imageUrl ? ':img' : ''}`;
+  const key = proseCacheKey(spec, { image: Boolean(opts.imageUrl) });
   if (!opts.bypassCache) {
     const hit = await opts.cacheStore.get(key);
     if (hit) return parseProseResponse(hit);
@@ -53,7 +76,8 @@ export async function draftProse(spec: IntermediateSpec, opts: DraftOptions): Pr
     body: JSON.stringify({
       model: 'claude-haiku-4-5',
       max_tokens: 2000,
-      messages: [{ role: 'user', content }],
+      system: PROSE_SYSTEM_PROMPT,
+      messages: [...proseFewShot(), { role: 'user', content }],
     }),
   });
 

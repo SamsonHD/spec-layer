@@ -112,7 +112,8 @@ describe("enrichSpecFile", () => {
       const sent = JSON.parse(String(init?.body)) as {
         messages: Array<{ content: unknown }>;
       };
-      expect(Array.isArray(sent.messages[0].content)).toBe(true);
+      // The real (image) turn is last; few-shot exemplar turns precede it.
+      expect(Array.isArray(sent.messages[sent.messages.length - 1].content)).toBe(true);
       return { ok: true, json: async () => ({ content: [{ text: API_RESPONSE }] }) };
     }) as unknown as typeof fetch;
     const result = await enrichSpecFile(slug, { target: "empty" }, makeDeps({ fetcher }));

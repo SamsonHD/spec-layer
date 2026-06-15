@@ -60,11 +60,12 @@ Don'ts name their alternative). This task wires that voice into the request.
 - Modify: `packages/extractor/src/prose/client.ts` (send `system` + exemplar messages)
 - Modify: `packages/extractor/test/prose.test.ts`
 
-- [ ] Add a failing test asserting the request body includes a `system` string with the house-style rules.
-- [ ] Author the system prompt from `docs/prose-style-guide.md`: core rule (state the rule *and* the reason), imperative + person-centered voice, no filler, Do's/Don'ts reference real variant names / are paired with alternatives, Accessibility flags what the design file cannot encode.
-- [ ] Add few-shot: select the closest golden example(s) and include them as prior turns so the model sees target length/specificity/voice before generating.
-- [ ] Re-run the eval harness (Task 2) and record the score delta vs. baseline.
-- [ ] Run `npx vitest run packages/extractor/test/prose.test.ts`.
+- [x] Add a failing test asserting the request body includes a `system` string with the house-style rules.
+- [x] Author the system prompt from `docs/prose-style-guide.md` (`PROSE_SYSTEM_PROMPT`): core rule (state the rule *and* the reason), imperative + person-centered voice, no filler, Do's/Don'ts reference real variant names / are paired with alternatives, Accessibility flags what the design file cannot encode. Kept lean — it is the billed-every-call artifact.
+- [x] Add few-shot (`proseFewShot`): one hand-curated input→output exemplar in the house voice, sent as prior turns. One example to bound token cost (no caching yet, per the cost analysis — the prefix is under Haiku's 4096-token cache floor).
+- [x] **Cache versioning (added):** a prompt change must not serve old-voice drafts. Centralised the key as `proseCacheKey(spec, { image })` → `prose:<PROSE_PROMPT_VERSION>:<hash>`, shared by writer (`draftProse`) and reader (`readCachedDrafts`); bumped to `v2`. Stale v1 entries are simply never read.
+- [ ] Re-run the eval harness (Task 2) and record the score delta vs. baseline. *(Blocked on Task 2 — harness not built yet.)*
+- [x] Run `npx vitest run packages/extractor/test/prose.test.ts` (+ full suite, lint, typecheck: all green).
 
 ### Task 4: Claim Verification (Grounding) Pass
 
