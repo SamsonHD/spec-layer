@@ -1,6 +1,6 @@
 {
   "name": "spec-layer",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Local-first Figma-to-Markdown design system specification toolkit",
   "license": "MIT",
@@ -12,8 +12,13 @@
     "url": "https://github.com/SamsonHD/spec-layer/issues"
   },
   "homepage": "https://github.com/SamsonHD/spec-layer#readme",
-  "engines": { "node": ">=20.9.0" },
-  "workspaces": ["packages/*", "apps/*"],
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
