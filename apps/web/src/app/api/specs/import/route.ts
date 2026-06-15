@@ -7,10 +7,12 @@ import {
 } from "@spec-layer/extractor";
 import { createSpecCache } from "@/lib/specCache";
 import { writeInboxSpec } from "@/lib/specWriter";
-import { corsHeaders } from "@/lib/specApi";
+import { authorizeApiRequest, corsHeaders } from "@/lib/specApi";
 import { getAnthropicKey } from "@/lib/settings";
+import { assertContentLength, PayloadTooLargeError } from "@/lib/requestLimits";
 
 export const dynamic = "force-dynamic";
+const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 
 export function OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req) });
@@ -24,7 +26,18 @@ interface ImportBody {
 }
 
 export async function POST(req: NextRequest) {
-  const headers = corsHeaders(req);
+  const access = authorizeApiRequest(req);
+  if (access.response) return access.response;
+  const { headers } = access;
+
+  try {
+    assertContentLength(req.headers, MAX_IMPORT_BYTES);
+  } catch (error) {
+    if (error instanceof PayloadTooLargeError) {
+      return NextResponse.json({ error: error.message }, { status: 413, headers });
+    }
+    throw error;
+  }
 
   let body: ImportBody;
   try {

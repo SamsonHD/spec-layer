@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 import { getContentDir } from "@/lib/config";
-import { corsHeaders, hasTraversal, isSafeSlug } from "@/lib/specApi";
+import { authorizeApiRequest, corsHeaders, hasTraversal, isSafeSlug } from "@/lib/specApi";
 import { toKebab } from "@/lib/slug";
 import { upsertFrontmatterField } from "@/lib/content";
 import { docSidecar, folderSidecar } from "@/lib/navFs";
@@ -21,7 +21,9 @@ interface RenameBody {
 }
 
 export async function POST(req: NextRequest) {
-  const headers = corsHeaders(req);
+  const access = authorizeApiRequest(req);
+  if (access.response) return access.response;
+  const { headers } = access;
 
   let body: RenameBody;
   try {

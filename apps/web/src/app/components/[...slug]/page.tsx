@@ -19,8 +19,9 @@ function formatDate(iso: string | null): string {
   return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
-export default async function ComponentPage({ params }: { params: { slug: string[] } }) {
-  const doc = getDoc(params.slug);
+export default async function ComponentPage({ params }: { params: Promise<{ slug: string[] }> }) {
+  const { slug: requestedSlug } = await params;
+  const doc = getDoc(requestedSlug);
   if (!doc) notFound();
 
   const { frontmatter: fm, body, updated, missingRequired, issues, slug } = doc;

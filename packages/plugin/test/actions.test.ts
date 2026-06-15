@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createState, refreshRenderedSpecFileKey } from '../src/ui/actions';
+import { createState, docsRequestHeaders, refreshRenderedSpecFileKey } from '../src/ui/actions';
 import type { SerializedNode } from '@spec-layer/extractor';
 
 const node: SerializedNode = {
@@ -49,5 +49,20 @@ describe('refreshRenderedSpecFileKey', () => {
     expect(state.currentFileKey).toBe('REALKEY');
     expect(state.currentSpec).toBeNull();
     expect(state.renderedMd).toBe('');
+  });
+});
+
+describe('docsRequestHeaders', () => {
+  it('adds a bearer token when local authentication is configured', () => {
+    expect(docsRequestHeaders('local-secret')).toEqual({
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer local-secret',
+    });
+  });
+
+  it('omits authorization when the token is empty', () => {
+    expect(docsRequestHeaders('  ')).toEqual({
+      'Content-Type': 'application/json',
+    });
   });
 });

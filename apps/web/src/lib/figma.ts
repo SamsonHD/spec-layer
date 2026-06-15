@@ -17,7 +17,8 @@ export interface FigmaRef {
 export function parseFigmaUrl(url: string): FigmaRef | null {
   try {
     const u = new URL(url);
-    if (!u.hostname.includes("figma.com")) return null;
+    if (u.protocol !== "https:") return null;
+    if (u.hostname !== "figma.com" && u.hostname !== "www.figma.com") return null;
     // /file/<key>/... or /design/<key>/...
     const m = /\/(?:file|design|proto)\/([A-Za-z0-9]+)/.exec(u.pathname);
     if (!m) return null;

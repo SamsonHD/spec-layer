@@ -1,39 +1,29 @@
-import type { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import {
+  allowedCorsOrigin,
+  authorizeLocalRequest,
+  localCorsHeaders,
+} from "./localAccess";
 
-/**
- * Shared CORS + input-validation helpers for the /api/specs/* mutating routes.
- *
- * These routes write files to disk, so we must not reflect an arbitrary Origin
- * (that would let any site the user is browsing POST to disk while the dev
- * server runs). We only echo an allow-listed origin. The Figma plugin iframe
- * sends `Origin: null`; localhost is allowed for dev; deploy hosts can be added
- * via SPEC_IMPORT_ALLOWED_ORIGINS (comma-separated).
- */
-const DEFAULT_ALLOWED_ORIGINS = [
-  "null",
-  "http://localhost:3000",
-  "http://127.0.0.1:3000",
-];
-
-function allowedOrigins(): string[] {
-  const extra =
-    process.env.SPEC_IMPORT_ALLOWED_ORIGINS?.split(",")
-      .map((s) => s.trim())
-      .filter(Boolean) ?? [];
-  return [...DEFAULT_ALLOWED_ORIGINS, ...extra];
+/** Shared authorization and CORS helpers for APIs that access local data. */
+export function corsHeaders(req: NextRequest): Record<string, string> {
+  return localCorsHeaders(allowedCorsOrigin(req));
 }
 
-export function corsHeaders(req: NextRequest): Record<string, string> {
-  const origin = req.headers.get("origin");
-  const headers: Record<string, string> = {
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    Vary: "Origin",
+export function authorizeApiRequest(req: NextRequest): {
+  headers: Record<string, string>;
+  response: NextResponse | null;
+} {
+  const result = authorizeLocalRequest(req);
+  const headers = localCorsHeaders(result.ok ? result.origin : allowedCorsOrigin(req));
+  if (result.ok) return { headers, response: null };
+  return {
+    headers,
+    response: NextResponse.json(
+      { error: result.error },
+      { status: result.status, headers },
+    ),
   };
-  if (origin && allowedOrigins().includes(origin)) {
-    headers["Access-Control-Allow-Origin"] = origin;
-  }
-  return headers;
 }
 
 /**

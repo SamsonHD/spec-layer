@@ -140,7 +140,7 @@ function VariantsSection({
   spec: IntermediateSpec;
   fileKey: string | null;
 }) {
-  const instances = useMemo(() => spec.variantInstances ?? [], [spec]);
+  const instances = useMemo(() => spec.variantInstances ?? [], [spec.variantInstances]);
 
   const axisOrder = useMemo(() => buildAxisOrder(spec, instances), [spec, instances]);
   const axisValues = useMemo(() => buildAxisValues(axisOrder, instances), [axisOrder, instances]);
@@ -330,10 +330,28 @@ function VariantInspectorModal({
   // Lock body scroll and handle Escape while the modal is open.
   useEffect(() => {
     const prev = document.body.style.overflow;
+    const previouslyFocused = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
     document.body.style.overflow = "hidden";
 
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
+      if (e.key === "Tab") {
+        const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+          'button, a[href], input, textarea, select, [tabindex]:not([tabindex="-1"])',
+        );
+        if (!focusable?.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     }
     document.addEventListener("keydown", onKey);
 
@@ -343,6 +361,7 @@ function VariantInspectorModal({
     return () => {
       document.body.style.overflow = prev;
       document.removeEventListener("keydown", onKey);
+      previouslyFocused?.focus();
     };
   }, [onClose]);
 
@@ -372,14 +391,14 @@ function VariantInspectorModal({
         className="inspector-modal"
         role="dialog"
         aria-modal="true"
-        aria-label={`Inspecting variant: ${instance.name}`}
+        aria-labelledby="variant-inspector-title"
         ref={dialogRef}
         tabIndex={-1}
       >
         <div className="inspector-modal-head">
           <div>
             <div className="inspector-eyebrow">Inspecting variant</div>
-            <h3>{instance.name}</h3>
+            <h3 id="variant-inspector-title">{instance.name}</h3>
           </div>
           <button className="inspector-close" onClick={onClose} aria-label="Close">✕</button>
         </div>

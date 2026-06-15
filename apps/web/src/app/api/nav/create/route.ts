@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 import { getContentDir } from "@/lib/config";
-import { corsHeaders, hasTraversal } from "@/lib/specApi";
+import { authorizeApiRequest, corsHeaders, hasTraversal } from "@/lib/specApi";
 import { toKebab } from "@/lib/slug";
 import { isSafeParent } from "@/lib/navFs";
 import { readNavOrder, writeNavOrder, addChild } from "@/lib/navOrder";
@@ -24,7 +24,9 @@ function stubPage(label: string): string {
 }
 
 export async function POST(req: NextRequest) {
-  const headers = corsHeaders(req);
+  const access = authorizeApiRequest(req);
+  if (access.response) return access.response;
+  const { headers } = access;
 
   let body: CreateBody;
   try {

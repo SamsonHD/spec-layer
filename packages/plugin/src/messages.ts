@@ -4,6 +4,7 @@ import type { FileKeySource } from './fileKey';
 export type MainToUi =
   | { type: 'selection'; node: SerializedNode | null; fileKey: string; fileKeySource: FileKeySource }
   | { type: 'docsEndpoint'; value: string | null }
+  | { type: 'docsToken'; value: string | null }
   // `value` is the stored override (for the settings input); `effectiveFileKey`
   // is the key computed by the main thread (figma.fileKey, falling back to the
   // override) — the UI displays/uses it and never re-derives precedence.
@@ -26,6 +27,7 @@ export type MainToUi =
 export type UiToMain =
   | { type: 'requestSelection' }
   | { type: 'setDocsEndpoint'; value: string }
+  | { type: 'setDocsToken'; value: string }
   | { type: 'setFileKeyOverride'; value: string | null }
   | { type: 'notify'; message: string }
   | { type: 'openBrowser'; url: string }

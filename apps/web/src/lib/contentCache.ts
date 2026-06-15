@@ -1,5 +1,3 @@
-/// <reference types="react/canary" />
-
 import { cache } from "react";
 import {
   getAllDocs as readAllDocs,

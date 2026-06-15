@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 import { getContentDir } from "@/lib/config";
-import { corsHeaders, isSafeSlug } from "@/lib/specApi";
+import { authorizeApiRequest, corsHeaders, isSafeSlug } from "@/lib/specApi";
 import { docSidecar, folderSidecar, isSafeParent } from "@/lib/navFs";
 import { readNavOrder, writeNavOrder, removeChild, addChild, rekeyPrefix, orderKey } from "@/lib/navOrder";
 
@@ -20,7 +20,9 @@ interface MoveBody {
 }
 
 export async function POST(req: NextRequest) {
-  const headers = corsHeaders(req);
+  const access = authorizeApiRequest(req);
+  if (access.response) return access.response;
+  const { headers } = access;
 
   let body: MoveBody;
   try {

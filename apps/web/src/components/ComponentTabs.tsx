@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { IntermediateSpec } from "@spec-layer/extractor";
 import { splitSections } from "@/lib/sectionEdit";
 import { classifyHeading } from "@/lib/sections";
 import SpecsTab from "./SpecsTab";
 import EditableSection, { AddSectionButton } from "./EditableSection";
+import { nextTabIndex } from "@/lib/tabs";
 
 interface FigmaRefProp {
   fileKey: string;
@@ -13,6 +14,7 @@ interface FigmaRefProp {
 }
 
 type TabId = "guidelines" | "specs";
+const TAB_IDS: TabId[] = ["guidelines", "specs"];
 
 export default function ComponentTabs({
   slug,
@@ -41,6 +43,15 @@ export default function ComponentTabs({
   pristineGuidelines?: string[];
 }) {
   const [active, setActive] = useState<TabId>("guidelines");
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  function onTabKeyDown(event: React.KeyboardEvent, index: number) {
+    const next = nextTabIndex(index, TAB_IDS.length, event.key);
+    if (next === null) return;
+    event.preventDefault();
+    setActive(TAB_IDS[next]);
+    tabRefs.current[next]?.focus();
+  }
 
   // Split the full body once; keep each section's TRUE full-body index so edits
   // target the right section in the real file. Only prose sections (preamble,
@@ -59,24 +70,40 @@ export default function ComponentTabs({
     <div className="component-tabs">
       <div className="tabs-bar" role="tablist" aria-label="Component documentation">
         <button
+          id="component-tab-guidelines"
+          ref={(node) => { tabRefs.current[0] = node; }}
           role="tab"
           aria-selected={active === "guidelines"}
+          aria-controls="component-panel-guidelines"
+          tabIndex={active === "guidelines" ? 0 : -1}
           className={`tab-trigger${active === "guidelines" ? " active" : ""}`}
           onClick={() => setActive("guidelines")}
+          onKeyDown={(event) => onTabKeyDown(event, 0)}
         >
           Guidelines
         </button>
         <button
+          id="component-tab-specs"
+          ref={(node) => { tabRefs.current[1] = node; }}
           role="tab"
           aria-selected={active === "specs"}
+          aria-controls="component-panel-specs"
+          tabIndex={active === "specs" ? 0 : -1}
           className={`tab-trigger${active === "specs" ? " active" : ""}`}
           onClick={() => setActive("specs")}
+          onKeyDown={(event) => onTabKeyDown(event, 1)}
         >
           Specs
         </button>
       </div>
 
-      <div role="tabpanel" hidden={active !== "guidelines"} className="tab-panel">
+      <div
+        id="component-panel-guidelines"
+        role="tabpanel"
+        aria-labelledby="component-tab-guidelines"
+        hidden={active !== "guidelines"}
+        className="tab-panel"
+      >
         {proseSections.length > 0 ? (
           <div className="editable-sections">
             {proseSections.map(({ section, index }, i) => (
@@ -105,7 +132,13 @@ export default function ComponentTabs({
         <AddSectionButton slug={slug} index={allSections.length} />
       </div>
 
-      <div role="tabpanel" hidden={active !== "specs"} className="tab-panel">
+      <div
+        id="component-panel-specs"
+        role="tabpanel"
+        aria-labelledby="component-tab-specs"
+        hidden={active !== "specs"}
+        className="tab-panel"
+      >
         <SpecsTab
           spec={spec}
           fallbackMarkdown={specsMarkdownFallback}

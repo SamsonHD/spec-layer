@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -19,17 +19,38 @@ export default function GapsAlert({ missingRequired, issues, gapsMarkdown }: Gap
 
   const [modalOpen, setModalOpen] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   const openModal = () => setModalOpen(true);
-  const closeModal = useCallback(() => setModalOpen(false), []);
+  const closeModal = useCallback(() => {
+    setModalOpen(false);
+    requestAnimationFrame(() => triggerRef.current?.focus());
+  }, []);
 
   // Close on Esc
   useEffect(() => {
     if (!modalOpen) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeModal();
+      if (e.key === "Tab") {
+        const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+          'button, a[href], input, textarea, select, [tabindex]:not([tabindex="-1"])',
+        );
+        if (!focusable?.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     document.addEventListener("keydown", handler);
+    requestAnimationFrame(() => dialogRef.current?.focus());
     return () => document.removeEventListener("keydown", handler);
   }, [modalOpen, closeModal]);
 
@@ -42,7 +63,7 @@ export default function GapsAlert({ missingRequired, issues, gapsMarkdown }: Gap
         <span className="gaps-alert-text">
           <strong>{count} inconsistenc{count === 1 ? "y" : "ies"}</strong> detected in this component&apos;s design system data.
         </span>
-        <button className="gaps-alert-btn" onClick={openModal}>
+        <button ref={triggerRef} className="gaps-alert-btn" onClick={openModal}>
           View details
         </button>
         <button
@@ -64,12 +85,14 @@ export default function GapsAlert({ missingRequired, issues, gapsMarkdown }: Gap
             className="gaps-modal"
             role="dialog"
             aria-modal="true"
-            aria-label="Design system inconsistencies"
+            aria-labelledby="gaps-modal-title"
+            ref={dialogRef}
+            tabIndex={-1}
           >
             <div className="gaps-modal-head">
               <div>
                 <div className="gaps-modal-eyebrow">Design system data</div>
-                <h3>
+                <h3 id="gaps-modal-title">
                   {count} inconsistenc{count === 1 ? "y" : "ies"} found
                 </h3>
               </div>

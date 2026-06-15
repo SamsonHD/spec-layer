@@ -4,7 +4,7 @@
 //   - dist/ui.html   (HTML doc embedding the UI iframe bundle, or placeholder)
 
 import * as esbuild from 'esbuild';
-import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 

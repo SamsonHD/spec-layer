@@ -1,8 +1,8 @@
 # Spec Layer Format v0.1
 
-> **The approved contract between design and code.**
+> **A portable contract between design and code.**
 
-Spec Layer is an open standard for versioned, human-approved, machine-parseable component specifications. Each spec captures everything needed to build against a design-system component: its anatomy, configuration, tokens, code mapping, accessibility notes, and usage rules — extracted deterministically where possible, drafted by AI where judgment is needed, and approved by a human before it becomes a contract.
+Spec Layer is an open standard for versioned, machine-parseable component specifications. Each spec captures the anatomy, configuration, tokens, code mapping, accessibility notes, and usage rules needed to build against a design-system component. Structural data is extracted deterministically; judgment content can be written by a human or generated with an optional AI-assisted pass.
 
 **License:** MIT. The format, this document, and the reference examples are free to use, fork, and implement.
 
@@ -84,16 +84,12 @@ The body contains exactly 10 sections, in this order, with these exact headings.
 
 **Kind:** Judgment (human/AI authored)
 
-One paragraph describing the component's purpose, when to use it, and any primary usage constraints. Drafted by the extractor's LLM prose pass; must be approved by a human before the spec is treated as a contract.
-
-Carries the draft marker until approved.
+One paragraph describing the component's purpose, when to use it, and any primary usage constraints. It may be written by a human or by the optional prose pass and then edited like normal Markdown.
 
 **Example:**
 
 ```markdown
 ## Definition
-
-> ⚠️ Draft — AI-suggested, not yet approved.
 
 A Button triggers an action or navigation when activated. Use the primary variant
 for the single most important action on a surface; secondary and tertiary variants
@@ -288,14 +284,10 @@ Contains three elements, in order:
 2. A prop-mapping table (columns: `Figma prop`, `Code prop`) showing how Figma component properties map to the code component's props.
 3. A fenced usage example demonstrating a minimal but representative use of the component.
 
-Carries the draft marker until approved.
-
 **Shape:**
 
 ```markdown
 ## Code
-
-> ⚠️ Draft — AI-suggested, not yet approved.
 
 ```tsx
 import { Button } from '@acme/ui';
@@ -324,14 +316,10 @@ import { Button } from '@acme/ui';
 
 Prose notes for accessibility implementation of this component pattern. Because Figma carries no accessibility semantics, these notes are authored from knowledge of the component pattern, not extracted from the design file. Flag explicitly what cannot be known from the design file (e.g. focus order, live region behaviour).
 
-Carries the draft marker until approved.
-
 **Shape:**
 
 ```markdown
 ## Accessibility
-
-> ⚠️ Draft — AI-suggested, not yet approved.
 
 - Rendered as a `<button>` element (or role="button" on non-button elements).
 - Label text must be provided; if the button is icon-only, supply `aria-label`.
@@ -349,14 +337,10 @@ Carries the draft marker until approved.
 
 Bulleted list of usage rules. Each item is prefixed with ✅ (do) or ❌ (don't).
 
-Carries the draft marker until approved.
-
 **Shape:**
 
 ```markdown
 ## Do's & Don'ts
-
-> ⚠️ Draft — AI-suggested, not yet approved.
 
 - ✅ Use the primary (Filled) variant for the single most important action on a surface.
 - ✅ Keep button labels concise — one to three words, verb-first.

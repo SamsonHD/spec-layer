@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getFigmaPreview, previewFromRef } from "@/lib/figma";
+import { authorizeApiRequest } from "@/lib/specApi";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,9 @@ const UNKNOWN_FILE_KEY = "unknown";
  * Genuine failures for *provided* keys still return { status: "error", ... }.
  */
 export async function GET(req: NextRequest) {
+  const access = authorizeApiRequest(req);
+  if (access.response) return access.response;
+  const { headers } = access;
   const { searchParams } = req.nextUrl;
 
   const fileKey = searchParams.get("fileKey");
@@ -33,20 +37,20 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         status: "no-source",
         message: "No Figma source linked — add one in the component settings.",
-      });
+      }, { headers });
     }
     const result = await previewFromRef({ fileKey, nodeId });
-    return NextResponse.json(result);
+    return NextResponse.json(result, { headers });
   }
 
   const url = searchParams.get("url");
   if (url) {
     const result = await getFigmaPreview(url);
-    return NextResponse.json(result);
+    return NextResponse.json(result, { headers });
   }
 
   return NextResponse.json(
     { status: "bad-url", message: "Provide ?url= or ?fileKey=&nodeId=." },
-    { status: 400 },
+    { status: 400, headers },
   );
 }

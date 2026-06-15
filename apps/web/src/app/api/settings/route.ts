@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getContentDir } from "@/lib/config";
 import { setKeys, getKeyStatus } from "@/lib/settings";
-import { corsHeaders } from "@/lib/specApi";
+import { authorizeApiRequest, corsHeaders } from "@/lib/specApi";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,9 @@ export function OPTIONS(req: NextRequest) {
 
 /** GET /api/settings — returns contentDir and boolean key presence (never raw keys). */
 export async function GET(req: NextRequest) {
-  const headers = corsHeaders(req);
+  const access = authorizeApiRequest(req);
+  if (access.response) return access.response;
+  const { headers } = access;
   return NextResponse.json(
     {
       contentDir: getContentDir(),
@@ -28,7 +30,9 @@ interface SettingsBody {
 
 /** POST /api/settings — saves provided keys, returns updated boolean key presence. */
 export async function POST(req: NextRequest) {
-  const headers = corsHeaders(req);
+  const access = authorizeApiRequest(req);
+  if (access.response) return access.response;
+  const { headers } = access;
 
   let body: SettingsBody;
   try {

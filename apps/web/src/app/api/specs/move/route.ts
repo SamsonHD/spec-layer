@@ -1,24 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { InboxMoveError, moveInboxSpecAs } from "@/lib/inboxMove";
-import {
-  validateJsonMutationRequest,
-  validateSameOriginRequest,
-} from "@/lib/requestSecurity";
-import { corsHeaders, hasTraversal, isSafeSlug } from "@/lib/specApi";
+import { assertContentLength, PayloadTooLargeError } from "@/lib/requestLimits";
+import { authorizeApiRequest, corsHeaders, hasTraversal, isSafeSlug } from "@/lib/specApi";
 import { slugify } from "@/lib/specWriter";
 
 export const dynamic = "force-dynamic";
+const MAX_MOVE_BYTES = 64 * 1024;
 
 export function OPTIONS(req: NextRequest) {
-  const headers = corsHeaders(req);
-  const requestError = validateSameOriginRequest(req);
-  if (requestError) {
-    return NextResponse.json(
-      { error: requestError.error },
-      { status: requestError.status, headers },
-    );
-  }
-  return new NextResponse(null, { status: 204, headers });
+  return new NextResponse(null, { status: 204, headers: corsHeaders(req) });
 }
 
 interface MoveBody {
@@ -28,13 +18,28 @@ interface MoveBody {
 }
 
 export async function POST(req: NextRequest) {
-  const headers = corsHeaders(req);
-  const requestError = validateJsonMutationRequest(req);
-  if (requestError) {
+  const access = authorizeApiRequest(req);
+  if (access.response) return access.response;
+  const { headers } = access;
+
+  const mediaType = (req.headers.get("content-type") ?? "")
+    .split(";", 1)[0]
+    .trim()
+    .toLowerCase();
+  if (mediaType !== "application/json") {
     return NextResponse.json(
-      { error: requestError.error },
-      { status: requestError.status, headers },
+      { error: "Content-Type must be application/json" },
+      { status: 415, headers },
     );
+  }
+
+  try {
+    assertContentLength(req.headers, MAX_MOVE_BYTES);
+  } catch (error) {
+    if (error instanceof PayloadTooLargeError) {
+      return NextResponse.json({ error: error.message }, { status: 413, headers });
+    }
+    throw error;
   }
 
   let parsedBody: unknown;

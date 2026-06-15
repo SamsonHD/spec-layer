@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import matter from "gray-matter";
-import { corsHeaders } from "@/lib/specApi";
+import { authorizeApiRequest, corsHeaders } from "@/lib/specApi";
 import { writeInboxMarkdown } from "@/lib/specWriter";
+import { assertContentLength, PayloadTooLargeError } from "@/lib/requestLimits";
 
 export const dynamic = "force-dynamic";
+const MAX_MARKDOWN_BYTES = 2 * 1024 * 1024;
 
 export function OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req) });
@@ -23,7 +25,18 @@ export function OPTIONS(req: NextRequest) {
  * Returns { ok: true, slug } or a JSON error with appropriate status.
  */
 export async function POST(req: NextRequest) {
-  const headers = corsHeaders(req);
+  const access = authorizeApiRequest(req);
+  if (access.response) return access.response;
+  const { headers } = access;
+
+  try {
+    assertContentLength(req.headers, MAX_MARKDOWN_BYTES);
+  } catch (error) {
+    if (error instanceof PayloadTooLargeError) {
+      return NextResponse.json({ error: error.message }, { status: 413, headers });
+    }
+    throw error;
+  }
 
   let markdown: string;
   let filenameHint: string | undefined;
@@ -41,6 +54,9 @@ export async function POST(req: NextRequest) {
     const file = formData.get("file");
     if (!file || !(file instanceof File)) {
       return NextResponse.json({ error: "Missing 'file' field in form data" }, { status: 400, headers });
+    }
+    if (file.size > MAX_MARKDOWN_BYTES) {
+      return NextResponse.json({ error: "Markdown file is too large" }, { status: 413, headers });
     }
 
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
@@ -84,6 +100,9 @@ export async function POST(req: NextRequest) {
   // Reject obviously empty content.
   if (!markdown.trim()) {
     return NextResponse.json({ error: "Markdown content is empty" }, { status: 400, headers });
+  }
+  if (new TextEncoder().encode(markdown).byteLength > MAX_MARKDOWN_BYTES) {
+    return NextResponse.json({ error: "Markdown content is too large" }, { status: 413, headers });
   }
 
   // Validate parseable with gray-matter.

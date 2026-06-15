@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 import { configPath } from "./config";
 
 /**
@@ -30,7 +31,22 @@ function readConfig(): DsConfig {
 }
 
 function writeConfig(data: DsConfig): void {
-  fs.writeFileSync(configPath(), JSON.stringify(data, null, 2) + "\n", "utf-8");
+  const target = configPath();
+  const temporary = path.join(
+    path.dirname(target),
+    `.${path.basename(target)}.${process.pid}.${Date.now()}.tmp`,
+  );
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  try {
+    fs.writeFileSync(temporary, JSON.stringify(data, null, 2) + "\n", {
+      encoding: "utf-8",
+      mode: 0o600,
+    });
+    fs.renameSync(temporary, target);
+    fs.chmodSync(target, 0o600);
+  } finally {
+    if (fs.existsSync(temporary)) fs.rmSync(temporary, { force: true });
+  }
 }
 
 /**
