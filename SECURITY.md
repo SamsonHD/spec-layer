@@ -2,7 +2,12 @@
 
 ## Supported versions
 
-Security fixes are applied to the latest revision of `main`. The project has not published a stable release line yet.
+| Version | Supported |
+|---|---|
+| `0.1.x` | Yes |
+| Earlier/unreleased revisions | No |
+
+Security fixes are applied to the latest `0.1.x` release and the latest revision of `main`.
 
 ## Reporting a vulnerability
 

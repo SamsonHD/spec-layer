@@ -108,8 +108,10 @@ describe("enrichSpecFile", () => {
   });
 
   it("passes the resolved image to the model and reports usedVisual", async () => {
-    const fetcher = vi.fn(async (_url: string, init: any) => {
-      const sent = JSON.parse(init.body);
+    const fetcher = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      const sent = JSON.parse(String(init?.body)) as {
+        messages: Array<{ content: unknown }>;
+      };
       expect(Array.isArray(sent.messages[0].content)).toBe(true);
       return { ok: true, json: async () => ({ content: [{ text: API_RESPONSE }] }) };
     }) as unknown as typeof fetch;

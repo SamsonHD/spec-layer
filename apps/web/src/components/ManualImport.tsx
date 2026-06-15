@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-type Mode = "file" | "paste";
+import { getNextImportMode, type ImportMode } from "./manualImportTabs";
 
 interface UploadResponse {
   ok?: boolean;
@@ -22,12 +22,29 @@ interface ZipUploadResponse {
 export default function ManualImport() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const fileTabRef = useRef<HTMLButtonElement>(null);
+  const pasteTabRef = useRef<HTMLButtonElement>(null);
 
-  const [mode, setMode] = useState<Mode>("file");
+  const [mode, setMode] = useState<ImportMode>("file");
   const [pasteValue, setPasteValue] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [zipSummary, setZipSummary] = useState<ZipUploadResponse | null>(null);
+
+  function selectMode(nextMode: ImportMode) {
+    setMode(nextMode);
+    setError(null);
+    setZipSummary(null);
+  }
+
+  function handleTabKeyDown(e: React.KeyboardEvent<HTMLButtonElement>) {
+    const nextMode = getNextImportMode(mode, e.key);
+    if (nextMode === mode) return;
+
+    e.preventDefault();
+    selectMode(nextMode);
+    (nextMode === "file" ? fileTabRef : pasteTabRef).current?.focus();
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -111,27 +128,42 @@ export default function ManualImport() {
     <form className="manual-import" onSubmit={handleSubmit} noValidate>
       <div className="manual-import-tabs" role="tablist" aria-label="Import method">
         <button
+          id="mi-file-tab"
+          ref={fileTabRef}
           type="button"
           role="tab"
           aria-selected={mode === "file"}
+          aria-controls="mi-file-panel"
+          tabIndex={mode === "file" ? 0 : -1}
           className={`manual-import-tab${mode === "file" ? " active" : ""}`}
-          onClick={() => { setMode("file"); setError(null); setZipSummary(null); }}
+          onClick={() => selectMode("file")}
+          onKeyDown={handleTabKeyDown}
         >
           Upload file
         </button>
         <button
+          id="mi-paste-tab"
+          ref={pasteTabRef}
           type="button"
           role="tab"
           aria-selected={mode === "paste"}
+          aria-controls="mi-paste-panel"
+          tabIndex={mode === "paste" ? 0 : -1}
           className={`manual-import-tab${mode === "paste" ? " active" : ""}`}
-          onClick={() => { setMode("paste"); setError(null); setZipSummary(null); }}
+          onClick={() => selectMode("paste")}
+          onKeyDown={handleTabKeyDown}
         >
           Paste markdown
         </button>
       </div>
 
       {mode === "file" ? (
-        <div className="manual-import-body">
+        <div
+          id="mi-file-panel"
+          className="manual-import-body"
+          role="tabpanel"
+          aria-labelledby="mi-file-tab"
+        >
           <label htmlFor="mi-file-input" className="manual-import-label">
             Component spec file
           </label>
@@ -151,7 +183,12 @@ export default function ManualImport() {
           </div>
         </div>
       ) : (
-        <div className="manual-import-body">
+        <div
+          id="mi-paste-panel"
+          className="manual-import-body"
+          role="tabpanel"
+          aria-labelledby="mi-paste-tab"
+        >
           <label htmlFor="mi-paste-input" className="manual-import-label">
             Paste markdown
           </label>

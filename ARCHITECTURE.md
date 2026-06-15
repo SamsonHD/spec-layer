@@ -14,7 +14,7 @@ Figma node
   → Next.js renderer and editor
 ```
 
-The Figma plugin owns Figma API access. `@spec-layer/extractor` receives plain JSON and has no dependency on the Figma runtime, which keeps extraction testable with fixtures. `@spec-layer/format` owns frontmatter validation and serialization. The web app owns local persistence, navigation, editing, optional prose generation, and previews.
+The Figma plugin owns Figma API access. `@spec-layer/extractor` receives plain JSON and has no dependency on the Figma runtime, which keeps extraction testable with fixtures. `@spec-layer/format` owns frontmatter validation and serialization. The web app owns local persistence, inbox review, navigation, editing, optional guideline generation, and previews.
 
 ## Workspaces
 
@@ -32,7 +32,7 @@ Runs inside Figma as a small main-thread serializer plus a vanilla-DOM UI. It su
 
 ### `md-ds`
 
-The Next.js App Router app renders a filesystem content tree and exposes local APIs for import, editing, navigation, settings, search, and Figma previews. Files remain the source of truth; refreshes read current content rather than requiring a publishing step.
+The Next.js App Router app renders a filesystem content tree and exposes local APIs for import, inbox actions, AI guideline filling, editing, navigation, settings, search, and Figma previews. Files remain the source of truth; refreshes read current content rather than requiring a publishing step.
 
 ## Storage
 
@@ -58,6 +58,8 @@ The app is designed to bind to loopback. API requests are checked in this order:
 
 This policy covers read and write APIs that expose local content or credentials. CORS headers are emitted only for allowed origins. Figma URLs are accepted only over HTTPS on `figma.com` or `www.figma.com`.
 
+Browser mutations use JSON-only request guards with explicit body limits. CORS preflight requests return without performing authorization; disallowed origins receive no `Access-Control-Allow-Origin`, while the corresponding request is still rejected by the host/origin/token policy.
+
 The boundary reduces exposure during local development. A public deployment would still require user authentication, per-project authorization, tenant isolation, CSRF analysis, durable secret management, rate limiting, and deployment-specific network controls.
 
 ## Imports
@@ -76,6 +78,8 @@ Interactive tabs, dialogs, command search, and plugin tabs implement keyboard na
 - Prose generation uses `ANTHROPIC_API_KEY` or the key stored in Settings.
 
 Neither integration is required for structural extraction, Markdown import, editing, or rendering.
+
+AI guideline filling writes only Definition, Accessibility, and Do's & Don'ts. Bulk fill replaces placeholder sections only. A reviewer can explicitly regenerate one supported section, and the app rejects the write if the source spec changes while generation is running.
 
 ## Verification
 

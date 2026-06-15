@@ -7,6 +7,10 @@ import type { SerializedNode } from '../src/tree';
 
 const spec = extract(button as SerializedNode, { figmaFile: 'FILE1' });
 
+interface AnthropicRequestBody {
+  messages: Array<{ content: unknown }>;
+}
+
 describe('prose', () => {
   it('prompt contains the parsed summary, never raw node JSON', () => {
     const prompt = buildProsePrompt(spec);
@@ -131,19 +135,20 @@ describe('prose', () => {
   });
 
   it('sends a multimodal message with an image block when imageUrl is given', async () => {
-    let sentBody: any;
-    const fetcher = vi.fn(async (_url: string, init: any) => {
-      sentBody = JSON.parse(init.body);
+    const fetcherMock = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => {
       return { ok: true, json: async () => ({ content: [{ text: '{"definition":"D","accessibility":"A","dos":[],"donts":[]}' }] }) };
-    }) as unknown as typeof fetch;
+    });
     const store = { get: vi.fn(async () => null), set: vi.fn(async () => {}) };
     await draftProse(spec, {
       apiKey: 'sk-test',
-      fetcher,
+      fetcher: fetcherMock as unknown as typeof fetch,
       cacheStore: store,
       imageUrl: 'https://figma.example/img.png',
     });
-    const content = sentBody.messages[0].content;
+    const sentBody = JSON.parse(
+      String(fetcherMock.mock.calls[0][1]?.body),
+    ) as AnthropicRequestBody;
+    const content = sentBody.messages[0].content as Array<Record<string, unknown>>;
     expect(Array.isArray(content)).toBe(true);
     expect(content[0]).toEqual({ type: 'image', source: { type: 'url', url: 'https://figma.example/img.png' } });
     expect(content[1].type).toBe('text');
@@ -151,13 +156,18 @@ describe('prose', () => {
   });
 
   it('sends a plain string message when no imageUrl is given', async () => {
-    let sentBody: any;
-    const fetcher = vi.fn(async (_url: string, init: any) => {
-      sentBody = JSON.parse(init.body);
+    const fetcherMock = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => {
       return { ok: true, json: async () => ({ content: [{ text: '{"definition":"D","accessibility":"A","dos":[],"donts":[]}' }] }) };
-    }) as unknown as typeof fetch;
+    });
     const store = { get: vi.fn(async () => null), set: vi.fn(async () => {}) };
-    await draftProse(spec, { apiKey: 'sk-test', fetcher, cacheStore: store });
+    await draftProse(spec, {
+      apiKey: 'sk-test',
+      fetcher: fetcherMock as unknown as typeof fetch,
+      cacheStore: store,
+    });
+    const sentBody = JSON.parse(
+      String(fetcherMock.mock.calls[0][1]?.body),
+    ) as AnthropicRequestBody;
     expect(typeof sentBody.messages[0].content).toBe('string');
   });
 

@@ -17,19 +17,29 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   delete process.env.DS_CONTENT_DIR;
+  delete process.env.SPEC_LAYER_TOKEN;
   fs.rmSync(contentDir, { recursive: true, force: true });
 });
 
 function request(
   body: string,
-  options: { contentType?: string; origin?: string | null } = {},
+  options: {
+    contentType?: string;
+    origin?: string | null;
+    host?: string;
+    authorization?: string;
+    contentLength?: string;
+  } = {},
 ): NextRequest {
   const headers = new Headers({
     "content-type": options.contentType ?? "application/json",
+    host: options.host ?? "localhost:3000",
   });
   if (options.origin !== null) {
     headers.set("origin", options.origin ?? "http://localhost:3000");
   }
+  if (options.authorization) headers.set("authorization", options.authorization);
+  if (options.contentLength) headers.set("content-length", options.contentLength);
   return new NextRequest("http://localhost:3000/api/specs/clear", {
     method: "POST",
     headers,
@@ -55,6 +65,46 @@ function writeInbox(name: string): void {
 }
 
 describe("POST /api/specs/clear", () => {
+  it("rejects a non-local Host without deleting files", async () => {
+    writeInbox("button");
+
+    const response = await POST(request(
+      JSON.stringify({ items: [["_inbox", "button"]] }),
+      { origin: null, host: "attacker.example" },
+    ));
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: "Request host is not allowed",
+    });
+    expect(fs.existsSync(markdownPath(["_inbox", "button"]))).toBe(true);
+  });
+
+  it("allows an opaque local client with the configured bearer token", async () => {
+    process.env.SPEC_LAYER_TOKEN = "local-secret";
+    writeInbox("button");
+
+    const response = await POST(request(
+      JSON.stringify({ items: [["_inbox", "button"]] }),
+      { origin: "null", authorization: "Bearer local-secret" },
+    ));
+
+    expect(response.status).toBe(200);
+    expect(fs.existsSync(markdownPath(["_inbox", "button"]))).toBe(false);
+  });
+
+  it("rejects an oversized declared body without deleting files", async () => {
+    writeInbox("button");
+
+    const response = await POST(request(
+      JSON.stringify({ items: [["_inbox", "button"]] }),
+      { contentLength: String(65 * 1024) },
+    ));
+
+    expect(response.status).toBe(413);
+    expect(fs.existsSync(markdownPath(["_inbox", "button"]))).toBe(true);
+  });
+
   it("returns a CORS-readable 400 for invalid JSON", async () => {
     const response = await POST(request("{"));
 
@@ -169,17 +219,19 @@ describe("POST /api/specs/clear", () => {
     expect(response.headers.get("access-control-allow-origin")).toBe(
       "http://localhost:3000",
     );
-    expect(response.headers.get("access-control-allow-methods")).toBe("POST, OPTIONS");
+    expect(response.headers.get("access-control-allow-methods")).toBe("GET, POST, OPTIONS");
     expect(noOriginResponse.status).toBe(204);
   });
 
   it.each(["https://example.com", "null"])(
-    "rejects disallowed CORS preflight origin %s",
-    async (origin) => {
+    "does not allow disallowed CORS preflight origin %s",
+    (origin) => {
       const response = OPTIONS(optionsRequest(origin));
 
-      expect(response.status).toBe(403);
-      await expect(response.json()).resolves.toEqual({ error: "Origin not allowed" });
+      expect(response.status).toBe(204);
+      expect(response.headers.get("access-control-allow-origin")).toBe(
+        origin === "null" ? "null" : null,
+      );
     },
   );
 });

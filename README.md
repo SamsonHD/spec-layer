@@ -10,9 +10,10 @@ The project is currently intended for trusted local development. The web app rea
 - Export one component as Markdown or all components as a ZIP archive.
 - Send an extraction from the Figma plugin to the local docs app.
 - Import Markdown or ZIP files manually.
+- Review imported components in an inbox, fill missing guidelines, save them individually or in bulk, and clear unwanted drafts.
 - Browse, search, reorganize, and edit Markdown sections in the docs app.
 - Render Figma previews when a personal access token is configured.
-- Optionally generate prose with Anthropic during import or regeneration.
+- Optionally fill Definition, Accessibility, and Do's & Don'ts with Anthropic, without overwriting human prose during bulk fill.
 - Store specs in any local folder through `DS_CONTENT_DIR`.
 
 There is no enforced approval workflow. The optional `status` frontmatter field is a label only.
@@ -33,7 +34,7 @@ npm run dev -w md-ds
 
 Open [http://localhost:3000](http://localhost:3000). The development server binds to `127.0.0.1` by default.
 
-The bundled example content works without credentials. To use your own Markdown folder, set `DS_CONTENT_DIR` in `apps/web/.env.local` and restart the server.
+The app starts without credentials and with an empty inbox. To use your own Markdown folder, set `DS_CONTENT_DIR` in `apps/web/.env.local` and restart the server.
 
 ## Figma Plugin
 
@@ -91,15 +92,23 @@ spec/                  format definition and reference examples
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for data flow and trust boundaries, and [spec/SPEC.md](spec/SPEC.md) for the Markdown contract.
 
+Release history is recorded in [CHANGELOG.md](CHANGELOG.md).
+
 ## Content Safety
 
 Generated imports are runtime data and are ignored under `apps/web/content/components/_inbox/`. Do not commit API keys, private Figma URLs, customer data, proprietary component exports, `.ds-config.json`, `.spec-cache`, or `.spec-data` sidecars.
 
 ZIP and upload endpoints enforce compressed, expanded, per-file, and entry-count limits. API host and origin checks are defense-in-depth for local use, not a substitute for authentication, authorization, and isolation in a public deployment.
 
+## Roadmap
+
+- Git-backed content synchronization and drift detection.
+- MCP tools for searching and retrieving reviewed specs.
+- Optional packaging of stable workspace APIs after their contracts are ready for independent versioning.
+
 ## Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before opening a change. Bug reports and fixtures must use synthetic or explicitly publishable data.
+Read [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before opening a change. Bug reports and fixtures must use synthetic or explicitly publishable data. Use GitHub private vulnerability reporting for security issues.
 
 ## License
 

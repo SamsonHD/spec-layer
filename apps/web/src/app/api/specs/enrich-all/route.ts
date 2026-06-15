@@ -1,22 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { corsHeaders } from "@/lib/specApi";
-import {
-  validateJsonMutationRequest,
-  validateSameOriginRequest,
-} from "@/lib/requestSecurity";
+import { validateJsonMutationRequest } from "@/lib/requestSecurity";
 import { enrichInboxSpecs } from "@/lib/inboxEnrich";
 import { createEnrichDeps } from "@/lib/enrichDeps";
 import { NoApiKeyError } from "@/lib/guidelineFillFile";
 
 export const dynamic = "force-dynamic";
+const MAX_ENRICH_ALL_BYTES = 64 * 1024;
 
 export function OPTIONS(req: NextRequest) {
-  const headers = corsHeaders(req);
-  const requestError = validateSameOriginRequest(req);
-  if (requestError) {
-    return NextResponse.json({ error: requestError.error }, { status: requestError.status, headers });
-  }
-  return new NextResponse(null, { status: 204, headers });
+  return new NextResponse(null, { status: 204, headers: corsHeaders(req) });
 }
 
 interface EnrichAllBody {
@@ -25,7 +18,7 @@ interface EnrichAllBody {
 
 export async function POST(req: NextRequest) {
   const headers = corsHeaders(req);
-  const requestError = validateJsonMutationRequest(req);
+  const requestError = validateJsonMutationRequest(req, MAX_ENRICH_ALL_BYTES);
   if (requestError) {
     return NextResponse.json({ error: requestError.error }, { status: requestError.status, headers });
   }

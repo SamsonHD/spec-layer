@@ -7,20 +7,13 @@ import {
   StaleSpecError,
 } from "@/lib/guidelineFillFile";
 import { createEnrichDeps } from "@/lib/enrichDeps";
-import {
-  validateJsonMutationRequest,
-  validateSameOriginRequest,
-} from "@/lib/requestSecurity";
+import { validateJsonMutationRequest } from "@/lib/requestSecurity";
 
 export const dynamic = "force-dynamic";
+const MAX_ENRICH_BYTES = 64 * 1024;
 
 export function OPTIONS(req: NextRequest) {
-  const headers = corsHeaders(req);
-  const requestError = validateSameOriginRequest(req);
-  if (requestError) {
-    return NextResponse.json({ error: requestError.error }, { status: requestError.status, headers });
-  }
-  return new NextResponse(null, { status: 204, headers });
+  return new NextResponse(null, { status: 204, headers: corsHeaders(req) });
 }
 
 interface EnrichBody {
@@ -31,7 +24,7 @@ interface EnrichBody {
 
 export async function POST(req: NextRequest) {
   const headers = corsHeaders(req);
-  const requestError = validateJsonMutationRequest(req);
+  const requestError = validateJsonMutationRequest(req, MAX_ENRICH_BYTES);
   if (requestError) {
     return NextResponse.json({ error: requestError.error }, { status: requestError.status, headers });
   }

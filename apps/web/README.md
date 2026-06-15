@@ -1,6 +1,6 @@
 # Spec Layer Web App
 
-This workspace contains the local Markdown documentation app. It renders a content folder, accepts imports from the Figma plugin or local files, and provides editing, navigation, search, settings, and Figma previews.
+This workspace contains the local Markdown documentation app. It renders a content folder, accepts imports from the Figma plugin or local files, and provides inbox review, AI guideline filling, editing, navigation, search, settings, and Figma previews.
 
 Run commands from the repository root:
 
@@ -20,9 +20,11 @@ Each file needs a `name` in YAML frontmatter. Other fields, including `status`, 
 
 Folder structure becomes sidebar navigation. The app reads files directly and writes edits back to the same directory.
 
+Imported components land in `_inbox/`. From the inbox, reviewers can fill empty Definition, Accessibility, and Do's & Don'ts sections with AI, save one or all components to a destination folder, delete individual drafts, or clear the inbox. AI fill requires an Anthropic key and leaves non-placeholder human content unchanged unless a reviewer explicitly regenerates one section.
+
 ## Security Model
 
-This is a trusted local tool, not a public service. File and settings APIs accept same-origin requests on allowed local hosts. Cross-origin clients must be explicitly allowed and send `Authorization: Bearer <SPEC_LAYER_TOKEN>`.
+This is a trusted local tool, not a public service. File and settings APIs accept same-origin requests on allowed local hosts. Cross-origin clients must be explicitly allowed and send `Authorization: Bearer <SPEC_LAYER_TOKEN>`. Mutating JSON routes validate content type and declared body size before processing.
 
 The Figma plugin uses an opaque origin, so set `SPEC_LAYER_TOKEN` here and enter the same token in the plugin UI. See the root README for all variables and deployment limitations.
 

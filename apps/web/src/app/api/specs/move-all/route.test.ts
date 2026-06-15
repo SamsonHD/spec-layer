@@ -155,8 +155,10 @@ describe("POST /api/specs/move-all", () => {
       ),
     );
 
-    expect(response.status).toBe(403);
-    await expect(response.json()).resolves.toEqual({ error: "Origin not allowed" });
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({
+      error: "Valid local bearer token required",
+    });
     expect(fs.existsSync(markdownPath(["_inbox", "button"]))).toBe(true);
     expect(fs.existsSync(markdownPath(["components", "button"]))).toBe(false);
   });
@@ -275,17 +277,19 @@ describe("POST /api/specs/move-all", () => {
     expect(response.headers.get("access-control-allow-origin")).toBe(
       "http://localhost:3000",
     );
-    expect(response.headers.get("access-control-allow-methods")).toBe("POST, OPTIONS");
+    expect(response.headers.get("access-control-allow-methods")).toBe("GET, POST, OPTIONS");
     expect(noOriginResponse.status).toBe(204);
   });
 
   it.each(["https://example.com", "null"])(
-    "rejects disallowed CORS preflight origin %s",
-    async (origin) => {
+    "does not allow disallowed CORS preflight origin %s",
+    (origin) => {
       const response = OPTIONS(optionsRequest("move-all", origin));
 
-      expect(response.status).toBe(403);
-      await expect(response.json()).resolves.toEqual({ error: "Origin not allowed" });
+      expect(response.status).toBe(204);
+      expect(response.headers.get("access-control-allow-origin")).toBe(
+        origin === "null" ? "null" : null,
+      );
     },
   );
 });
@@ -344,9 +348,9 @@ describe("POST /api/specs/move", () => {
       ),
     );
 
-    expect(response.status).toBe(415);
+    expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({
-      error: "Content-Type must be application/json",
+      error: "Request origin is not allowed",
     });
     expect(fs.existsSync(markdownPath(["_inbox", "button"]))).toBe(true);
     expect(fs.existsSync(markdownPath(["components", "button"]))).toBe(false);
@@ -368,7 +372,9 @@ describe("POST /api/specs/move", () => {
     );
 
     expect(response.status).toBe(403);
-    await expect(response.json()).resolves.toEqual({ error: "Origin not allowed" });
+    await expect(response.json()).resolves.toEqual({
+      error: "Request origin is not allowed",
+    });
     expect(fs.existsSync(markdownPath(["_inbox", "button"]))).toBe(true);
     expect(fs.existsSync(markdownPath(["components", "button"]))).toBe(false);
   });
@@ -558,12 +564,14 @@ describe("POST /api/specs/move", () => {
   });
 
   it.each(["https://example.com", "null"])(
-    "rejects disallowed CORS preflight origin %s",
-    async (origin) => {
+    "does not allow disallowed CORS preflight origin %s",
+    (origin) => {
       const response = singleOptions(optionsRequest("move", origin));
 
-      expect(response.status).toBe(403);
-      await expect(response.json()).resolves.toEqual({ error: "Origin not allowed" });
+      expect(response.status).toBe(204);
+      expect(response.headers.get("access-control-allow-origin")).toBe(
+        origin === "null" ? "null" : null,
+      );
     },
   );
 });
