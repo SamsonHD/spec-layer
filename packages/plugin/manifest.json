@@ -7,8 +7,18 @@
   "editorType": ["figma"],
   "documentAccess": "dynamic-page",
   "networkAccess": {
-    "allowedDomains": ["http://localhost:3000"],
-    "reasoning": "The plugin POSTs extracted component specs to a locally running docs web app (Send to docs), which defaults to http://localhost:3000. Widen this list explicitly if/when a production docs host exists.",
-    "devAllowedDomains": ["http://localhost:3000"]
+    "allowedDomains": [
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "http://localhost:3001",
+      "http://127.0.0.1:3001"
+    ],
+    "reasoning": "The plugin POSTs extracted component specs to a locally running docs web app (Send to docs). The Docs URL is user-configurable in the Settings tab, so the allowlist must cover the host/port the dev server actually runs on. Figma matches origins exactly (scheme + host + port), so both the 'localhost' and '127.0.0.1' hostnames and the common Next.js ports (3000, and 3001 when 3000 is taken) are enumerated. Widen this list explicitly if/when a production docs host exists.",
+    "devAllowedDomains": [
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "http://localhost:3001",
+      "http://127.0.0.1:3001"
+    ]
   }
 }
