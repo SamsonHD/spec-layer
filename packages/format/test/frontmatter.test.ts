@@ -41,7 +41,17 @@ describe('frontmatter', () => {
 
   it('parses every reference example without error', async () => {
     const fs = await import('node:fs');
-    for (const f of ['button.md', 'text-field.md', 'dialog.md']) {
+    for (const f of [
+      'button.md',
+      'text-field.md',
+      'dialog.md',
+      'checkbox.md',
+      'switch.md',
+      'banner.md',
+      'tabs.md',
+      'tooltip.md',
+      'select.md',
+    ]) {
       const raw = fs.readFileSync(new URL(`../../../spec/examples/${f}`, import.meta.url), 'utf8');
       expect(() => parseFrontmatter(raw)).not.toThrow();
     }
