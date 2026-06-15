@@ -273,3 +273,71 @@ export function saveAllInboxSpecs(
 
   return { saved, failures };
 }
+
+function deleteInboxSpecAt(source: string[]): string[] {
+  const contentDir = getContentDir();
+  const sourceMarkdown = path.join(contentDir, ...source) + ".md";
+  const sourceSidecar = getSidecarPath(contentDir, source);
+
+  assertNoSymbolicLinks(
+    contentDir,
+    sourceMarkdown,
+    400,
+    "Source path must not contain symbolic links",
+  );
+  assertNoSymbolicLinks(
+    contentDir,
+    sourceSidecar,
+    400,
+    "Source path must not contain symbolic links",
+  );
+
+  if (!fs.existsSync(sourceMarkdown)) {
+    throw new InboxMoveError("Source file not found", 404);
+  }
+
+  try {
+    fs.unlinkSync(sourceMarkdown);
+  } catch {
+    throw new InboxMoveError("Failed to delete spec", 500);
+  }
+
+  if (fs.existsSync(sourceSidecar)) {
+    try {
+      fs.unlinkSync(sourceSidecar);
+    } catch {
+      // Best-effort: a leftover sidecar is harmless and recoverable via git.
+    }
+  }
+
+  return source;
+}
+
+export function clearInboxSpecs(items: unknown): {
+  deleted: string[][];
+  failures: Array<{ source: string[]; error: string }>;
+} {
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new InboxMoveError("Items must be a non-empty array", 400);
+  }
+
+  const deleted: string[][] = [];
+  const failures: Array<{ source: string[]; error: string }> = [];
+
+  for (const item of items) {
+    const source = Array.isArray(item)
+      ? item.filter((part): part is string => typeof part === "string")
+      : [];
+    try {
+      const validatedSource = requireInboxSlug(item);
+      deleted.push(deleteInboxSpecAt(validatedSource));
+    } catch (error) {
+      failures.push({
+        source,
+        error: error instanceof Error ? error.message : "Failed to delete spec",
+      });
+    }
+  }
+
+  return { deleted, failures };
+}

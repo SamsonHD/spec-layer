@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  clearInboxSpecs,
   InboxMoveError,
   moveInboxSpec,
   moveInboxSpecAs,
@@ -441,5 +442,91 @@ describe("saveAllInboxSpecs", () => {
     expect(fs.existsSync(markdownPath(["_inbox", "input"]))).toBe(true);
     expect(fs.existsSync(markdownPath(["components", "button"]))).toBe(true);
     expect(fs.existsSync(sidecarPath(["components", "select"]))).toBe(true);
+  });
+});
+
+describe("clearInboxSpecs", () => {
+  it.each([
+    { items: undefined },
+    { items: null },
+    { items: {} },
+    { items: "button" },
+    { items: [] },
+  ])("rejects a non-array or empty request %#", ({ items }) => {
+    expectStatus(() => clearInboxSpecs(items), 400);
+  });
+
+  it("deletes markdown without a sidecar", () => {
+    writeInbox("button");
+
+    expect(clearInboxSpecs([["_inbox", "button"]])).toEqual({
+      deleted: [["_inbox", "button"]],
+      failures: [],
+    });
+    expect(fs.existsSync(markdownPath(["_inbox", "button"]))).toBe(false);
+  });
+
+  it("deletes markdown together with its sidecar", () => {
+    writeInbox("button", true);
+
+    expect(clearInboxSpecs([["_inbox", "button"]])).toEqual({
+      deleted: [["_inbox", "button"]],
+      failures: [],
+    });
+    expect(fs.existsSync(markdownPath(["_inbox", "button"]))).toBe(false);
+    expect(fs.existsSync(sidecarPath(["_inbox", "button"]))).toBe(false);
+  });
+
+  it("reports a missing markdown file as a failure", () => {
+    expect(clearInboxSpecs([["_inbox", "missing"]])).toEqual({
+      deleted: [],
+      failures: [{ source: ["_inbox", "missing"], error: "Source file not found" }],
+    });
+  });
+
+  it("deletes valid entries and reports failures independently", () => {
+    writeInbox("button");
+    writeInbox("input", true);
+
+    const result = clearInboxSpecs([
+      ["_inbox", "button"],
+      ["components", "outside"],
+      ["_inbox", "input"],
+    ]);
+
+    expect(result).toEqual({
+      deleted: [
+        ["_inbox", "button"],
+        ["_inbox", "input"],
+      ],
+      failures: [
+        {
+          source: ["components", "outside"],
+          error: "Source must be a component directly inside _inbox",
+        },
+      ],
+    });
+    expect(fs.existsSync(markdownPath(["_inbox", "button"]))).toBe(false);
+    expect(fs.existsSync(markdownPath(["_inbox", "input"]))).toBe(false);
+    expect(fs.existsSync(sidecarPath(["_inbox", "input"]))).toBe(false);
+  });
+
+  it("rejects a symlinked inbox as a failure without deleting the external source", () => {
+    const externalDir = makeExternalDir();
+    const externalSource = path.join(externalDir, "button.md");
+    fs.writeFileSync(externalSource, "external source\n", "utf-8");
+    fs.rmSync(path.join(dir, "_inbox"), { recursive: true });
+    fs.symlinkSync(externalDir, path.join(dir, "_inbox"), "dir");
+
+    expect(clearInboxSpecs([["_inbox", "button"]])).toEqual({
+      deleted: [],
+      failures: [
+        {
+          source: ["_inbox", "button"],
+          error: "Source path must not contain symbolic links",
+        },
+      ],
+    });
+    expect(fs.readFileSync(externalSource, "utf-8")).toBe("external source\n");
   });
 });
