@@ -1,8 +1,28 @@
 # Spec Layer
 
+[![CI](https://github.com/SamsonHD/spec-layer/actions/workflows/ci.yml/badge.svg)](https://github.com/SamsonHD/spec-layer/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%3E%3D20.9-43853d.svg)](https://nodejs.org)
+
 Spec Layer is a local-first toolkit for turning Figma components into structured Markdown design-system documentation. It combines a Figma plugin, a deterministic extractor, an open Markdown format, and a Next.js authoring app.
 
 The project is currently intended for trusted local development. The web app reads and writes files on the host machine and is not hardened as a public multi-user service.
+
+![The Spec Layer inbox showing an imported Figma component ready for review, with bulk actions to fill guidelines with AI, save to the library, or clear drafts.](.github/assets/inbox.jpg)
+
+## Contents
+
+- [What Works](#what-works)
+- [Requirements](#requirements)
+- [Quick Start](#quick-start)
+- [Figma Plugin](#figma-plugin)
+- [Configuration](#configuration)
+- [Commands](#commands)
+- [Repository Layout](#repository-layout)
+- [Content Safety](#content-safety)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## What Works
 
