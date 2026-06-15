@@ -4,9 +4,9 @@
   "private": true,
   "description": "Markdown-driven design system documentation",
   "scripts": {
-    "dev": "next dev --hostname 127.0.0.1",
+    "dev": "next dev --hostname localhost",
     "build": "next build",
-    "start": "next start --hostname 127.0.0.1",
+    "start": "next start --hostname localhost",
     "lint": "eslint ."
   },
   "dependencies": {
