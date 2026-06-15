@@ -32,6 +32,7 @@ import {
   renderSelection,
   switchTab,
   clearBanners,
+  showBanner,
 } from './render';
 
 // ---------------------------------------------------------------------------
@@ -47,21 +48,7 @@ const state = createState();
 
 refs.tabSelected.addEventListener('click', () => switchTab(refs, 'selected'));
 refs.tabAll.addEventListener('click', () => switchTab(refs, 'all'));
-const tabs = [refs.tabSelected, refs.tabAll];
-tabs.forEach((tab, index) => {
-  tab.addEventListener('keydown', (event) => {
-    let next: number | null = null;
-    if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
-    else if (event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
-    else if (event.key === 'Home') next = 0;
-    else if (event.key === 'End') next = tabs.length - 1;
-    if (next === null) return;
-    event.preventDefault();
-    const target = next === 0 ? 'selected' : 'all';
-    switchTab(refs, target);
-    tabs[next].focus();
-  });
-});
+refs.tabSettings.addEventListener('click', () => switchTab(refs, 'settings'));
 
 // ---------------------------------------------------------------------------
 // Action buttons
@@ -95,26 +82,36 @@ refs.endpointInput.addEventListener('change', () => {
   send({ type: 'setDocsEndpoint', value: state.docsEndpoint });
 });
 
-refs.tokenInput.addEventListener('change', () => {
-  state.docsToken = refs.tokenInput.value.trim();
-  send({ type: 'setDocsToken', value: state.docsToken });
-});
-
-refs.fileKeyInput.addEventListener('change', () => {
-  const raw = refs.fileKeyInput.value.trim();
-  if (!raw) {
-    refs.fileKeyHint.textContent = '';
+// Both the persistent Settings field and the inline send-time prompt resolve a
+// pasted URL/key the same way. Main is the single authority: it stores the
+// override, recomputes the effective key, and echoes both back via a
+// 'fileKeyOverride' message (which also clears the inline prompt on success).
+function applyFileKeyInput(raw: string, onInvalid: (message: string) => void): void {
+  const trimmed = raw.trim();
+  if (!trimmed) {
     send({ type: 'setFileKeyOverride', value: null });
     return;
   }
-  const parsed = parseFigmaFileKey(raw);
+  const parsed = parseFigmaFileKey(trimmed);
   if (!parsed) {
-    refs.fileKeyHint.textContent = 'Could not detect a file key — paste the full Figma URL.';
+    onInvalid('Could not detect a file key — paste the full Figma URL.');
     return;
   }
-  // Main is the single authority: it stores the override, recomputes the
-  // effective key, and echoes both back via a 'fileKeyOverride' message.
   send({ type: 'setFileKeyOverride', value: parsed });
+}
+
+refs.fileKeyInput.addEventListener('change', () => {
+  refs.fileKeyHint.textContent = '';
+  applyFileKeyInput(refs.fileKeyInput.value, (message) => {
+    refs.fileKeyHint.textContent = message;
+  });
+});
+
+refs.inlineFileKeyInput.addEventListener('change', () => {
+  clearBanners(refs);
+  applyFileKeyInput(refs.inlineFileKeyInput.value, (message) => {
+    showBanner(refs, 'error', message);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -148,12 +145,6 @@ window.onmessage = (event: MessageEvent) => {
     case 'docsEndpoint': {
       state.docsEndpoint = msg.value ?? 'http://localhost:3000';
       refs.endpointInput.value = state.docsEndpoint;
-      break;
-    }
-
-    case 'docsToken': {
-      state.docsToken = msg.value ?? '';
-      refs.tokenInput.value = state.docsToken;
       break;
     }
 

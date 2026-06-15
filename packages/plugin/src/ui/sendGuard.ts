@@ -34,7 +34,7 @@ export function canSendToDocs(fileKey: string | null | undefined): SendGuardResu
     return {
       allowed: false,
       reason:
-        'No Figma file detected — paste the file URL above so the preview can load.',
+        'No Figma file detected — paste the file URL below so the preview can load.',
     };
   }
   return { allowed: true };

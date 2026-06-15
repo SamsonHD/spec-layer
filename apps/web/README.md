@@ -24,9 +24,9 @@ Imported components land in `_inbox/`. From the inbox, reviewers can fill empty 
 
 ## Security Model
 
-This is a trusted local tool, not a public service. File and settings APIs accept same-origin requests on allowed local hosts. Cross-origin clients must be explicitly allowed and send `Authorization: Bearer <SPEC_LAYER_TOKEN>`. Mutating JSON routes validate content type and declared body size before processing.
+This is a trusted local tool, not a public service. File and settings APIs accept same-origin requests on allowed local hosts. Cross-origin clients must be explicitly allowed: the Figma plugin's opaque `Origin: null` is permitted automatically, and other origins can be added via `SPEC_LAYER_ALLOWED_ORIGINS`. Mutating JSON routes validate content type and declared body size before processing.
 
-The Figma plugin uses an opaque origin, so set `SPEC_LAYER_TOKEN` here and enter the same token in the plugin UI. See the root README for all variables and deployment limitations.
+The Figma plugin posts from an opaque origin and needs no token. See the root README for all variables and deployment limitations.
 
 ## Optional Services
 

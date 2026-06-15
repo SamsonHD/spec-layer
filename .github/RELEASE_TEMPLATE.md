@@ -21,7 +21,7 @@ Open `http://localhost:3000`. Build the Figma plugin with `npm run build:plugin`
 
 ## Security Model
 
-Spec Layer is a trusted localhost tool. Do not expose the web app as a public or multi-user service. Configure `SPEC_LAYER_TOKEN` before using the plugin's **Send to docs** action, and keep credentials and private design-system data out of Git.
+Spec Layer is a trusted localhost tool. Do not expose the web app as a public or multi-user service. The plugin's **Send to docs** posts from an opaque origin and needs no token; keep credentials and private design-system data out of Git.
 
 ## Verification
 

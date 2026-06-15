@@ -53,8 +53,7 @@ The app is designed to bind to loopback. API requests are checked in this order:
 
 1. The request `Host` must be loopback or listed in `SPEC_LAYER_ALLOWED_HOSTS`.
 2. Requests without an `Origin`, and same-origin requests, are accepted on an allowed host.
-3. Cross-origin requests must come from `Origin: null` or `SPEC_LAYER_ALLOWED_ORIGINS`.
-4. Every allowed cross-origin request must include `Authorization: Bearer <SPEC_LAYER_TOKEN>`.
+3. Cross-origin requests are accepted only from `Origin: null` (the Figma plugin) or an origin listed in `SPEC_LAYER_ALLOWED_ORIGINS`; all other origins are rejected.
 
 This policy covers read and write APIs that expose local content or credentials. CORS headers are emitted only for allowed origins. Figma URLs are accepted only over HTTPS on `figma.com` or `www.figma.com`.
 

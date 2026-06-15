@@ -4,7 +4,7 @@ import { assertContentLength, PayloadTooLargeError } from "./requestLimits";
 
 export type MutationRequestError = {
   error: string;
-  status: 401 | 403 | 413 | 415;
+  status: 403 | 413 | 415;
 };
 
 export function validateSameOriginRequest(

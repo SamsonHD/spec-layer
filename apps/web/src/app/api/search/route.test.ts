@@ -20,13 +20,20 @@ describe("search API authorization", () => {
     });
   });
 
-  it("requires the local token for opaque cross-origin clients", () => {
-    vi.stubEnv("SPEC_LAYER_TOKEN", "expected-token");
+  it("allows the Figma plugin's opaque cross-origin client without a token", () => {
     const request = new NextRequest("http://localhost:3000/api/search?q=button", {
       headers: { host: "localhost:3000", origin: "null" },
     });
 
-    expect(GET(request).status).toBe(401);
+    expect(GET(request).status).toBe(200);
+  });
+
+  it("rejects an unlisted cross-origin client", () => {
+    const request = new NextRequest("http://localhost:3000/api/search?q=button", {
+      headers: { host: "localhost:3000", origin: "https://evil.example" },
+    });
+
+    expect(GET(request).status).toBe(403);
   });
 
   it("allows same-origin browser requests without a bearer token", () => {

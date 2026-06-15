@@ -68,21 +68,18 @@ In Figma desktop, choose **Plugins → Development → Import plugin from manife
 
 To use **Send to docs**:
 
-1. Generate a token, for example with `openssl rand -hex 32`.
-2. Set the value as `SPEC_LAYER_TOKEN` in `apps/web/.env.local`.
-3. Enter the same value in the plugin's **Local API token** field.
-4. Keep the endpoint at `http://localhost:3000` unless you also update the plugin manifest and server allowlists.
+1. Make sure the web app is running.
+2. Keep the docs URL at `http://localhost:3000` (configurable in the plugin's **Settings** tab) unless you also update the plugin manifest and server allowlists.
 
-The token protects cross-origin clients such as the Figma plugin. Same-origin browser requests on an allowed local host do not require it.
+No token or account is needed. The plugin posts from its opaque origin, which the server permits automatically; same-origin and host-allowlist checks protect the local API.
 
 ## Configuration
 
 | Variable | Purpose |
 |---|---|
 | `DS_CONTENT_DIR` | Folder containing component Markdown files. Defaults to `apps/web/content/components`. |
-| `SPEC_LAYER_TOKEN` | Bearer token required for allowed cross-origin API requests. |
 | `SPEC_LAYER_ALLOWED_HOSTS` | Additional comma-separated `Host` values, including ports when present. |
-| `SPEC_LAYER_ALLOWED_ORIGINS` | Additional comma-separated cross-origin origins. `Origin: null` is reserved for token-authenticated local clients such as Figma. |
+| `SPEC_LAYER_ALLOWED_ORIGINS` | Additional comma-separated cross-origin origins. `Origin: null` (the Figma plugin) is permitted automatically. |
 | `FIGMA_TOKEN` | Optional Figma personal access token for preview images. |
 | `ANTHROPIC_API_KEY` | Optional Anthropic key for prose generation. |
 

@@ -48,6 +48,9 @@ export function renderPhase(refs: Refs, state: UiState): void {
 // ---------------------------------------------------------------------------
 
 export function renderSelection(refs: Refs, state: UiState): void {
+  // A fresh selection starts a new cycle — drop any inline send-time prompt
+  // left over from a previous component's failed send.
+  showInlineFileKeyPrompt(refs, false);
   if (state.currentNode) {
     refs.noSelection.style.display = 'none';
     refs.mainArea.style.display = 'block';
@@ -71,6 +74,10 @@ export function renderFigmaConnection(
 ): void {
   refs.fileKeyStatus.className = `figma-source ${source}`;
   refs.fileKeyField.style.display = source === 'figma' ? 'none' : 'block';
+
+  // A resolved source (auto-detected or pasted) clears any inline send-time
+  // prompt that was nagging the user in the component panel.
+  if (source !== 'missing') showInlineFileKeyPrompt(refs, false);
 
   if (source === 'figma') {
     refs.fileKeyStatusTitle.textContent = 'Connected automatically';
@@ -100,16 +107,28 @@ export function renderFigmaConnection(
 // Tabs
 // ---------------------------------------------------------------------------
 
-export type TabId = 'selected' | 'all';
+export type TabId = 'selected' | 'all' | 'settings';
 
 export function switchTab(refs: Refs, tab: TabId): void {
-  const selected = tab === 'selected';
-  refs.tabSelected.setAttribute('aria-selected', String(selected));
-  refs.tabAll.setAttribute('aria-selected', String(!selected));
-  refs.tabSelected.tabIndex = selected ? 0 : -1;
-  refs.tabAll.tabIndex = selected ? -1 : 0;
-  refs.panelSelected.classList.toggle('active', selected);
-  refs.panelAll.classList.toggle('active', !selected);
+  const tabs: Array<[TabId, HTMLButtonElement, HTMLElement]> = [
+    ['selected', refs.tabSelected, refs.panelSelected],
+    ['all', refs.tabAll, refs.panelAll],
+    ['settings', refs.tabSettings, refs.panelSettings],
+  ];
+  for (const [id, btn, panel] of tabs) {
+    const active = id === tab;
+    btn.setAttribute('aria-selected', String(active));
+    panel.classList.toggle('active', active);
+  }
+}
+
+/**
+ * Reveal or hide the inline "paste this file's URL" prompt in the component
+ * panel. Shown only when a send is blocked by a missing Figma file key, so the
+ * user can fix it without leaving the component for the Settings tab.
+ */
+export function showInlineFileKeyPrompt(refs: Refs, show: boolean): void {
+  refs.inlineFileKey.style.display = show ? 'block' : 'none';
 }
 
 // ---------------------------------------------------------------------------

@@ -21,6 +21,7 @@ import {
   renderExportScanning,
   renderExportProgress,
   renderExportDone,
+  showInlineFileKeyPrompt,
 } from './render';
 import { buildExportFiles, zipFiles } from '../exportFiles';
 import type { FileKeySource } from '../fileKey';
@@ -39,7 +40,6 @@ export interface UiState {
   currentExtractedAt: string;
   renderedMd: string;
   docsEndpoint: string;
-  docsToken: string;
   // Export-all accumulator
   exportItems: Array<{ name: string; markdown: string }>;
   exportFileKey: string;
@@ -60,20 +60,12 @@ export function createState(): UiState {
     currentExtractedAt: '',
     renderedMd: '',
     docsEndpoint: 'http://localhost:3000',
-    docsToken: '',
     exportItems: [],
     exportFileKey: '',
     exportTotal: 0,
     exportSkippedAtoms: 0,
     exportFailed: 0,
   };
-}
-
-export function docsRequestHeaders(token: string): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  const trimmed = token.trim();
-  if (trimmed) headers.Authorization = `Bearer ${trimmed}`;
-  return headers;
 }
 
 // ---------------------------------------------------------------------------
@@ -269,9 +261,9 @@ export async function runSendToDocs(refs: Refs, state: UiState): Promise<void> {
   // real key, so we block the send and prompt the user to paste the URL instead.
   const guard = canSendToDocs(state.currentFileKey);
   if (!guard.allowed) {
-    showBanner(refs, 'error', guard.reason ?? 'No Figma file key — paste the file URL above.');
-    refs.docsDisclosure.open = true;
-    refs.fileKeyInput.focus();
+    showBanner(refs, 'error', guard.reason ?? 'No Figma file detected — paste the file URL below.');
+    showInlineFileKeyPrompt(refs, true);
+    refs.inlineFileKeyInput.focus();
     return;
   }
 
@@ -284,7 +276,7 @@ export async function runSendToDocs(refs: Refs, state: UiState): Promise<void> {
   try {
     const res = await window.fetch(url, {
       method: 'POST',
-      headers: docsRequestHeaders(state.docsToken),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ spec: state.currentSpec, extractedAt: state.currentExtractedAt }),
     });
 

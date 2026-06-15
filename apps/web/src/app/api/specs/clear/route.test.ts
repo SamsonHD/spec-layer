@@ -17,7 +17,6 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   delete process.env.DS_CONTENT_DIR;
-  delete process.env.SPEC_LAYER_TOKEN;
   fs.rmSync(contentDir, { recursive: true, force: true });
 });
 
@@ -27,7 +26,6 @@ function request(
     contentType?: string;
     origin?: string | null;
     host?: string;
-    authorization?: string;
     contentLength?: string;
   } = {},
 ): NextRequest {
@@ -38,7 +36,6 @@ function request(
   if (options.origin !== null) {
     headers.set("origin", options.origin ?? "http://localhost:3000");
   }
-  if (options.authorization) headers.set("authorization", options.authorization);
   if (options.contentLength) headers.set("content-length", options.contentLength);
   return new NextRequest("http://localhost:3000/api/specs/clear", {
     method: "POST",
@@ -80,13 +77,12 @@ describe("POST /api/specs/clear", () => {
     expect(fs.existsSync(markdownPath(["_inbox", "button"]))).toBe(true);
   });
 
-  it("allows an opaque local client with the configured bearer token", async () => {
-    process.env.SPEC_LAYER_TOKEN = "local-secret";
+  it("allows the Figma plugin's opaque local client without a token", async () => {
     writeInbox("button");
 
     const response = await POST(request(
       JSON.stringify({ items: [["_inbox", "button"]] }),
-      { origin: "null", authorization: "Bearer local-secret" },
+      { origin: "null" },
     ));
 
     expect(response.status).toBe(200);

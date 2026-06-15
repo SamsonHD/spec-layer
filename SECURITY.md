@@ -20,7 +20,7 @@ If private advisories are unavailable, contact the maintainers privately before 
 The docs app reads and writes local files and may use Anthropic and Figma credentials. It is intended to bind to loopback and is not a hardened public or multi-user service.
 
 - Keep it on `localhost` or `127.0.0.1`.
-- Configure `SPEC_LAYER_TOKEN` before using the Figma plugin's **Send to docs** action.
+- The Figma plugin's **Send to docs** posts from an opaque origin and is permitted without a token; do not rely on the docs app for authentication.
 - Do not expose the development server through a public tunnel, shared host, or permissive reverse proxy.
 - Store credentials in environment variables where possible. `.ds-config.json` is local, owner-readable configuration and must never be committed.
 - Treat imported Markdown and Figma component metadata as potentially sensitive.

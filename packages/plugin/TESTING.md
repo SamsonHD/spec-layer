@@ -10,7 +10,7 @@ npm run dev -w md-ds
 
 Import `packages/plugin/manifest.json` through Figma desktop's development plugin menu. The manifest permits `http://localhost:3000`.
 
-For **Send to docs**, generate a random token, set it as `SPEC_LAYER_TOKEN` in `apps/web/.env.local`, restart the web app, and enter the same value in the plugin's **Local API token** field.
+For **Send to docs**, make sure the web app is running. No token or account is needed — the plugin posts to the local docs app, whose URL lives in the plugin's **Settings** tab (default `http://localhost:3000`).
 
 ## Selected Component
 

@@ -144,7 +144,7 @@ describe("POST /api/specs/move-all", () => {
     expect(fs.existsSync(markdownPath(["components", "button"]))).toBe(false);
   });
 
-  it("rejects an opaque null Origin without moving files", async () => {
+  it("allows the Figma plugin's opaque null Origin to move files", async () => {
     writeInbox("button");
 
     const response = await POST(
@@ -155,12 +155,9 @@ describe("POST /api/specs/move-all", () => {
       ),
     );
 
-    expect(response.status).toBe(401);
-    await expect(response.json()).resolves.toEqual({
-      error: "Valid local bearer token required",
-    });
-    expect(fs.existsSync(markdownPath(["_inbox", "button"]))).toBe(true);
-    expect(fs.existsSync(markdownPath(["components", "button"]))).toBe(false);
+    expect(response.status).toBe(200);
+    expect(fs.existsSync(markdownPath(["_inbox", "button"]))).toBe(false);
+    expect(fs.existsSync(markdownPath(["components", "button"]))).toBe(true);
   });
 
   it("allows JSON requests without an Origin header", async () => {

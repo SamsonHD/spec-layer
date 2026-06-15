@@ -6,7 +6,6 @@ function request(headers: Record<string, string> = {}, url = "http://localhost:3
 }
 
 afterEach(() => {
-  delete process.env.SPEC_LAYER_TOKEN;
   delete process.env.SPEC_LAYER_ALLOWED_HOSTS;
   delete process.env.SPEC_LAYER_ALLOWED_ORIGINS;
 });
@@ -35,57 +34,31 @@ describe("authorizeLocalRequest", () => {
     });
   });
 
-  it("requires a bearer token for opaque plugin origins", () => {
-    process.env.SPEC_LAYER_TOKEN = "local-secret";
-
+  it("allows the Figma plugin's opaque \"null\" origin without a token", () => {
     expect(
       authorizeLocalRequest(request({ host: "localhost:3000", origin: "null" })),
-    ).toMatchObject({ ok: false, status: 401 });
-    expect(
-      authorizeLocalRequest(
-        request({
-          host: "localhost:3000",
-          origin: "null",
-          authorization: "Bearer local-secret",
-        }),
-      ),
     ).toEqual({ ok: true, origin: "null" });
   });
 
-  it("requires a bearer token for configured cross-origin clients", () => {
-    process.env.SPEC_LAYER_TOKEN = "local-secret";
+  it("allows configured cross-origin clients without a token", () => {
     process.env.SPEC_LAYER_ALLOWED_ORIGINS = "https://plugin.example";
 
     expect(
       authorizeLocalRequest(
         request({ host: "localhost:3000", origin: "https://plugin.example" }),
       ),
-    ).toMatchObject({ ok: false, status: 401 });
-    expect(
-      authorizeLocalRequest(
-        request({
-          host: "localhost:3000",
-          origin: "https://plugin.example",
-          authorization: "Bearer local-secret",
-        }),
-      ),
     ).toEqual({ ok: true, origin: "https://plugin.example" });
   });
 
-  it("does not accept malformed or prefix-matching bearer values", () => {
-    process.env.SPEC_LAYER_TOKEN = "local-secret";
-
-    for (const authorization of [
-      "local-secret",
-      "Bearer local",
-      "Bearer local-secret-extra",
-      "Basic local-secret",
-    ]) {
-      expect(
-        authorizeLocalRequest(
-          request({ host: "localhost:3000", origin: "null", authorization }),
-        ),
-      ).toMatchObject({ ok: false, status: 401 });
-    }
+  it("rejects an unlisted cross-origin client", () => {
+    expect(
+      authorizeLocalRequest(
+        request({ host: "localhost:3000", origin: "https://evil.example" }),
+      ),
+    ).toEqual({
+      ok: false,
+      status: 403,
+      error: "Request origin is not allowed",
+    });
   });
 });

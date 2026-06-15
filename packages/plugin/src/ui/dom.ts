@@ -134,10 +134,6 @@ const TEMPLATE = `
       background: var(--figma-color-bg-secondary); color: var(--figma-color-text);
     }
     textarea:focus { outline: none; border-color: var(--figma-color-bg-brand); }
-    button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible {
-      outline: 2px solid var(--figma-color-border-brand-strong);
-      outline-offset: 2px;
-    }
 
     /* ---- Banners ---- */
     .banner {
@@ -156,22 +152,12 @@ const TEMPLATE = `
     .check-row label { cursor: pointer; }
     .check-row span { display: block; margin-top: 2px; color: var(--figma-color-text-secondary); }
 
-    /* ---- Optional "Send to docs" disclosure ---- */
-    details.docs-disclosure {
-      margin-top: 6px; border: 1px solid var(--figma-color-border);
-      border-radius: 6px; background: var(--figma-color-bg-secondary);
+    /* ---- Inline send-time file-key prompt ---- */
+    .inline-filekey {
+      margin-top: 10px; padding: 10px; border-radius: 6px;
+      background: var(--figma-color-bg-secondary);
+      border: 1px solid var(--figma-color-border);
     }
-    details.docs-disclosure > summary {
-      list-style: none; cursor: pointer; padding: 9px 10px;
-      font-size: 11px; font-weight: 500; color: var(--figma-color-text-secondary);
-      display: flex; align-items: center; gap: 6px;
-    }
-    details.docs-disclosure > summary::-webkit-details-marker { display: none; }
-    details.docs-disclosure > summary::before {
-      content: "▸"; font-size: 9px; transition: transform 0.1s;
-    }
-    details.docs-disclosure[open] > summary::before { transform: rotate(90deg); }
-    .docs-body { padding: 0 10px 10px; }
     .figma-source {
       display: flex; gap: 8px; padding: 9px 10px; border-radius: 6px;
       background: var(--figma-color-bg); border: 1px solid var(--figma-color-border);
@@ -193,16 +179,15 @@ const TEMPLATE = `
       padding: 32px 16px;
     }
     .empty .empty-title { font-size: 13px; font-weight: 600; color: var(--figma-color-text); margin-bottom: 4px; }
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
-    }
   </style>
 
   <div class="tabs" role="tablist">
     <button class="tab" id="tab-selected" role="tab" aria-selected="true"
             aria-controls="tab-panel-selected">Selected component</button>
     <button class="tab" id="tab-all" role="tab" aria-selected="false"
-            aria-controls="tab-panel-all" tabindex="-1">Export all</button>
+            aria-controls="tab-panel-all">Export all</button>
+    <button class="tab" id="tab-settings" role="tab" aria-selected="false"
+            aria-controls="tab-panel-settings">Settings</button>
   </div>
 
   <div class="content">
@@ -243,41 +228,18 @@ const TEMPLATE = `
           <textarea id="spec-textarea" spellcheck="false"></textarea>
 
           <div class="row" style="margin-top:10px">
-            <button class="btn btn-primary" id="download-btn">Download .md</button>
+            <button class="btn btn-primary" id="send-btn">Send to docs</button>
+            <button class="btn btn-secondary" id="download-btn">Download .md</button>
           </div>
 
-          <!-- Optional, de-emphasised docs platform integration -->
-          <details class="docs-disclosure" id="docs-disclosure">
-            <summary>Send to docs platform</summary>
-            <div class="docs-body stack">
-              <p class="hint" style="margin-top:0">
-                Publish this spec directly. The Figma component reference is included automatically when available.
-              </p>
-              <div>
-                <label class="field-label" for="endpoint-input">Docs URL</label>
-                <input type="text" id="endpoint-input" placeholder="http://localhost:3000" />
-              </div>
-              <div>
-                <label class="field-label" for="token-input">Local access token</label>
-                <input type="password" id="token-input" placeholder="SPEC_LAYER_TOKEN" autocomplete="off" />
-                <p class="hint">Must match the docs app's <code>SPEC_LAYER_TOKEN</code>.</p>
-              </div>
-              <div class="figma-source missing" id="filekey-status">
-                <div>
-                  <strong id="filekey-status-title">Checking Figma source…</strong>
-                  <span id="filekey-status-detail"></span>
-                </div>
-              </div>
-              <div id="filekey-field">
-                <label class="field-label" id="filekey-label" for="filekey-input">Figma file URL</label>
-                <input type="text" id="filekey-input" placeholder="paste Figma file URL or key" />
-                <p class="hint" id="filekey-hint"></p>
-              </div>
-              <div class="row">
-                <button class="btn btn-secondary" id="send-btn">Send to docs</button>
-              </div>
-            </div>
-          </details>
+          <!-- Send-time prompt: only revealed when the Figma file key can't be
+               auto-detected, so the user can fix it inline without leaving the
+               component. Mirrors the persistent override field in Settings. -->
+          <div id="inline-filekey" class="inline-filekey" style="display:none">
+            <label class="field-label" for="inline-filekey-input">Paste this file's Figma URL</label>
+            <input type="text" id="inline-filekey-input" placeholder="https://figma.com/design/… or file key" />
+            <p class="hint">Needed once so previews load after import. Saved for next time.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -307,6 +269,41 @@ const TEMPLATE = `
         <div id="export-status" class="hint" style="min-height:1.4em"></div>
       </div>
     </section>
+
+    <!-- ============ Settings panel ============ -->
+    <section class="panel" id="tab-panel-settings" role="tabpanel"
+             aria-labelledby="tab-settings">
+      <div class="stack">
+        <div>
+          <h2>Docs platform</h2>
+          <p class="hint" style="margin-top:4px">
+            Where “Send to docs” publishes specs. Runs locally — no account or token.
+          </p>
+          <label class="field-label" for="endpoint-input" style="margin-top:8px">Docs URL</label>
+          <input type="text" id="endpoint-input" placeholder="http://localhost:3000" />
+        </div>
+
+        <hr />
+
+        <div>
+          <h2>Figma source</h2>
+          <p class="hint" style="margin-top:4px">
+            The file reference embedded in each spec so previews load after import.
+          </p>
+          <div class="figma-source missing" id="filekey-status" style="margin-top:8px">
+            <div>
+              <strong id="filekey-status-title">Checking Figma source…</strong>
+              <span id="filekey-status-detail"></span>
+            </div>
+          </div>
+          <div id="filekey-field" style="margin-top:10px">
+            <label class="field-label" id="filekey-label" for="filekey-input">Figma file URL</label>
+            <input type="text" id="filekey-input" placeholder="paste Figma file URL or key" />
+            <p class="hint" id="filekey-hint"></p>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 `;
 
@@ -318,8 +315,10 @@ export interface Refs {
   // Tabs
   tabSelected: HTMLButtonElement;
   tabAll: HTMLButtonElement;
+  tabSettings: HTMLButtonElement;
   panelSelected: HTMLElement;
   panelAll: HTMLElement;
+  panelSettings: HTMLElement;
   // Selection / main
   noSelection: HTMLDivElement;
   mainArea: HTMLDivElement;
@@ -334,10 +333,12 @@ export interface Refs {
   reviewArea: HTMLDivElement;
   specTextarea: HTMLTextAreaElement;
   downloadBtn: HTMLButtonElement;
-  // Optional docs platform
-  docsDisclosure: HTMLDetailsElement;
+  sendBtn: HTMLButtonElement;
+  // Inline send-time file-key prompt (component panel)
+  inlineFileKey: HTMLDivElement;
+  inlineFileKeyInput: HTMLInputElement;
+  // Docs platform settings (Settings tab)
   endpointInput: HTMLInputElement;
-  tokenInput: HTMLInputElement;
   fileKeyStatus: HTMLDivElement;
   fileKeyStatusTitle: HTMLElement;
   fileKeyStatusDetail: HTMLElement;
@@ -345,7 +346,6 @@ export interface Refs {
   fileKeyLabel: HTMLLabelElement;
   fileKeyInput: HTMLInputElement;
   fileKeyHint: HTMLParagraphElement;
-  sendBtn: HTMLButtonElement;
   // Export-all panel
   folderInput: HTMLInputElement;
   includeAtomsInput: HTMLInputElement;
@@ -369,8 +369,10 @@ export function mount(): Refs {
   return {
     tabSelected: byId<HTMLButtonElement>('tab-selected'),
     tabAll: byId<HTMLButtonElement>('tab-all'),
+    tabSettings: byId<HTMLButtonElement>('tab-settings'),
     panelSelected: byId<HTMLElement>('tab-panel-selected'),
     panelAll: byId<HTMLElement>('tab-panel-all'),
+    panelSettings: byId<HTMLElement>('tab-panel-settings'),
     noSelection: byId<HTMLDivElement>('no-selection'),
     mainArea: byId<HTMLDivElement>('main-area'),
     componentName: byId<HTMLHeadingElement>('component-name'),
@@ -382,9 +384,10 @@ export function mount(): Refs {
     reviewArea: byId<HTMLDivElement>('review-area'),
     specTextarea: byId<HTMLTextAreaElement>('spec-textarea'),
     downloadBtn: byId<HTMLButtonElement>('download-btn'),
-    docsDisclosure: byId<HTMLDetailsElement>('docs-disclosure'),
+    sendBtn: byId<HTMLButtonElement>('send-btn'),
+    inlineFileKey: byId<HTMLDivElement>('inline-filekey'),
+    inlineFileKeyInput: byId<HTMLInputElement>('inline-filekey-input'),
     endpointInput: byId<HTMLInputElement>('endpoint-input'),
-    tokenInput: byId<HTMLInputElement>('token-input'),
     fileKeyStatus: byId<HTMLDivElement>('filekey-status'),
     fileKeyStatusTitle: byId<HTMLElement>('filekey-status-title'),
     fileKeyStatusDetail: byId<HTMLElement>('filekey-status-detail'),
@@ -392,7 +395,6 @@ export function mount(): Refs {
     fileKeyLabel: byId<HTMLLabelElement>('filekey-label'),
     fileKeyInput: byId<HTMLInputElement>('filekey-input'),
     fileKeyHint: byId<HTMLParagraphElement>('filekey-hint'),
-    sendBtn: byId<HTMLButtonElement>('send-btn'),
     folderInput: byId<HTMLInputElement>('folder-input'),
     includeAtomsInput: byId<HTMLInputElement>('include-atoms-input'),
     exportAllBtn: byId<HTMLButtonElement>('export-all-btn'),
