@@ -1,8 +1,5 @@
 import Link from "next/link";
-import InboxSaveAll from "@/components/InboxSaveAll";
-import InboxFillAll from "@/components/InboxFillAll";
-import InboxClearAll from "@/components/InboxClearAll";
-import InboxComponentList from "@/components/InboxComponentList";
+import InboxWorkspace from "@/components/InboxWorkspace";
 import ManualImport from "@/components/ManualImport";
 import { getAllDocs, getNavTree } from "@/lib/contentCache";
 import { formatComponentCount, summarizeInbox } from "@/lib/inboxSummary";
@@ -22,11 +19,14 @@ export default function InboxPage() {
   const summary = summarizeInbox(docs);
 
   return (
-    <div className="content-inner">
+    <div className="content-inner inbox-page">
       <div className="inbox-head">
-        <h1>Inbox</h1>
+        <div className="inbox-title-row">
+          <h1>Inbox</h1>
+          {docs.length > 0 ? <span>{formatComponentCount(summary.total)}</span> : null}
+        </div>
         <p>
-          Components imported from Figma land here before they are added to your documentation.
+          Review components imported from Figma before adding them to your documentation.
         </p>
       </div>
 
@@ -41,36 +41,7 @@ export default function InboxPage() {
           </p>
         </div>
       ) : (
-        <section className="inbox-summary" aria-labelledby="inbox-summary-title">
-          <div className="inbox-summary-head">
-            <div>
-              <h2 id="inbox-summary-title">Import summary</h2>
-              <p>{formatComponentCount(summary.total)} ready to save.</p>
-            </div>
-            <div className="inbox-summary-actions">
-              <InboxFillAll items={summary.items} />
-              <InboxSaveAll items={summary.items} folderOptions={groups} />
-              <InboxClearAll items={summary.items} />
-            </div>
-          </div>
-
-          <dl className="inbox-summary-stats">
-            <div>
-              <dt>Imported</dt>
-              <dd>{summary.total}</dd>
-            </div>
-            <div>
-              <dt>With issues</dt>
-              <dd>{summary.withIssues}</dd>
-            </div>
-            <div>
-              <dt>Missing required</dt>
-              <dd>{summary.missingRequired}</dd>
-            </div>
-          </dl>
-
-          <InboxComponentList items={summary.items} />
-        </section>
+        <InboxWorkspace items={summary.items} folderOptions={groups} />
       )}
 
       <details className="inbox-add-panel">

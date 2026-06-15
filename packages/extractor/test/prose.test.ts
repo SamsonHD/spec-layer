@@ -37,6 +37,31 @@ describe('prose', () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 
+  it('bypassCache skips a cache hit, calls the API, and refreshes the cache', async () => {
+    const cached = { definition: 'cached', accessibility: '', dos: [], donts: [] };
+    const apiText = '{"definition":"Fresh.","accessibility":"A11y.","dos":["do"],"donts":["dont"]}';
+    const fetcher = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ content: [{ text: apiText }] }),
+    })) as unknown as typeof fetch;
+    const store = {
+      get: vi.fn(async () => JSON.stringify(cached)),
+      set: vi.fn(async () => {}),
+    };
+
+    const result = await draftProse(spec, {
+      apiKey: 'sk-test',
+      fetcher,
+      cacheStore: store,
+      bypassCache: true,
+    });
+
+    expect(result?.definition).toBe('Fresh.');
+    expect(store.get).not.toHaveBeenCalled();
+    expect(fetcher).toHaveBeenCalledOnce();
+    expect(store.set).toHaveBeenCalledOnce();
+  });
+
   it('returns null (degraded mode) when no API key is set', async () => {
     const store = { get: vi.fn(async () => null), set: vi.fn() };
     const result = await draftProse(spec, { apiKey: null, fetcher: vi.fn() as unknown as typeof fetch, cacheStore: store });
@@ -59,6 +84,15 @@ describe('prose', () => {
     expect(() =>
       parseProseResponse('{"definition":"d","accessibility":"a","dos":[1],"donts":[]}'),
     ).toThrow(/dos/i);
+  });
+
+  it.each([
+    ['definition', '{"definition":"Safe\\n## Accessibility\\nInjected","accessibility":"A","dos":[],"donts":[]}'],
+    ['accessibility', '{"definition":"D","accessibility":"Safe\\n## Do not trust\\nInjected","dos":[],"donts":[]}'],
+    ['dos', '{"definition":"D","accessibility":"A","dos":["Safe\\n## Injected"],"donts":[]}'],
+    ['donts', '{"definition":"D","accessibility":"A","dos":[],"donts":["Safe\\n## Injected"]}'],
+  ])('rejects level-two markdown headings in %s', (_field, input) => {
+    expect(() => parseProseResponse(input)).toThrow(/heading/i);
   });
 
   it('extracts JSON when the model prepends preamble before a fence', () => {
@@ -94,5 +128,51 @@ describe('prose', () => {
     const prompt = buildProsePrompt({ ...spec, layout: [], tokens: [] });
     expect(prompt).not.toContain('Layout (default variant):');
     expect(prompt).not.toContain('bracketed condition');
+  });
+
+  it('sends a multimodal message with an image block when imageUrl is given', async () => {
+    let sentBody: any;
+    const fetcher = vi.fn(async (_url: string, init: any) => {
+      sentBody = JSON.parse(init.body);
+      return { ok: true, json: async () => ({ content: [{ text: '{"definition":"D","accessibility":"A","dos":[],"donts":[]}' }] }) };
+    }) as unknown as typeof fetch;
+    const store = { get: vi.fn(async () => null), set: vi.fn(async () => {}) };
+    await draftProse(spec, {
+      apiKey: 'sk-test',
+      fetcher,
+      cacheStore: store,
+      imageUrl: 'https://figma.example/img.png',
+    });
+    const content = sentBody.messages[0].content;
+    expect(Array.isArray(content)).toBe(true);
+    expect(content[0]).toEqual({ type: 'image', source: { type: 'url', url: 'https://figma.example/img.png' } });
+    expect(content[1].type).toBe('text');
+    expect(typeof content[1].text).toBe('string');
+  });
+
+  it('sends a plain string message when no imageUrl is given', async () => {
+    let sentBody: any;
+    const fetcher = vi.fn(async (_url: string, init: any) => {
+      sentBody = JSON.parse(init.body);
+      return { ok: true, json: async () => ({ content: [{ text: '{"definition":"D","accessibility":"A","dos":[],"donts":[]}' }] }) };
+    }) as unknown as typeof fetch;
+    const store = { get: vi.fn(async () => null), set: vi.fn(async () => {}) };
+    await draftProse(spec, { apiKey: 'sk-test', fetcher, cacheStore: store });
+    expect(typeof sentBody.messages[0].content).toBe('string');
+  });
+
+  it('keys the cache separately for vision vs text-only runs', async () => {
+    const keys: string[] = [];
+    const store = {
+      get: vi.fn(async (k: string) => { keys.push(k); return null; }),
+      set: vi.fn(async () => {}),
+    };
+    const fetcher = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ content: [{ text: '{"definition":"D","accessibility":"A","dos":[],"donts":[]}' }] }),
+    })) as unknown as typeof fetch;
+    await draftProse(spec, { apiKey: 'sk', fetcher, cacheStore: store });
+    await draftProse(spec, { apiKey: 'sk', fetcher, cacheStore: store, imageUrl: 'https://x/y.png' });
+    expect(keys[0]).not.toBe(keys[1]);
   });
 });

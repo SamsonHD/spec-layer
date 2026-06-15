@@ -57,7 +57,7 @@ export default function InboxClearAll({ items }: InboxClearAllProps) {
         onClick={onClear}
         disabled={busy || items.length === 0}
       >
-        {busy ? "Clearing..." : "Clear all"}
+        {busy ? "Clearing..." : "Clear All"}
       </button>
 
       {requestError || failureMessages.length > 0 ? (

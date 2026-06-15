@@ -11,15 +11,11 @@ import InboxSaveAll, { formatInboxFailures } from "./InboxSaveAll";
 const items = [{ name: "Button", slug: ["_inbox", "button"] }];
 
 describe("InboxSaveAll", () => {
-  it("renders the default folder, existing suggestions, and Save all action", () => {
-    const html = renderToStaticMarkup(
-      <InboxSaveAll items={items} folderOptions={["forms"]} />,
-    );
+  it("renders the Save All action for the selected folder", () => {
+    const html = renderToStaticMarkup(<InboxSaveAll items={items} folder="Forms" />);
 
-    expect(html).toContain('value="Components"');
-    expect(html).toContain("Save all");
-    expect(html).toContain('id="inbox-folder-options"');
-    expect(html).toContain('value="forms"');
+    expect(html).toContain("Save All");
+    expect(html).not.toContain("Folder");
     expect(html).not.toContain("inbox-save-errors");
   });
 

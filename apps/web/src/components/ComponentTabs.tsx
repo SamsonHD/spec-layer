@@ -20,6 +20,7 @@ export default function ComponentTabs({
   specsMarkdownFallback,
   spec,
   figmaRef,
+  pristineGuidelines = [],
 }: {
   slug: string[];
   /**
@@ -36,6 +37,8 @@ export default function ComponentTabs({
   specsMarkdownFallback: string;
   spec: IntermediateSpec | null;
   figmaRef?: FigmaRefProp;
+  /** Guideline headings still holding the pristine AI draft — "Regenerate" is hidden for these. */
+  pristineGuidelines?: string[];
 }) {
   const [active, setActive] = useState<TabId>("guidelines");
 
@@ -88,6 +91,7 @@ export default function ComponentTabs({
                 prevIndex={i > 0 ? proseSections[i - 1].index : null}
                 nextIndex={i < proseSections.length - 1 ? proseSections[i + 1].index : null}
                 slug={slug}
+                pristine={pristineGuidelines.includes(section.heading)}
               />
             ))}
           </div>

@@ -129,6 +129,16 @@ export function parseProseResponse(text: string): ProseDrafts {
     throw new Error('Prose response field "donts" must be a string[]');
   }
 
+  const generatedStrings = [
+    obj.definition,
+    obj.accessibility,
+    ...obj.dos,
+    ...obj.donts,
+  ] as string[];
+  if (generatedStrings.some((value) => /^##(?:\s|$)/m.test(value))) {
+    throw new Error('Prose response must not contain level-two markdown headings');
+  }
+
   return {
     definition: obj.definition,
     accessibility: obj.accessibility,

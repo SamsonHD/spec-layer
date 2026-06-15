@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
 import type { Section } from "@/lib/sectionEdit";
+import { isFillableGuideline, isEmptyGuideline } from "@/lib/guidelineFill";
 
 type Action = "replace" | "insert" | "delete" | "reorder";
 
@@ -53,6 +54,7 @@ export default function EditableSection({
   prevIndex,
   nextIndex,
   slug,
+  pristine = false,
   startInEdit = false,
 }: {
   section: Section;
@@ -68,6 +70,8 @@ export default function EditableSection({
   /** Full-body index of the NEXT visible prose section, or `null` if this is the last. */
   nextIndex: number | null;
   slug: string[];
+  /** True when this guideline section still holds the pristine AI draft (hides "Regenerate"). */
+  pristine?: boolean;
   startInEdit?: boolean;
 }) {
   const router = useRouter();
@@ -77,6 +81,45 @@ export default function EditableSection({
   const [error, setError] = useState<string | null>(null);
 
   const label = section.heading || "Introduction";
+  const canEnrich = isFillableGuideline(section.heading);
+  const isEmpty = isEmptyGuideline(section.content);
+  // Fill an empty section; offer Regenerate only once a human has edited the AI
+  // draft. A pristine draft is hidden — regenerating it returns the same cached text.
+  const showEnrich = canEnrich && (isEmpty || !pristine);
+
+  /**
+   * AI-fill this guideline section. An empty section is filled; a non-empty one
+   * is regenerated (overwriting human prose), so confirm first to avoid surprise.
+   */
+  async function onEnrich() {
+    if (!isEmpty && !window.confirm(`Replace the "${label}" section with a fresh AI draft?`)) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/specs/enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, target: section.heading }),
+      });
+      if (!res.ok) {
+        let message = `Request failed (${res.status})`;
+        try {
+          const data = (await res.json()) as { error?: string };
+          if (data.error) message = data.error;
+        } catch {
+          // ignore non-JSON error bodies
+        }
+        throw new Error(message);
+      }
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "AI fill failed");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function run(payload: SectionPayload) {
     setBusy(true);
@@ -146,6 +189,17 @@ export default function EditableSection({
             >
               Edit
             </button>
+            {showEnrich && (
+              <button
+                type="button"
+                className="btn-link section-btn"
+                onClick={onEnrich}
+                disabled={busy}
+                aria-label={`${isEmpty ? "Fill" : "Regenerate"} ${label} section with AI`}
+              >
+                {isEmpty ? "✨ Fill with AI" : "✨ Regenerate"}
+              </button>
+            )}
             <button
               type="button"
               className="btn-link section-btn"

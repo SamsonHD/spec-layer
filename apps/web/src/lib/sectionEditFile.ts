@@ -42,7 +42,7 @@ export type SectionEdit =
  * defeat the byte-for-byte preservation this writer guarantees. We only need the
  * raw split here, so we keep the frontmatter block verbatim and never touch it.
  */
-function splitFrontmatter(raw: string): { frontmatter: string; body: string } {
+export function splitFrontmatter(raw: string): { frontmatter: string; body: string } {
   const m = /^(---\r?\n[\s\S]*?\r?\n---)(\r?\n)?([\s\S]*)$/.exec(raw);
   if (!m) return { frontmatter: "", body: raw };
   return { frontmatter: m[1], body: m[3] };

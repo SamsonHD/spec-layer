@@ -33,9 +33,24 @@ describe("summarizeInbox", () => {
       withIssues: 1,
       missingRequired: 2,
       items: [
-        { name: "Badge", slug: ["_inbox", "badge"] },
-        { name: "Button", slug: ["_inbox", "button"] },
-        { name: "Input", slug: ["_inbox", "input"] },
+        {
+          name: "Badge",
+          slug: ["_inbox", "badge"],
+          issueCount: 0,
+          missingRequiredCount: 0,
+        },
+        {
+          name: "Button",
+          slug: ["_inbox", "button"],
+          issueCount: 1,
+          missingRequiredCount: 1,
+        },
+        {
+          name: "Input",
+          slug: ["_inbox", "input"],
+          issueCount: 0,
+          missingRequiredCount: 2,
+        },
       ],
     });
   });

@@ -1,6 +1,9 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDoc } from "@/lib/content";
 import { readStoredSpec } from "@/lib/specWriter";
+import { readCachedDrafts } from "@/lib/aiDraftCache";
+import { findPristineGuidelines } from "@/lib/guidelineFill";
 import { partitionBody } from "@/lib/sections";
 import FigmaSection from "@/components/FigmaSection";
 import ComponentTabs from "@/components/ComponentTabs";
@@ -16,11 +19,12 @@ function formatDate(iso: string | null): string {
   return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
-export default function ComponentPage({ params }: { params: { slug: string[] } }) {
+export default async function ComponentPage({ params }: { params: { slug: string[] } }) {
   const doc = getDoc(params.slug);
   if (!doc) notFound();
 
   const { frontmatter: fm, body, updated, missingRequired, issues, slug } = doc;
+  const isInboxDoc = slug[0] === "_inbox";
   const breadcrumb = slug
     .slice(0, -1)
     .map((s) => s.replace(/[-_]/g, " "))
@@ -31,17 +35,35 @@ export default function ComponentPage({ params }: { params: { slug: string[] } }
   // JSON sidecar (preferred source for the Specs tab); null for legacy docs.
   const storedSpec = readStoredSpec(slug);
 
+  // Guideline sections whose content still equals the cached AI draft. The
+  // "Regenerate" control is hidden for these (it would regenerate to the same
+  // cached text); it appears once a human edits the section away from the draft.
+  const pristineGuidelines = storedSpec
+    ? findPristineGuidelines(body, await readCachedDrafts(storedSpec))
+    : [];
+
   return (
     <>
       <header className="doc-header">
         <div className="title-wrap">
           <div>
-            {breadcrumb && <div className="breadcrumb">{breadcrumb}</div>}
+            {isInboxDoc ? (
+              <div className="breadcrumb">
+                <Link href="/inbox">Inbox</Link>
+              </div>
+            ) : breadcrumb ? (
+              <div className="breadcrumb">{breadcrumb}</div>
+            ) : null}
             <h1>{fm.name}</h1>
           </div>
           {fm.status && <span className={`badge ${fm.status}`}>{fm.status}</span>}
         </div>
         <div className="header-actions">
+          {isInboxDoc ? (
+            <Link className="btn-link" href="/inbox">
+              Back to inbox
+            </Link>
+          ) : null}
           {fm.figma && (
             <a className="btn-link" href={fm.figma} target="_blank" rel="noreferrer">
               Figma ↗
@@ -83,6 +105,7 @@ export default function ComponentPage({ params }: { params: { slug: string[] } }
           specsMarkdownFallback={specsMarkdown}
           spec={storedSpec}
           figmaRef={fm.figmaRef}
+          pristineGuidelines={pristineGuidelines}
         />
       </div>
     </>

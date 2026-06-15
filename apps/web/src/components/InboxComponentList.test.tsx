@@ -9,17 +9,38 @@ vi.mock("next/navigation", () => ({
 import InboxComponentList from "./InboxComponentList";
 
 const items = [
-  { name: "Button", slug: ["_inbox", "button"] },
-  { name: "Input", slug: ["_inbox", "input"] },
+  {
+    name: "Button",
+    slug: ["_inbox", "button"],
+    issueCount: 0,
+    missingRequiredCount: 0,
+  },
+  {
+    name: "Input",
+    slug: ["_inbox", "input"],
+    issueCount: 1,
+    missingRequiredCount: 2,
+  },
 ];
 
 describe("InboxComponentList", () => {
-  it("renders each component name with a Delete control", () => {
-    const html = renderToStaticMarkup(<InboxComponentList items={items} />);
+  it("renders all rows with search, open, save, status, and delete controls", () => {
+    const html = renderToStaticMarkup(
+      <InboxComponentList items={items} folder="Components" />,
+    );
 
-    expect(html).toContain("View component names");
+    expect(html).toContain("Imported components");
+    expect(html).toContain('type="search"');
+    expect(html).not.toContain("Filter imported components");
+    expect(html).not.toContain("All 2");
     expect(html).toContain("Button");
     expect(html).toContain("Input");
+    expect(html).toContain("Ready");
+    expect(html).toContain("1 issue · 2 missing sections");
+    expect(html).toContain('href="/components/_inbox/button"');
+    expect(html).toContain('href="/components/_inbox/input"');
+    expect(html.match(/>Open</g)?.length).toBe(2);
+    expect(html.match(/>Save</g)?.length).toBe(2);
     expect(html.match(/inbox-delete-item/g)?.length).toBe(2);
     expect(html).toContain(">Delete<");
   });

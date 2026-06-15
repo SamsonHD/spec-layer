@@ -11,14 +11,35 @@ export interface DraftOptions {
   apiKey: string | null;
   fetcher: typeof fetch;
   cacheStore: CacheStore;
+  /** Skip an existing cache entry while still storing the newly generated draft. */
+  bypassCache?: boolean;
+  /**
+   * Optional rendered component image (e.g. a Figma PNG URL). When provided, it
+   * is attached as an image content block so the model can see the component,
+   * not just its structured summary. Absent → text-only request (unchanged).
+   */
+  imageUrl?: string | null;
 }
 
 export async function draftProse(spec: IntermediateSpec, opts: DraftOptions): Promise<ProseDrafts | null> {
   if (!opts.apiKey) return null;
 
-  const key = `prose:${contentHash(spec)}`;
-  const hit = await opts.cacheStore.get(key);
-  if (hit) return parseProseResponse(hit);
+  // Vision and text-only runs produce different output, so they must not share a
+  // cache entry. Key on the (stable) content hash plus a vision marker — NOT the
+  // image URL, which is a signed URL that rotates hourly for an unchanged render.
+  const key = `prose:${contentHash(spec)}${opts.imageUrl ? ':img' : ''}`;
+  if (!opts.bypassCache) {
+    const hit = await opts.cacheStore.get(key);
+    if (hit) return parseProseResponse(hit);
+  }
+
+  const prompt = buildProsePrompt(spec);
+  const content = opts.imageUrl
+    ? [
+        { type: 'image', source: { type: 'url', url: opts.imageUrl } },
+        { type: 'text', text: prompt },
+      ]
+    : prompt;
 
   const res = await opts.fetcher('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -32,7 +53,7 @@ export async function draftProse(spec: IntermediateSpec, opts: DraftOptions): Pr
     body: JSON.stringify({
       model: 'claude-haiku-4-5',
       max_tokens: 2000,
-      messages: [{ role: 'user', content: buildProsePrompt(spec) }],
+      messages: [{ role: 'user', content }],
     }),
   });
 

@@ -140,8 +140,7 @@ function VariantsSection({
   spec: IntermediateSpec;
   fileKey: string | null;
 }) {
-  const instances = spec.variantInstances ?? [];
-  if (!instances.length) return null;
+  const instances = useMemo(() => spec.variantInstances ?? [], [spec]);
 
   const axisOrder = useMemo(() => buildAxisOrder(spec, instances), [spec, instances]);
   const axisValues = useMemo(() => buildAxisValues(axisOrder, instances), [axisOrder, instances]);
@@ -189,6 +188,8 @@ function VariantsSection({
   }, [fileKey, instances]);
 
   const selected = selectedId ? instances.find((i) => i.nodeId === selectedId) ?? null : null;
+
+  if (!instances.length) return null;
 
   return (
     <section className="spec-section">
