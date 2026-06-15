@@ -22,6 +22,7 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc -p packages/format/tsconfig.json --noEmit && tsc -p packages/extractor/tsconfig.json --noEmit && tsc -p packages/plugin/tsconfig.json --noEmit && tsc -p apps/web/tsconfig.json --noEmit",
     "lint": "eslint .",
     "build": "npm run build -w md-ds",
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^4.1.8",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "typescript": "^5.6.0",
