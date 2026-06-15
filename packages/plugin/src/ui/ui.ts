@@ -12,6 +12,7 @@
 import type { MainToUi } from '../messages';
 import { mount } from './dom';
 import { parseFigmaFileKey } from './fileKey';
+import { normalizeDocsEndpoint } from './state';
 import {
   createState,
   send,
@@ -78,7 +79,10 @@ refs.exportAllBtn.addEventListener('click', () => runExportAll(refs, state));
 // ---------------------------------------------------------------------------
 
 refs.endpointInput.addEventListener('change', () => {
-  state.docsEndpoint = refs.endpointInput.value.trim() || 'http://localhost:3000';
+  // Normalize a typed 127.0.0.1/::1 host to 'localhost' (the only loopback form
+  // Figma can allowlist) and reflect the canonical value back into the field.
+  state.docsEndpoint = normalizeDocsEndpoint(refs.endpointInput.value);
+  refs.endpointInput.value = state.docsEndpoint;
   send({ type: 'setDocsEndpoint', value: state.docsEndpoint });
 });
 
@@ -143,8 +147,15 @@ window.onmessage = (event: MessageEvent) => {
     }
 
     case 'docsEndpoint': {
-      state.docsEndpoint = msg.value ?? 'http://localhost:3000';
-      refs.endpointInput.value = state.docsEndpoint;
+      // Self-heal a persisted 127.0.0.1/::1 endpoint saved before the localhost
+      // fix: normalize on load, and write the corrected value back to
+      // clientStorage so it stays fixed across sessions.
+      const normalized = normalizeDocsEndpoint(msg.value ?? 'http://localhost:3000');
+      state.docsEndpoint = normalized;
+      refs.endpointInput.value = normalized;
+      if (msg.value && msg.value !== normalized) {
+        send({ type: 'setDocsEndpoint', value: normalized });
+      }
       break;
     }
 
