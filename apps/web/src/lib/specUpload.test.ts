@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import matter from "gray-matter";
+import { parseMarkdown } from "@spec-layer/format";
 import { writeInboxMarkdown, slugify } from "./specWriter";
 import { getAllDocs, getDoc } from "./content";
 
@@ -155,7 +155,7 @@ describe("writeInboxMarkdown — discoverability via getAllDocs / getDoc", () =>
 
 /** Mirrors the slug derivation in /api/specs/upload/route.ts */
 function deriveSlug(markdown: string, filenameHint?: string): string {
-  const { data } = matter(markdown);
+  const { data } = parseMarkdown(markdown);
   const fm = data as Record<string, unknown>;
   const nameFromFm =
     typeof fm.name === "string" && fm.name.trim()

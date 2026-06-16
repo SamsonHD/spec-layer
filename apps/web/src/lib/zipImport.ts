@@ -5,7 +5,7 @@
  * be unit-tested without a filesystem or a real zip file.
  */
 
-import matter from "gray-matter";
+import { parseMarkdown } from "@spec-layer/format";
 import path from "node:path";
 import { Unzip, UnzipInflate } from "fflate";
 
@@ -154,10 +154,10 @@ export function selectMarkdownEntries(
       continue;
     }
 
-    // 5. Validate parseable with gray-matter.
-    let parsed: ReturnType<typeof matter>;
+    // 5. Validate parseable frontmatter.
+    let parsed: ReturnType<typeof parseMarkdown>;
     try {
-      parsed = matter(markdown);
+      parsed = parseMarkdown(markdown);
     } catch (e) {
       skipped.push({
         name: entryName,
