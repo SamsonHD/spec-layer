@@ -15,30 +15,35 @@ export interface ProseDrafts {
  * schema/output contract stays in `buildProsePrompt`; this governs voice only.
  */
 export const PROSE_SYSTEM_PROMPT = [
-  "You write component guideline prose for a design-system specification tool.",
-  "Your output fills three spec sections — Definition, Accessibility, and Do's & Don'ts —",
+  'You write component guideline prose for a design-system specification tool.',
+  "Your output fills three spec sections: Definition, Accessibility, and Do's & Don'ts,",
   'in the voice of best-in-class design systems (Atlassian, Material, Polaris, Carbon).',
   '',
   'Core rule: every guideline states the rule AND the reason it matters. A rule without its',
   'consequence reads like a lint message; the reason is what makes it useful guidance.',
   '',
   'Voice:',
-  '- Imperative and verb-first ("Use…", "Keep…", "Avoid…", "Never…").',
-  '- Write for people, not "the user" — say "people", "someone", or the concrete role.',
+  '- Imperative and verb-first ("Use...", "Keep...", "Avoid...", "Never...").',
+  '- Write for people, not "the user". Say "people", "someone", or the concrete role.',
   '- Be concrete: anchor rules in real situations (forms, dialogs, toolbars), not "certain contexts".',
-  '- Plain language, short sentences, no hedging.',
-  "- Reference only the component's actual variants, props, and states — never invent options it lacks.",
-  '- Pair a Don\'t with its alternative ("…use a Toggle instead").',
+  "- Reference only the component's actual variants, props, and states. Never invent options it lacks.",
+  '- Pair a Don\'t with its alternative (for example, "use a Toggle instead").',
+  '',
+  'Punctuation and formatting (this matters for readability):',
+  '- Never use em dashes (the long dash) or en dashes as punctuation. Use a period, comma, colon,',
+  '  or parentheses instead. A hyphen is fine in ranges like 3-5 and in compound words.',
+  '- Keep sentences short. One idea per sentence. Split a long sentence into two.',
   '',
   'Sections:',
-  '- Definition: one paragraph — what it is, when to use it, which variant for which job, and the',
-  '  single most important constraint.',
-  '- Accessibility: name the correct ARIA roles/states/keyboard behaviour for the pattern, each with',
-  '  why it matters; explicitly flag what a design file cannot encode (focus order, live-region',
-  '  behaviour, whether a change is immediate vs deferred).',
-  "- Do's & Don'ts: each item carries its reason; verb-first; pair Don'ts with the alternative.",
+  '- Definition: a few short sentences in one paragraph. Say what it is, when to use it, which',
+  '  variant for which job, and the single most important constraint.',
+  '- Accessibility: a short bulleted list, one consideration per line, each line starting with "- ".',
+  '  Never one dense paragraph. Name the correct ARIA roles, states, and keyboard behaviour for the',
+  '  pattern, each with why it matters, and flag what a design file cannot encode (focus order,',
+  '  live-region behaviour, whether a change is immediate or deferred).',
+  "- Do's & Don'ts: one rule per bullet, each carrying its reason.",
   '',
-  'Return only the JSON object requested in the user message — no preamble, no markdown headings,',
+  'Return only the JSON object requested in the user message. No preamble, no markdown headings,',
   'and no prose outside the JSON.',
 ].join('\n');
 
@@ -58,33 +63,33 @@ const FEW_SHOT_PROMPT = [
   '',
   'States: Enabled, Hovered, Focused, Pressed, Disabled',
   '',
-  'Return ONLY a JSON object with keys: definition (one paragraph), accessibility (notes for this ' +
-    'pattern, flagging what cannot be known from the design file), dos (string[], 3–5 items), ' +
-    'donts (string[], 3–5 items). Do not include any prose outside the JSON.',
+  'Return ONLY a JSON object with keys: definition (one short paragraph), accessibility (a short ' +
+    'bulleted list, one consideration per line starting with "- ", flagging what cannot be known ' +
+    'from the design file), dos (string[], 3 to 5 items), donts (string[], 3 to 5 items). Do not ' +
+    'include any prose outside the JSON. Do not use em dashes.',
 ].join('\n');
 
 const FEW_SHOT_RESPONSE: ProseDrafts = {
   definition:
     'A Button triggers an action when activated. Use the Filled variant for the single most ' +
-    'important action in a view, Outlined for secondary actions that still need a visible boundary, ' +
-    'and Text for low-emphasis actions in dense or secondary areas. Keep one Filled button per area ' +
-    'so the primary action stays unambiguous.',
-  accessibility:
-    'Render as a native `<button>` so keyboard and screen-reader behaviour come for free; add ' +
-    'role="button" only when a non-button element must act as one. The label is the accessible ' +
-    'name — for an icon-only button, supply `aria-label`, since an icon alone announces nothing. ' +
-    'For the Disabled state, the design file cannot tell you whether the control should leave the ' +
-    'tab order (`disabled`) or stay focusable to explain why it is unavailable (`aria-disabled`); ' +
-    'decide that in implementation.',
+    'important action in a view. Use Outlined for secondary actions that need a visible boundary, ' +
+    'and Text for low-emphasis actions in dense layouts. Keep one Filled button per view so the ' +
+    'main action stays unambiguous.',
+  accessibility: [
+    '- Render as a native `<button>` so keyboard and screen-reader behaviour work without extra code. Use role="button" only when a non-button element must act as one.',
+    '- The label is the accessible name. For an icon-only button, supply `aria-label`, since an icon alone announces nothing.',
+    '- Whether Disabled uses the `disabled` attribute (removed from the tab order) or `aria-disabled="true"` (stays focusable to explain why it is unavailable) is an implementation choice the design file cannot encode.',
+    '- Focus order and live-region behaviour are not in the design file. Confirm the focus ring meets WCAG 2.1 contrast (at least 3:1) in implementation.',
+  ].join('\n'),
   dos: [
-    'Use the Filled variant for the single most important action in a view — its weight tells people where to go next.',
-    'Keep labels to one to three words, verb-first ("Save", "Add item"), so people can scan the action without reading a sentence.',
+    'Use the Filled variant for the single most important action in a view. Its weight tells people where to go next.',
+    'Keep labels to one to three words, verb first ("Save", "Add item"), so people can scan the action without reading a sentence.',
     'Use the Text variant in dense toolbars or dialogs, where a filled button would add visual noise.',
   ],
   donts: [
-    "Don't place more than one Filled button in the same view — competing primary actions make it unclear which one matters most.",
-    "Don't use a button for plain navigation; screen readers announce links and buttons differently, so use a link (`<a>`) when it just goes somewhere.",
-    "Don't disable a button without explaining why — a disabled control gives no reason and drops out of the tab order; use inline validation instead.",
+    "Don't place more than one Filled button in the same view. Competing primary actions make it unclear which one matters most.",
+    "Don't use a button for plain navigation. Screen readers announce links and buttons differently, so use a link (`<a>`) when it just goes somewhere.",
+    "Don't disable a button without explaining why. A disabled control gives no reason and drops out of the tab order, so use inline validation instead.",
   ],
 };
 
@@ -173,14 +178,29 @@ export function buildProsePrompt(spec: IntermediateSpec): string {
   lines.push('');
   lines.push(
     'Return ONLY a JSON object with keys: ' +
-      'definition (one paragraph, specific to this component\'s actual props and variants — no generic filler), ' +
-      'accessibility (notes for this component pattern, flagging what cannot be known from the design file), ' +
-      'dos (string[], 3–5 items), ' +
-      'donts (string[], 3–5 items). ' +
-      'Do not include any prose outside the JSON.',
+      "definition (one short paragraph, specific to this component's actual props and variants, with no generic filler), " +
+      'accessibility (a short bulleted list, one consideration per line starting with "- ", flagging what cannot be known from the design file), ' +
+      'dos (string[], 3 to 5 items), ' +
+      'donts (string[], 3 to 5 items). ' +
+      'Do not include any prose outside the JSON. Do not use em dashes; keep sentences short.',
   );
 
   return lines.join('\n');
+}
+
+/**
+ * Normalise punctuation the house style forbids. Em dashes (and spaced en
+ * dashes) used as sentence punctuation are replaced with a comma, which reads
+ * naturally for the appositive cases models tend to produce. Only horizontal
+ * whitespace is matched, so line breaks between Accessibility bullets survive;
+ * hyphens and unspaced en dashes (number ranges like 3-5) are left untouched.
+ * This is a safety net — the prompt already forbids em dashes — that guarantees
+ * the rule even when the model slips.
+ */
+function normalizeProseText(value: string): string {
+  return value
+    .replace(/[ \t]*—[ \t]*/g, ', ')
+    .replace(/[ \t]+–[ \t]+/g, ', ');
 }
 
 /**
@@ -228,9 +248,9 @@ export function parseProseResponse(text: string): ProseDrafts {
   }
 
   return {
-    definition: obj.definition,
-    accessibility: obj.accessibility,
-    dos: obj.dos,
-    donts: obj.donts,
+    definition: normalizeProseText(obj.definition),
+    accessibility: normalizeProseText(obj.accessibility),
+    dos: obj.dos.map(normalizeProseText),
+    donts: obj.donts.map(normalizeProseText),
   };
 }

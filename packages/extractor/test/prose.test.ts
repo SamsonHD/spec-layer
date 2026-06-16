@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { buildProsePrompt, parseProseResponse } from '../src/prose/prompt';
+import { buildProsePrompt, parseProseResponse, proseFewShot, PROSE_SYSTEM_PROMPT } from '../src/prose/prompt';
 import { draftProse } from '../src/prose/client';
 import { extract } from '../src/extract';
 import button from './fixtures/button.json';
@@ -41,6 +41,36 @@ describe('prose', () => {
 
   it('throws on malformed responses', () => {
     expect(() => parseProseResponse('not json')).toThrow();
+  });
+
+  it('normalizes em dashes (and spaced en dashes) out of every field', () => {
+    const out = parseProseResponse(
+      '{"definition":"Use Primary — it leads.","accessibility":"A","dos":["Do this — because reason."],"donts":["Avoid that – it confuses."]}',
+    );
+    expect(out.definition).toBe('Use Primary, it leads.');
+    expect(out.dos[0]).toBe('Do this, because reason.');
+    expect(out.donts[0]).toBe('Avoid that, it confuses.');
+    expect(JSON.stringify(out)).not.toMatch(/[—–]/);
+  });
+
+  it('preserves hyphen ranges and bullet line breaks while stripping dashes', () => {
+    const out = parseProseResponse(
+      '{"definition":"Pick 3-5 items.","accessibility":"- One — reason.\\n- Two thing.","dos":[],"donts":[]}',
+    );
+    expect(out.definition).toBe('Pick 3-5 items.'); // hyphen range untouched
+    expect(out.accessibility).toBe('- One, reason.\n- Two thing.'); // newline survives
+  });
+
+  it('system prompt forbids em dashes and uses none itself', () => {
+    expect(PROSE_SYSTEM_PROMPT).toMatch(/em dash/i);
+    expect(PROSE_SYSTEM_PROMPT).not.toMatch(/—/);
+  });
+
+  it('few-shot exemplar is em-dash-free and renders Accessibility as bullets', () => {
+    const [, assistant] = proseFewShot();
+    expect(assistant.content).not.toMatch(/—/);
+    const drafts = parseProseResponse(assistant.content);
+    expect(drafts.accessibility).toMatch(/(^|\n)- /);
   });
 
   it('cache hit skips the API call', async () => {

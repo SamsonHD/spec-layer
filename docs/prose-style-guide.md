@@ -16,7 +16,7 @@ says *why* reads like expert guidance and survives edge cases the author didn't 
 
 - ❌ Flat: "Don't disable submit buttons."
 - ✅ Reasoned: "Don't disable submit buttons. A disabled button gives no hint about
-  what's missing, and it's skipped by the tab order — so people relying on a keyboard
+  what's missing, and it's skipped by the tab order, so people relying on a keyboard
   or screen reader can't reach it. Keep it pressable and use inline validation instead."
 
 Never ship a Do/Don't that is only an assertion. If you can't name the consequence,
@@ -34,8 +34,22 @@ the rule probably isn't worth including.
    ("it is generally recommended that one might consider").
 5. **Reference the component's actual parts.** Name its real variants, props, and
    states (from the structured spec) — never invent options it doesn't have.
-6. **Pair opposing rules.** When a Don't has a right alternative, name it: "…use a
-   Toggle instead", "…use radio buttons". A Don't without a way out just frustrates.
+6. **Pair opposing rules.** When a Don't has a right alternative, name it: "use a
+   Toggle instead", "use radio buttons". A Don't without a way out just frustrates.
+
+## Punctuation & formatting
+
+Readability is part of the bar, not an afterthought. The output renders straight into
+the spec, so it has to scan well at a glance.
+
+1. **No em dashes or en dashes.** Never use `—` or `–` as punctuation. Use a period,
+   comma, colon, or parentheses. (Models reach for em dashes constantly; the generator
+   both instructs against them and strips any that slip through.) A hyphen is fine in
+   ranges like `3-5` and in compound words.
+2. **Short sentences.** One idea per sentence. If a sentence has two clauses joined by a
+   dash or semicolon, it is usually two sentences.
+3. **Bulleted Accessibility.** The Accessibility section is a bulleted list, one
+   consideration per line, never a single dense paragraph.
 
 ## Per-section guidance
 
@@ -47,12 +61,13 @@ single most important constraint. Specific to this component; no boilerplate tha
 would apply to any component.
 
 ### Accessibility
-Reasoned guidance, not a dry checklist. Name the correct ARIA roles, states, and
-keyboard behaviour for the component's pattern (anchor to the W3C ARIA Authoring
-Practices). For each point, say what to do *and* why it matters for someone using
-assistive tech. **Explicitly flag what a design file cannot encode** — focus order,
-live-region behaviour, whether a change is immediate vs. deferred — so the reader
-knows it's an implementation decision, not an omission.
+A short **bulleted list** (one consideration per line), not a dry checklist and not a
+dense paragraph. Name the correct ARIA roles, states, and keyboard behaviour for the
+component's pattern (anchor to the W3C ARIA Authoring Practices). For each point, say
+what to do *and* why it matters for someone using assistive tech. **Explicitly flag what
+a design file cannot encode** (focus order, live-region behaviour, whether a change is
+immediate or deferred) so the reader knows it's an implementation decision, not an
+omission.
 
 ### Do's & Don'ts
 A bulleted list, each item prefixed `✅` or `❌`. Every item carries a reason
@@ -65,6 +80,8 @@ consequence.
 - [ ] Does every Do/Don't name a consequence, not just a rule?
 - [ ] Imperative, verb-first phrasing throughout?
 - [ ] "People"/concrete roles rather than "the user"?
-- [ ] Real variants/props/states only — nothing invented?
+- [ ] Real variants/props/states only, nothing invented?
 - [ ] Each Don't offers the right alternative where one exists?
 - [ ] Accessibility flags what the design file can't encode?
+- [ ] No em dashes or en dashes anywhere?
+- [ ] Accessibility is a bulleted list, and sentences are short?
