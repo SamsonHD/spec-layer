@@ -12,6 +12,7 @@ const items = [
   {
     name: "Button",
     slug: ["_inbox", "button"],
+    source: "figma" as const,
     issueCount: 0,
     missingRequiredCount: 0,
   },
@@ -30,6 +31,8 @@ describe("InboxWorkspace", () => {
     expect(html).toContain("Add guidelines");
     expect(html).toContain(">Save<");
     expect(html).toContain(">Delete<");
+    // Single header only — no "Imported components" sub-heading.
+    expect(html).not.toContain("<h2");
   });
 
   it("disables bulk actions and prompts to select when nothing is selected", () => {

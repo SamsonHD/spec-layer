@@ -11,6 +11,7 @@ import {
 const item = (slug: string[]): InboxSummaryItem => ({
   name: slug.at(-1) ?? "",
   slug,
+  source: "figma",
   issueCount: 0,
   missingRequiredCount: 0,
 });

@@ -8,12 +8,14 @@ const items = [
   {
     name: "Button",
     slug: ["_inbox", "button"],
+    source: "figma" as const,
     issueCount: 0,
     missingRequiredCount: 0,
   },
   {
     name: "Input",
     slug: ["_inbox", "forms", "input"],
+    source: "local" as const,
     issueCount: 1,
     missingRequiredCount: 2,
   },
@@ -45,10 +47,13 @@ describe("InboxComponentList", () => {
     expect(html).toContain('aria-label="Select all components"');
     expect(html).toContain('aria-label="Select Button"');
     expect(html).toContain('aria-label="Select Input"');
-    expect(html).toContain("Source path");
+    expect(html).toContain(">Source<");
     expect(html).toContain("Button");
     expect(html).toContain("Input");
-    expect(html).toContain("forms");
+    expect(html).toContain("inbox-source-figma");
+    expect(html).toContain(">Figma<");
+    expect(html).toContain("inbox-source-local");
+    expect(html).toContain(">Local<");
     expect(html).toContain("Ready");
     expect(html).toContain("Needs attention");
     expect(html).toContain("1 issue · 2 missing sections");

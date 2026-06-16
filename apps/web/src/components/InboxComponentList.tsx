@@ -78,7 +78,7 @@ export default function InboxComponentList({
               />
             </th>
             <th scope="col">Component</th>
-            <th scope="col" className="inbox-col-source">Source path</th>
+            <th scope="col" className="inbox-col-source">Source</th>
             <th scope="col">Status</th>
             <th scope="col" className="inbox-col-actions">Actions</th>
           </tr>
@@ -105,8 +105,10 @@ export default function InboxComponentList({
                 <td data-label="Component" className="inbox-cell-name">
                   <Link href={href}>{item.name}</Link>
                 </td>
-                <td data-label="Source path" className="inbox-cell-source">
-                  {item.slug.slice(1, -1).join(" / ") || "_inbox"}
+                <td data-label="Source" className="inbox-cell-source">
+                  <span className={`inbox-source inbox-source-${item.source}`}>
+                    {item.source === "figma" ? "Figma" : "Local"}
+                  </span>
                 </td>
                 <td data-label="Status">
                   <span className={`inbox-status inbox-status-${state}`}>

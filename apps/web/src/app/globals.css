@@ -800,15 +800,6 @@ button.btn-link { cursor: pointer; font-family: var(--sans); }
   overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
-.inbox-table-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 20px 22px 14px;
-}
-.inbox-table-head h2 { margin: 0; font-size: 18px; }
-.inbox-table-head p { margin: 4px 0 0; color: var(--text-muted); font-size: 13px; }
 .inbox-result-count {
   flex-shrink: 0;
   color: var(--text-muted);
@@ -826,7 +817,7 @@ button.btn-link { cursor: pointer; font-family: var(--sans); }
   justify-content: space-between;
   gap: 14px;
   flex-wrap: wrap;
-  padding: 0 22px 16px;
+  padding: 18px 22px 16px;
 }
 .inbox-search { flex: 1; min-width: 200px; max-width: 360px; }
 .inbox-search input {
@@ -855,6 +846,9 @@ button.btn-link { cursor: pointer; font-family: var(--sans); }
 .inbox-bulk-delete { color: var(--danger-text); border-color: var(--danger-border); }
 .inbox-bulk-delete:not(:disabled):hover { color: var(--danger-text); border-color: var(--danger-border); background: var(--danger-surface); }
 .inbox-selection-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin: 0;
   padding: 8px 22px;
   border-top: 1px solid var(--border);
@@ -899,6 +893,26 @@ button.btn-link { cursor: pointer; font-family: var(--sans); }
 .inbox-cell-name a { color: var(--text); font-weight: 600; }
 .inbox-cell-name a:hover { color: var(--accent); text-decoration: none; }
 .inbox-cell-source { color: var(--text-muted); font-size: 12px; }
+.inbox-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-subtle);
+}
+.inbox-source::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+.inbox-source-figma { color: var(--accent); border-color: var(--accent-soft); background: var(--accent-soft); }
 .inbox-health-detail { display: block; margin-top: 2px; color: var(--text-muted); font-size: 11px; }
 .inbox-status {
   display: inline-flex;

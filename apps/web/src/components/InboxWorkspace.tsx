@@ -193,17 +193,7 @@ export default function InboxWorkspace({
   }
 
   return (
-    <section className="inbox-table-panel" aria-labelledby="inbox-list-title">
-      <div className="inbox-table-head">
-        <div>
-          <h2 id="inbox-list-title">Imported components</h2>
-          <p>Select components to add guidelines, save to your library, or delete.</p>
-        </div>
-        <span className="inbox-result-count">
-          {filteredItems.length} of {items.length}
-        </span>
-      </div>
-
+    <section className="inbox-table-panel" aria-label="Imported components">
       <div className="inbox-toolbar">
         <label className="inbox-search">
           <span className="sr-only">Search imported components</span>
@@ -264,6 +254,9 @@ export default function InboxWorkspace({
       </div>
 
       <p className="inbox-selection-status" role="status">
+        <span className="inbox-result-count">
+          {filteredItems.length} of {items.length}
+        </span>
         {selectedCount > 0
           ? `${formatComponentCount(selectedCount)} selected`
           : "Select components to enable bulk actions."}
