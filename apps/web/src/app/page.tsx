@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getAllDocs } from "@/lib/contentCache";
 import { getHomeStats } from "@/lib/homeStats";
+import { readSyncReport } from "@/lib/sync";
 import { getRepoUrl } from "@/lib/repo";
 import ManualImport from "@/components/ManualImport";
 
@@ -27,7 +28,7 @@ const GUIDE_STEPS = [
 
 export default function Home() {
   const docs = getAllDocs();
-  const stats = getHomeStats(docs);
+  const stats = getHomeStats(docs, readSyncReport());
   const repoUrl = getRepoUrl();
 
   if (stats.total === 0 && stats.inbox === 0) {
@@ -86,6 +87,13 @@ export default function Home() {
             <span className="stat-label">Needs attention</span>
           </div>
         )}
+        <Link
+          href="/sync"
+          className={`stat-card stat-card-link${stats.outOfDate ? " stat-warn" : ""}`}
+        >
+          <span className="stat-value">{stats.outOfDate ?? "—"}</span>
+          <span className="stat-label">Out of date</span>
+        </Link>
         <Link href="/inbox" className="stat-card stat-card-link">
           <span className="stat-value">{stats.inbox}</span>
           <span className="stat-label">In inbox</span>

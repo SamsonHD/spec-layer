@@ -64,4 +64,19 @@ describe("getHomeStats", () => {
     expect(stats.byStatus).toEqual([]);
     expect(stats.needsAttention).toBe(0);
   });
+
+  it("reports outOfDate as null without a report and counts drift with one", () => {
+    expect(getHomeStats([doc(["a"])]).outOfDate).toBeNull();
+
+    const stats = getHomeStats([doc(["a"])], {
+      version: 1,
+      files: {},
+      specs: {
+        "components/a": { status: "drifted", figmaKey: "k", figmaFile: "F", savedHash: "h", currentHash: "h2", checkedAt: "t" },
+        "components/b": { status: "missing-in-figma", figmaKey: "k2", figmaFile: "F", savedHash: "h", checkedAt: "t" },
+        "components/c": { status: "in-sync", figmaKey: "k3", figmaFile: "F", savedHash: "h", currentHash: "h", checkedAt: "t" },
+      },
+    });
+    expect(stats.outOfDate).toBe(2);
+  });
 });

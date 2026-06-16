@@ -1,4 +1,5 @@
 import type { ComponentDoc, Status } from "@/lib/content";
+import type { SyncReport } from "@/lib/sync";
 
 export interface StatusCount {
   status: Status;
@@ -14,6 +15,12 @@ export interface HomeStats {
   needsAttention: number;
   /** Components still pending in the inbox. */
   inbox: number;
+  /**
+   * Saved specs out of sync with Figma (drifted + missing-in-figma). `null`
+   * when no sync check has run, so the UI can show "—" rather than a
+   * misleading 0.
+   */
+  outOfDate: number | null;
 }
 
 // Display order for status chips; statuses with a zero count are dropped.
@@ -24,7 +31,10 @@ const STATUS_ORDER: Status[] = ["approved", "stable", "beta", "draft", "deprecat
  * (slug[0] === "_inbox") are counted separately and excluded from every other
  * metric, matching how the rest of the app treats the inbox.
  */
-export function getHomeStats(docs: ComponentDoc[]): HomeStats {
+export function getHomeStats(
+  docs: ComponentDoc[],
+  report: SyncReport | null = null,
+): HomeStats {
   const live = docs.filter((doc) => doc.slug[0] !== "_inbox");
 
   const counts = new Map<Status, number>();
@@ -40,10 +50,17 @@ export function getHomeStats(docs: ComponentDoc[]): HomeStats {
     count: counts.get(status) as number,
   }));
 
+  const outOfDate = report
+    ? Object.values(report.specs).filter(
+        (s) => s.status === "drifted" || s.status === "missing-in-figma",
+      ).length
+    : null;
+
   return {
     total: live.length,
     byStatus,
     needsAttention,
     inbox: docs.filter((doc) => doc.slug[0] === "_inbox").length,
+    outOfDate,
   };
 }

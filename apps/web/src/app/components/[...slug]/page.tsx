@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDoc } from "@/lib/content";
+import { getSpecSyncStatus } from "@/lib/sync";
+import { formatRelative } from "@/lib/relativeTime";
 import { readStoredSpec } from "@/lib/specWriter";
 import { readCachedDrafts } from "@/lib/aiDraftCache";
 import { findPristineGuidelines } from "@/lib/guidelineFill";
@@ -8,6 +10,7 @@ import { partitionBody } from "@/lib/sections";
 import FigmaSection from "@/components/FigmaSection";
 import ComponentTabs from "@/components/ComponentTabs";
 import GapsAlert from "@/components/GapsAlert";
+import SyncAlert from "@/components/SyncAlert";
 
 // Read the content repo live on each request so edits/new files show up
 // without a rebuild (the "live backend" model).
@@ -32,6 +35,9 @@ export default async function ComponentPage({ params }: { params: Promise<{ slug
     .join(" / ");
 
   const { specsMarkdown, gapsMarkdown } = partitionBody(body);
+
+  // Drift status from the persisted sync report (additive; null when unknown).
+  const sync = isInboxDoc ? null : getSpecSyncStatus(slug);
 
   // JSON sidecar (preferred source for the Specs tab); null for legacy docs.
   const storedSpec = readStoredSpec(slug);
@@ -87,7 +93,12 @@ export default async function ComponentPage({ params }: { params: Promise<{ slug
               {t}
             </span>
           ))}
+          {sync?.status === "in-sync" && (
+            <span className="sync-ok">✓ In sync with Figma · checked {formatRelative(sync.checkedAt)}</span>
+          )}
         </div>
+
+        <SyncAlert status={sync} extractedAt={fm.extractedAt} />
 
         <GapsAlert
           missingRequired={missingRequired}
