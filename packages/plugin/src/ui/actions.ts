@@ -31,7 +31,7 @@ import {
   hideDocStatusChip,
   type DocStatusChipState,
 } from './render';
-import { buildExportFiles, zipFiles } from '../exportFiles';
+import { buildExportFiles, zipFiles, type ExportItem } from '../exportFiles';
 import type { FileKeySource } from '../fileKey';
 
 // ---------------------------------------------------------------------------
@@ -48,8 +48,10 @@ export interface UiState {
   currentExtractedAt: string;
   renderedMd: string;
   docsEndpoint: string;
-  // Export-all accumulator
-  exportItems: Array<{ name: string; markdown: string }>;
+  // Export-all accumulator. Carries the structured `spec` (not just markdown)
+  // so the zip can emit the `.spec-data` sidecars that power the docs variant
+  // grid — matching what "Send to docs" persists.
+  exportItems: ExportItem[];
   exportFileKey: string;
   exportTotal: number;
   exportSkippedAtoms: number;
