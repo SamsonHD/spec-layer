@@ -44,4 +44,25 @@ describe("InboxComponentList", () => {
     expect(html.match(/inbox-delete-item/g)?.length).toBe(2);
     expect(html).toContain(">Delete<");
   });
+
+  it("shows Update (not Save) for a draft that matches a library spec", () => {
+    const html = renderToStaticMarkup(
+      <InboxComponentList
+        items={[
+          {
+            name: "Button",
+            slug: ["_inbox", "button"],
+            issueCount: 0,
+            missingRequiredCount: 0,
+            update: { targetSlug: ["components", "button"], targetName: "Button" },
+          },
+        ]}
+        folder="Components"
+      />,
+    );
+
+    expect(html).toContain(">Update<");
+    expect(html).not.toContain(">Save<");
+    expect(html).toContain("Updates components / button");
+  });
 });

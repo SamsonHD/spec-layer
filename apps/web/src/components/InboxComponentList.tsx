@@ -10,13 +10,14 @@ import {
 import type { InboxSummaryItem } from "@/lib/inboxSummary";
 import { clearInboxItems } from "./inboxClearRequest";
 import { saveInboxItem } from "./inboxSaveRequest";
+import { updateInboxItem } from "./inboxUpdateRequest";
 
 interface InboxComponentListProps {
   items: InboxSummaryItem[];
   folder: string;
 }
 
-type BusyAction = { key: string; action: "save" | "delete" };
+type BusyAction = { key: string; action: "save" | "delete" | "update" };
 
 export default function InboxComponentList({ items, folder }: InboxComponentListProps) {
   const router = useRouter();
@@ -48,6 +49,26 @@ export default function InboxComponentList({ items, folder }: InboxComponentList
         return;
       }
 
+      router.refresh();
+    } catch {
+      setRequestError("Could not reach the server. Please try again.");
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  async function onUpdate(item: InboxSummaryItem) {
+    if (busyAction || !item.update) return;
+    const key = item.slug.join("/");
+    setBusyAction({ key, action: "update" });
+    setRequestError(null);
+
+    try {
+      const { httpOk, data } = await updateInboxItem(item.slug, item.update.targetSlug);
+      if (!httpOk || !data.ok) {
+        setRequestError(data.error ?? `Could not update ${item.name}.`);
+        return;
+      }
       router.refresh();
     } catch {
       setRequestError("Could not reach the server. Please try again.");
@@ -121,7 +142,13 @@ export default function InboxComponentList({ items, folder }: InboxComponentList
               <li key={key}>
                 <div className="inbox-item-identity">
                   <Link href={href}>{item.name}</Link>
-                  <span>{item.slug.slice(1).join(" / ")}</span>
+                  {item.update ? (
+                    <span className="inbox-update-target">
+                      Updates {item.update.targetSlug.join(" / ")}
+                    </span>
+                  ) : (
+                    <span>{item.slug.slice(1).join(" / ")}</span>
+                  )}
                 </div>
                 <div className="inbox-item-health">
                   <span className={`inbox-status inbox-status-${state}`}>
@@ -143,16 +170,30 @@ export default function InboxComponentList({ items, folder }: InboxComponentList
                   <Link className="btn-link inbox-open-item" href={href}>
                     Open
                   </Link>
-                  <button
-                    type="button"
-                    className="btn-primary inbox-save-item"
-                    onClick={() => onSave(item)}
-                    disabled={busyAction !== null}
-                  >
-                    {busyAction?.key === key && busyAction.action === "save"
-                      ? "Saving..."
-                      : "Save"}
-                  </button>
+                  {item.update ? (
+                    <button
+                      type="button"
+                      className="btn-primary inbox-save-item"
+                      onClick={() => onUpdate(item)}
+                      disabled={busyAction !== null}
+                      title={`Update ${item.update.targetSlug.join("/")} from Figma, keeping written guidelines`}
+                    >
+                      {busyAction?.key === key && busyAction.action === "update"
+                        ? "Updating..."
+                        : "Update"}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn-primary inbox-save-item"
+                      onClick={() => onSave(item)}
+                      disabled={busyAction !== null}
+                    >
+                      {busyAction?.key === key && busyAction.action === "save"
+                        ? "Saving..."
+                        : "Save"}
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="inbox-delete-item"

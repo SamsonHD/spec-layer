@@ -14,9 +14,11 @@ function collectTopLevelGroups(): string[] {
 }
 
 export default function InboxPage() {
-  const docs = getAllDocs().filter((doc) => doc.slug[0] === "_inbox");
+  const allDocs = getAllDocs();
+  const docs = allDocs.filter((doc) => doc.slug[0] === "_inbox");
+  const libraryDocs = allDocs.filter((doc) => doc.slug[0] !== "_inbox");
   const groups = collectTopLevelGroups();
-  const summary = summarizeInbox(docs);
+  const summary = summarizeInbox(docs, libraryDocs);
 
   return (
     <div className="content-inner inbox-page">
