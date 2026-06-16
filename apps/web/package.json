@@ -12,6 +12,7 @@
   "dependencies": {
     "@spec-layer/extractor": "*",
     "@spec-layer/format": "*",
+    "@uiw/react-md-editor": "^4.1.1",
     "fflate": "^0.8.2",
     "next": "^16.2.9",
     "react": "^19.2.7",

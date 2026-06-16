@@ -7,6 +7,7 @@ import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
 import type { Section } from "@/lib/sectionEdit";
 import { isFillableGuideline, isEmptyGuideline } from "@/lib/guidelineFill";
+import MarkdownEditor from "./MarkdownEditor";
 
 type Action = "replace" | "insert" | "delete" | "reorder";
 
@@ -236,13 +237,12 @@ export default function EditableSection({
           <label className="section-editor-label" htmlFor={`section-editor-${index}`}>
             Markdown for “{label}”
           </label>
-          <textarea
-            id={`section-editor-${index}`}
-            className="section-editor-textarea"
+          <MarkdownEditor
+            textareaId={`section-editor-${index}`}
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            rows={Math.max(6, draft.split("\n").length + 1)}
+            onChange={setDraft}
             disabled={busy}
+            ariaLabel={`Markdown editor for ${label} section`}
           />
           {error && <p className="section-editor-error" role="alert">{error}</p>}
           <div className="section-editor-actions">

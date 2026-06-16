@@ -357,6 +357,25 @@ button.btn-link { cursor: pointer; font-family: var(--sans); }
   resize: vertical;
 }
 .section-editor-textarea:focus { outline: none; border-color: var(--accent); }
+/* @uiw/react-md-editor: blend its surface with our design tokens. */
+.section-md-editor .w-md-editor {
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+  color: var(--text);
+}
+.section-md-editor .w-md-editor-toolbar {
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border);
+}
+.section-md-editor .w-md-editor-text,
+.section-md-editor .w-md-editor-text-pre > code,
+.section-md-editor .w-md-editor-text-input {
+  font-family: var(--mono, monospace) !important;
+  font-size: 13px;
+  line-height: 1.55;
+}
 .section-editor-actions { display: flex; gap: 8px; margin-top: 10px; }
 .section-editor-error { color: var(--status-deprecated-text, #b91c1c); font-size: 13px; margin: 8px 0 0; }
 .add-section-row { margin-top: 20px; padding-top: 16px; border-top: 1px dashed var(--border); }
