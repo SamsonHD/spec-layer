@@ -34,17 +34,24 @@ export const PROSE_SYSTEM_PROMPT = [
   '  or parentheses instead. A hyphen is fine in ranges like 3-5 and in compound words.',
   '- Keep sentences short. One idea per sentence. Split a long sentence into two.',
   '',
-  'Sections:',
-  '- Definition: a few short sentences in one paragraph. Say what it is, when to use it, which',
-  '  variant for which job, and the single most important constraint.',
-  '- Accessibility: a short bulleted list, one consideration per line, each line starting with "- ".',
-  '  Never one dense paragraph. Name the correct ARIA roles, states, and keyboard behaviour for the',
-  '  pattern, each with why it matters, and flag what a design file cannot encode (focus order,',
-  '  live-region behaviour, whether a change is immediate or deferred).',
-  "- Do's & Don'ts: one rule per bullet, each carrying its reason.",
+  'Sections (this is Markdown and renders as-is, so structure each one to scan at a glance):',
+  '- Definition: open with a short paragraph (what it is, when to use it, the key constraint).',
+  '  When the component has several meaningful variants or types, follow the paragraph with a',
+  '  bulleted "when to use which" guide, one per line, with the variant name in bold:',
+  '  "- **Filled**: the single most important action.".',
+  '- Accessibility: a bulleted list. Give each bullet a short bold lead-in naming the topic, then',
+  '  the guidance, for example "- **Keyboard:** ...". Always include a bullet flagging what the',
+  '  design file cannot encode (focus order, live-region behaviour, immediate vs deferred effect).',
+  '  If the list runs long (about six or more points), group the bullets under level-3 ("###")',
+  '  subheadings.',
+  "- Do's & Don'ts: one rule per bullet. Start each with a short bold lead-in stating the rule, then",
+  '  a sentence giving the reason: "**Use one primary action per view.** Its weight tells people',
+  '  where to go next." Do not add check or cross marks yourself; they are added on render.',
+  '- Use Markdown structure where it helps: bold lead-ins, bullet lists, and at most level-3 ("###")',
+  '  subheadings. Never use level-1 ("#") or level-2 ("##") headings.',
   '',
-  'Return only the JSON object requested in the user message. No preamble, no markdown headings,',
-  'and no prose outside the JSON.',
+  'Return only the JSON object requested in the user message. No preamble and no prose outside the',
+  'JSON.',
 ].join('\n');
 
 /**
@@ -63,33 +70,40 @@ const FEW_SHOT_PROMPT = [
   '',
   'States: Enabled, Hovered, Focused, Pressed, Disabled',
   '',
-  'Return ONLY a JSON object with keys: definition (one short paragraph), accessibility (a short ' +
-    'bulleted list, one consideration per line starting with "- ", flagging what cannot be known ' +
-    'from the design file), dos (string[], 3 to 5 items), donts (string[], 3 to 5 items). Do not ' +
-    'include any prose outside the JSON. Do not use em dashes.',
+  'Return ONLY a JSON object with keys: definition (a short paragraph, then a bulleted "when to ' +
+    'use which" guide with bold variant names when the component has several variants), ' +
+    'accessibility (a bulleted list; give each bullet a short bold lead-in then the guidance; ' +
+    'include one bullet flagging what cannot be known from the design file), dos (string[], 3 to 5 ' +
+    'items, each starting with a bold rule summary then the reason), donts (string[], 3 to 5 items, ' +
+    'same shape). Use Markdown (bold lead-ins, lists, at most "###" subheadings); never "#" or "##" ' +
+    'headings. Do not use em dashes. Do not include any prose outside the JSON.',
 ].join('\n');
 
 const FEW_SHOT_RESPONSE: ProseDrafts = {
-  definition:
-    'A Button triggers an action when activated. Use the Filled variant for the single most ' +
-    'important action in a view. Use Outlined for secondary actions that need a visible boundary, ' +
-    'and Text for low-emphasis actions in dense layouts. Keep one Filled button per view so the ' +
-    'main action stays unambiguous.',
+  definition: [
+    'A Button triggers an action when activated. Keep one Filled button per view so the main ' +
+      'action stays unambiguous.',
+    '',
+    '**When to use each type:**',
+    '- **Filled**: the single most important action in a view.',
+    '- **Outlined**: secondary actions that still need a visible boundary.',
+    '- **Text**: low-emphasis actions in dense layouts.',
+  ].join('\n'),
   accessibility: [
-    '- Render as a native `<button>` so keyboard and screen-reader behaviour work without extra code. Use role="button" only when a non-button element must act as one.',
-    '- The label is the accessible name. For an icon-only button, supply `aria-label`, since an icon alone announces nothing.',
-    '- Whether Disabled uses the `disabled` attribute (removed from the tab order) or `aria-disabled="true"` (stays focusable to explain why it is unavailable) is an implementation choice the design file cannot encode.',
-    '- Focus order and live-region behaviour are not in the design file. Confirm the focus ring meets WCAG 2.1 contrast (at least 3:1) in implementation.',
+    '- **Semantics:** render as a native `<button>` so keyboard and screen-reader behaviour work without extra code. Use role="button" only when a non-button element must act as one.',
+    '- **Accessible name:** the label names the button. For an icon-only button, supply `aria-label`, since an icon alone announces nothing.',
+    '- **Disabled vs aria-disabled:** `disabled` removes the button from the tab order, while `aria-disabled="true"` keeps it focusable to explain why it is unavailable. The design file cannot tell you which to use.',
+    '- **Not in the design file:** focus order and live-region behaviour are not encoded in the design. Confirm the focus ring meets WCAG 2.1 contrast (at least 3:1) in implementation.',
   ].join('\n'),
   dos: [
-    'Use the Filled variant for the single most important action in a view. Its weight tells people where to go next.',
-    'Keep labels to one to three words, verb first ("Save", "Add item"), so people can scan the action without reading a sentence.',
-    'Use the Text variant in dense toolbars or dialogs, where a filled button would add visual noise.',
+    '**Use the Filled variant for the single most important action in a view.** Its weight tells people where to go next.',
+    '**Keep labels to one to three words, verb first** ("Save", "Add item"). People can then scan the action without reading a sentence.',
+    '**Use the Text variant in dense toolbars or dialogs.** A filled button there would add visual noise.',
   ],
   donts: [
-    "Don't place more than one Filled button in the same view. Competing primary actions make it unclear which one matters most.",
-    "Don't use a button for plain navigation. Screen readers announce links and buttons differently, so use a link (`<a>`) when it just goes somewhere.",
-    "Don't disable a button without explaining why. A disabled control gives no reason and drops out of the tab order, so use inline validation instead.",
+    "**Don't place more than one Filled button in the same view.** Competing primary actions make it unclear which one matters most.",
+    "**Don't use a button for plain navigation.** Screen readers announce links and buttons differently, so use a link (`<a>`) when it just goes somewhere.",
+    "**Don't disable a button without explaining why.** A disabled control gives no reason and drops out of the tab order, so use inline validation instead.",
   ],
 };
 
@@ -178,10 +192,11 @@ export function buildProsePrompt(spec: IntermediateSpec): string {
   lines.push('');
   lines.push(
     'Return ONLY a JSON object with keys: ' +
-      "definition (one short paragraph, specific to this component's actual props and variants, with no generic filler), " +
-      'accessibility (a short bulleted list, one consideration per line starting with "- ", flagging what cannot be known from the design file), ' +
-      'dos (string[], 3 to 5 items), ' +
-      'donts (string[], 3 to 5 items). ' +
+      "definition (a short paragraph specific to this component's actual props and variants, with no generic filler; when it has several meaningful variants, follow the paragraph with a bulleted \"when to use which\" guide with bold variant names), " +
+      'accessibility (a bulleted list; give each bullet a short bold lead-in then the guidance; include one bullet flagging what cannot be known from the design file), ' +
+      'dos (string[], 3 to 5 items, each starting with a bold rule summary then the reason), ' +
+      'donts (string[], 3 to 5 items, same shape). ' +
+      'Use Markdown for structure (bold lead-ins, lists, at most "###" subheadings); never use "#" or "##" headings. ' +
       'Do not include any prose outside the JSON. Do not use em dashes; keep sentences short.',
   );
 
@@ -243,8 +258,10 @@ export function parseProseResponse(text: string): ProseDrafts {
     ...obj.dos,
     ...obj.donts,
   ] as string[];
-  if (generatedStrings.some((value) => /^##(?:\s|$)/m.test(value))) {
-    throw new Error('Prose response must not contain level-two markdown headings');
+  // Level-1/2 headings are reserved for the canonical spec sections; the model
+  // may use level-3 ("###") and below for sub-structure. Reject only `#`/`##`.
+  if (generatedStrings.some((value) => /^#{1,2}(?:\s|$)/m.test(value))) {
+    throw new Error('Prose response must not contain level-one or level-two markdown headings (use level-three at most)');
   }
 
   return {

@@ -140,6 +140,23 @@ describe('prose', () => {
     expect(() => parseProseResponse(input)).toThrow(/heading/i);
   });
 
+  it('rejects level-one headings but allows level-three sub-structure', () => {
+    expect(() =>
+      parseProseResponse('{"definition":"D","accessibility":"# Injected\\n- x","dos":[],"donts":[]}'),
+    ).toThrow(/heading/i);
+    const out = parseProseResponse(
+      '{"definition":"D","accessibility":"### Keyboard\\n- **Tab:** moves focus.","dos":[],"donts":[]}',
+    );
+    expect(out.accessibility).toContain('### Keyboard');
+  });
+
+  it('few-shot exemplar uses a Definition variant list and bold lead-ins', () => {
+    const drafts = parseProseResponse(proseFewShot()[1].content);
+    expect(drafts.definition).toMatch(/\n- \*\*/); // bulleted variant guide with bold names
+    expect(drafts.accessibility).toMatch(/^- \*\*/m); // bold lead-in on each bullet
+    expect(drafts.dos[0].startsWith('**')).toBe(true); // bold rule summary
+  });
+
   it('extracts JSON when the model prepends preamble before a fence', () => {
     const input = 'Here is the JSON:\n```json\n{"definition":"D","accessibility":"A","dos":[],"donts":[]}\n```';
     const out = parseProseResponse(input);

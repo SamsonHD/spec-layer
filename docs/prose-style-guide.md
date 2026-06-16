@@ -50,6 +50,16 @@ the spec, so it has to scan well at a glance.
    dash or semicolon, it is usually two sentences.
 3. **Bulleted Accessibility.** The Accessibility section is a bulleted list, one
    consideration per line, never a single dense paragraph.
+4. **Bold lead-ins as subtitles.** Start each Accessibility and Do/Don't bullet with a
+   short bold phrase that names the point, then the explanation: `**Keyboard:** Tab moves
+   focus between options.` The bold acts as a scannable subtitle; the rest reads as its
+   caption.
+5. **A variant guide in Definition.** When a component has several meaningful variants,
+   follow the opening paragraph with a bulleted "when to use which" guide, variant name
+   in bold: `- **Filled**: the single most important action.`
+6. **Headings, sparingly.** Use level-3 (`###`) subheadings only to group a long
+   Accessibility list (roughly six or more bullets). Never use `#` or `##` — those are
+   reserved for the spec's own sections, and the generator rejects them.
 
 ## Per-section guidance
 

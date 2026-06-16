@@ -12,9 +12,10 @@ import {
  * Bumped whenever the prompt, system prompt, or few-shot changes the produced
  * voice. It is part of the cache key so old-voice drafts are never served after
  * a prompt change. v1 = original single-shot prompt; v2 = house-style system
- * prompt + few-shot; v3 = no em dashes, bulleted Accessibility, shorter sentences.
+ * prompt + few-shot; v3 = no em dashes, bulleted Accessibility, shorter sentences;
+ * v4 = richer Markdown structure (bold lead-ins, variant guide, level-3 grouping).
  */
-export const PROSE_PROMPT_VERSION = 'v3';
+export const PROSE_PROMPT_VERSION = 'v4';
 
 /**
  * The cache key for a prose draft. Centralised so the writer (`draftProse`) and

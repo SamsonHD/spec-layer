@@ -84,17 +84,23 @@ The body contains exactly 10 sections, in this order, with these exact headings.
 
 **Kind:** Judgment (human/AI authored)
 
-One paragraph describing the component's purpose, when to use it, and any primary usage constraints. It may be written by a human or by the optional prose pass and then edited like normal Markdown.
+A short paragraph describing the component's purpose, when to use it, and its primary usage constraint. When the component has several meaningful variants, the paragraph MAY be followed by a bulleted "when to use which" guide with the variant name in bold. It may be written by a human or by the optional prose pass and then edited like normal Markdown.
+
+> **Formatting of judgment sections.** The four judgment sections (Definition, Code, Accessibility, Do's & Don'ts) MAY use Markdown sub-structure — bold lead-ins, bullet/numbered lists, and **level-3 (`###`) or smaller** subheadings — to stay scannable. They MUST NOT introduce level-1 (`#`) or level-2 (`##`) headings: those are reserved for the canonical sections in §4, and a renderer/parser may reject generated content that contains them.
 
 **Example:**
 
 ```markdown
 ## Definition
 
-A Button triggers an action or navigation when activated. Use the primary variant
-for the single most important action on a surface; secondary and tertiary variants
-for supporting actions. Avoid placing more than one primary button in the same
-visible area.
+A Button triggers an action or navigation when activated. Keep one primary button
+per area so the main action stays unambiguous.
+
+**When to use each type:**
+
+- **Primary**: the single most important action on a surface.
+- **Secondary**: supporting actions that still need a visible boundary.
+- **Tertiary**: low-emphasis actions in dense layouts.
 ```
 
 ---
@@ -314,18 +320,18 @@ import { Button } from '@acme/ui';
 
 **Kind:** Judgment (human/AI authored)
 
-Prose notes for accessibility implementation of this component pattern. Because Figma carries no accessibility semantics, these notes are authored from knowledge of the component pattern, not extracted from the design file. Flag explicitly what cannot be known from the design file (e.g. focus order, live region behaviour).
+A bulleted list of accessibility notes for this component pattern, each bullet led by a short bold topic (e.g. `**Keyboard:**`). Because Figma carries no accessibility semantics, these notes are authored from knowledge of the component pattern, not extracted from the design file. Always include a bullet flagging what cannot be known from the design file (e.g. focus order, live region behaviour). A long list MAY be grouped under level-3 (`###`) subheadings.
 
 **Shape:**
 
 ```markdown
 ## Accessibility
 
-- Rendered as a `<button>` element (or role="button" on non-button elements).
-- Label text must be provided; if the button is icon-only, supply `aria-label`.
-- Disabled state: use the `disabled` HTML attribute, not `aria-disabled`, unless
+- **Semantics:** rendered as a `<button>` element (or role="button" on non-button elements).
+- **Accessible name:** label text must be provided; if the button is icon-only, supply `aria-label`.
+- **Disabled vs aria-disabled:** use the `disabled` HTML attribute, not `aria-disabled`, unless
   the button must remain focusable. The design file does not encode this choice.
-- Focus ring visibility cannot be verified from the design file; confirm contrast
+- **Not in the design file:** focus ring contrast cannot be verified from the design; confirm it
   meets WCAG 2.1 SC 1.4.11 in implementation.
 ```
 
@@ -335,16 +341,16 @@ Prose notes for accessibility implementation of this component pattern. Because 
 
 **Kind:** Judgment (human/AI authored)
 
-Bulleted list of usage rules. Each item is prefixed with ✅ (do) or ❌ (don't).
+Bulleted list of usage rules. Each item is prefixed with ✅ (do) or ❌ (don't), and SHOULD lead with a short bold rule summary followed by the reason it matters.
 
 **Shape:**
 
 ```markdown
 ## Do's & Don'ts
 
-- ✅ Use the primary (Filled) variant for the single most important action on a surface.
-- ✅ Keep button labels concise — one to three words, verb-first.
-- ❌ Don't place more than one primary button in the same visible viewport area.
+- ✅ **Use the primary (Filled) variant for the most important action.** Its weight tells people where to go next.
+- ✅ **Keep labels concise, one to three words, verb-first.** People can then scan the action without reading a sentence.
+- ❌ **Don't place more than one primary button in the same area.** Competing primary actions make the hierarchy unclear.
 - ❌ Don't use a button where a link is semantically correct (navigation to another page
   with no side effects).
 ```
