@@ -43,6 +43,7 @@ Runtime artifacts are intentionally untracked:
 - `_inbox/` contains imported files waiting to be organized.
 - `.spec-data/` stores source extractions used for regeneration.
 - `.spec-cache/` stores generated prose cache entries.
+- `.spec-sync.json` stores the latest Figma drift-detection report (per-file scan times and per-spec status); rebuilt by sync checks and safe to delete.
 - `.ds-config.json` stores optional local settings and credentials.
 
 Settings writes use a temporary file, atomic rename, and mode `0600` where supported.

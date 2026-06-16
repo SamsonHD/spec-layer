@@ -15,5 +15,6 @@ coverage/
 .worktrees/
 **/.spec-cache/
 **/.spec-data/
+**/.spec-sync.json
 apps/web/content/components/_inbox/*
 !apps/web/content/components/_inbox/.gitkeep

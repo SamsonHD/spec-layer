@@ -4,6 +4,12 @@ All notable changes to Spec Layer are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Figma drift detection. A **Check library sync** action in the plugin re-extracts every component in the open file and reports current content hashes; the app compares them against saved specs by `figma_key` and persists a `.spec-sync.json` report. Drift is surfaced as an **Out of date** / **Not found in Figma** banner on the component page, a **Sync** overview grouped by Figma file, an **Out of date** home stat, and a per-selection doc-status chip in the plugin. Comparisons run plugin-side for hash parity (no false positives); the report is additive and the app renders normally when it is absent.
+
 ## [1.0.0] - 2026-06-15
 
 ### Changed

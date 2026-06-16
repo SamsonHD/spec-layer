@@ -33,6 +33,7 @@ The project is currently intended for trusted local development. The web app rea
 - Review imported components in an inbox, fill missing guidelines, save them individually or in bulk, and clear unwanted drafts.
 - Browse, search, reorganize, and edit Markdown sections in the docs app.
 - Render Figma previews when a personal access token is configured.
+- Check the saved library against Figma and surface out-of-date, missing, and undocumented components (drift detection), with a per-selection status in the plugin and a Sync overview in the app.
 - Optionally fill Definition, Accessibility, and Do's & Don'ts with Anthropic, without overwriting human prose during bulk fill.
 - Store specs in any local folder through `DS_CONTENT_DIR`.
 
@@ -115,13 +116,14 @@ Release history is recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## Content Safety
 
-Generated imports are runtime data and are ignored under `apps/web/content/components/_inbox/`. Do not commit API keys, private Figma URLs, customer data, proprietary component exports, `.ds-config.json`, `.spec-cache`, or `.spec-data` sidecars.
+Generated imports are runtime data and are ignored under `apps/web/content/components/_inbox/`. Do not commit API keys, private Figma URLs, customer data, proprietary component exports, `.ds-config.json`, `.spec-cache`, `.spec-data` sidecars, or the `.spec-sync.json` drift report.
 
 ZIP and upload endpoints enforce compressed, expanded, per-file, and entry-count limits. API host and origin checks are defense-in-depth for local use, not a substitute for authentication, authorization, and isolation in a public deployment.
 
 ## Roadmap
 
-- Git-backed content synchronization and drift detection.
+- Resolve drift in-app: update an existing spec from a Figma re-extraction while preserving human-authored sections (drift *detection* has landed).
+- Git-backed content synchronization.
 - MCP tools for searching and retrieving reviewed specs.
 - Optional packaging of stable workspace APIs after their contracts are ready for independent versioning.
 
