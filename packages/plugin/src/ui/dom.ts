@@ -179,6 +179,34 @@ const TEMPLATE = `
       padding: 32px 16px;
     }
     .empty .empty-title { font-size: 13px; font-weight: 600; color: var(--figma-color-text); margin-bottom: 4px; }
+
+    /* ---- Library-sync status line ---- */
+    #sync-status { min-height: 1.4em; }
+    #sync-status > div { display: flex; align-items: baseline; gap: 6px; }
+    .sync-report-link {
+      display: inline-block; margin-top: 6px; font-size: 11px;
+      color: var(--figma-color-bg-brand); cursor: pointer; text-decoration: none;
+    }
+    .sync-report-link:hover { text-decoration: underline; }
+
+    /* ---- Selection doc-status chip ---- */
+    .doc-chip {
+      display: none; align-items: center; gap: 5px;
+      font-size: 10px; font-weight: 500; line-height: 1;
+      padding: 3px 8px; border-radius: 10px;
+      background: var(--figma-color-bg-secondary);
+      color: var(--figma-color-text-secondary);
+      border: 1px solid var(--figma-color-border);
+      white-space: nowrap;
+    }
+    .doc-chip-dot { font-size: 10px; }
+    .doc-chip-in-sync { color: var(--figma-color-bg-success); border-color: var(--figma-color-bg-success); }
+    .doc-chip-drifted { color: var(--figma-color-bg-danger); border-color: var(--figma-color-bg-danger); }
+    .doc-chip-action {
+      appearance: none; border: none; background: none; cursor: pointer;
+      font-size: 10px; font-weight: 600; padding: 0 0 0 4px;
+      color: var(--figma-color-bg-brand); text-decoration: underline;
+    }
   </style>
 
   <div class="tabs" role="tablist">
@@ -204,7 +232,10 @@ const TEMPLATE = `
       <div id="main-area" style="display:none">
         <div class="stack">
           <div class="comp-head">
-            <h2 id="component-name">Component</h2>
+            <div class="row" style="gap:8px">
+              <h2 id="component-name">Component</h2>
+              <span class="doc-chip" id="doc-status-chip" role="status"></span>
+            </div>
             <span class="phase-label" id="phase-label"></span>
           </div>
           <p class="hint" style="margin-top:0">
@@ -267,6 +298,19 @@ const TEMPLATE = `
           <button class="btn btn-primary" id="export-all-btn">Export all components</button>
         </div>
         <div id="export-status" class="hint" style="min-height:1.4em"></div>
+
+        <hr />
+
+        <div>
+          <h2>Library sync</h2>
+          <p class="hint" style="margin-top:4px">
+            Compare your saved docs against this Figma file.
+          </p>
+          <div class="row" style="margin-top:8px">
+            <button class="btn btn-secondary" id="check-sync-btn">Check library sync</button>
+          </div>
+          <div id="sync-status" class="hint"></div>
+        </div>
       </div>
     </section>
 
@@ -323,6 +367,7 @@ export interface Refs {
   noSelection: HTMLDivElement;
   mainArea: HTMLDivElement;
   componentName: HTMLHeadingElement;
+  docStatusChip: HTMLSpanElement;
   atomNotice: HTMLDivElement;
   phaseLabel: HTMLSpanElement;
   extractBtn: HTMLButtonElement;
@@ -351,6 +396,8 @@ export interface Refs {
   includeAtomsInput: HTMLInputElement;
   exportAllBtn: HTMLButtonElement;
   exportStatus: HTMLDivElement;
+  checkSyncBtn: HTMLButtonElement;
+  syncStatus: HTMLDivElement;
 }
 
 function byId<T extends HTMLElement>(id: string): T {
@@ -376,6 +423,7 @@ export function mount(): Refs {
     noSelection: byId<HTMLDivElement>('no-selection'),
     mainArea: byId<HTMLDivElement>('main-area'),
     componentName: byId<HTMLHeadingElement>('component-name'),
+    docStatusChip: byId<HTMLSpanElement>('doc-status-chip'),
     atomNotice: byId<HTMLDivElement>('atom-notice'),
     phaseLabel: byId<HTMLSpanElement>('phase-label'),
     extractBtn: byId<HTMLButtonElement>('extract-btn'),
@@ -399,5 +447,7 @@ export function mount(): Refs {
     includeAtomsInput: byId<HTMLInputElement>('include-atoms-input'),
     exportAllBtn: byId<HTMLButtonElement>('export-all-btn'),
     exportStatus: byId<HTMLDivElement>('export-status'),
+    checkSyncBtn: byId<HTMLButtonElement>('check-sync-btn'),
+    syncStatus: byId<HTMLDivElement>('sync-status'),
   };
 }
