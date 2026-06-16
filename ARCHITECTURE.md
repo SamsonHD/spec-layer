@@ -81,6 +81,12 @@ Neither integration is required for structural extraction, Markdown import, edit
 
 AI guideline filling writes only Definition, Accessibility, and Do's & Don'ts. Bulk fill replaces placeholder sections only. A reviewer can explicitly regenerate one supported section, and the app rejects the write if the source spec changes while generation is running.
 
+## Drift Detection And Resolve
+
+The plugin's **Check library sync** re-extracts every component in the open Figma file and reports each one's current `content_hash` to `/api/sync/check`. The app matches them against saved specs by `component.figma_key`, scoped to `figma_file`, and writes a `.spec-sync.json` report classifying each spec as in-sync, drifted, or missing-in-figma, plus components in Figma with no saved spec. Comparison runs against the same extractor that produced the stored hash, so an unchanged component never reports drift. Surfacing (component banner, `/sync`, home stat, plugin chip) is additive and degrades to "no info" when the report is absent.
+
+Resolving drift reuses the Inbox review gate. A re-extraction sent to docs lands as an inbox draft; when its `figma_key` matches a saved spec, the Inbox offers an **Update** that merges section-by-section: deterministic sections and identity frontmatter come from the re-extraction, while the four judgment sections and the existing `status`/`approved_by`/name are preserved. The `.spec-data` sidecar moves onto the target per `spec/SIDECAR.md`, the inbox draft is removed, and the report entry is flipped to in-sync. The plain Inbox save keeps its collision safety; Update is the only path that intentionally overwrites a library file, and only on explicit reviewer action.
+
 ## Verification
 
 The root `npm run check` command runs lint, TypeScript checks, unit tests, the production web build, and the plugin build. GitHub Actions runs the same stages plus `npm audit --omit=dev` on pushes to `main` and pull requests.

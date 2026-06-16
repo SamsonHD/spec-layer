@@ -441,6 +441,21 @@ button.btn-link { cursor: pointer; font-family: var(--sans); }
   font-size: 12px;
   font-weight: 600;
 }
+.sync-alert-btn {
+  border: 1px solid var(--warn-border);
+  background: transparent;
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--warn-text);
+  cursor: pointer;
+  font-family: var(--sans);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.sync-alert-btn:hover:not(:disabled) { background: var(--warn-border); }
+.sync-alert-btn:disabled { opacity: 0.6; cursor: default; }
 .sync-ok { color: var(--status-approved-text); font-weight: 500; }
 
 .sync-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 8px; }

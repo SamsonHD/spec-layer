@@ -34,6 +34,7 @@ The project is currently intended for trusted local development. The web app rea
 - Browse, search, reorganize, and edit Markdown sections in the docs app.
 - Render Figma previews when a personal access token is configured.
 - Check the saved library against Figma and surface out-of-date, missing, and undocumented components (drift detection), with a per-selection status in the plugin and a Sync overview in the app.
+- Resolve drift by re-extracting in Figma and applying a section-preserving **Update** from the Inbox (or one-click from the component page), which refreshes the structural data while keeping written guidelines.
 - Optionally fill Definition, Accessibility, and Do's & Don'ts with Anthropic, without overwriting human prose during bulk fill.
 - Store specs in any local folder through `DS_CONTENT_DIR`.
 
@@ -122,8 +123,8 @@ ZIP and upload endpoints enforce compressed, expanded, per-file, and entry-count
 
 ## Roadmap
 
-- Resolve drift in-app: update an existing spec from a Figma re-extraction while preserving human-authored sections (drift *detection* has landed).
 - Git-backed content synchronization.
+- One-click import of components that exist in Figma but aren't documented yet.
 - MCP tools for searching and retrieving reviewed specs.
 - Optional packaging of stable workspace APIs after their contracts are ready for independent versioning.
 

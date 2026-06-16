@@ -1,7 +1,10 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { SyncSpecEntry } from "@/lib/sync";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+
 import SyncAlert from "./SyncAlert";
 
 const recent = new Date().toISOString();
@@ -41,6 +44,25 @@ describe("SyncAlert", () => {
       <SyncAlert status={entry({ checkedAt: old })} extractedAt="2026-06-10T00:00:00Z" />,
     );
     expect(html).toContain("run a fresh check for current status");
+  });
+
+  it("offers a one-click Update when a matching inbox draft is waiting", () => {
+    const html = renderToStaticMarkup(
+      <SyncAlert
+        status={entry()}
+        slug={["components", "button"]}
+        updateSource={["_inbox", "button"]}
+      />,
+    );
+    expect(html).toContain("Update from Figma");
+    expect(html).toContain("A re-extracted draft is waiting in the inbox");
+    expect(html).not.toContain("Re-extract it in the Figma plugin");
+  });
+
+  it("falls back to plugin guidance when no draft is waiting", () => {
+    const html = renderToStaticMarkup(<SyncAlert status={entry()} />);
+    expect(html).toContain("Re-extract it in the Figma plugin");
+    expect(html).not.toContain("Update from Figma");
   });
 
   it("renders a not-found banner for missing-in-figma", () => {

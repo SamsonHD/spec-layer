@@ -12,6 +12,41 @@
 
 This plan is implementable milestone-by-milestone; Milestone 1 ships independently.
 
+---
+
+## Execution Log
+
+Living record of what shipped, for anyone picking this up. Newest first.
+
+### Milestone 2 — Resolve (shipped)
+
+Goal: close the drift loop. A re-extracted component sent to docs lands in the inbox; the inbox recognizes it as an **update** to an existing library spec (matched by `figma_key`) and offers a **section-preserving Update** that refreshes deterministic sections + frontmatter while keeping the human-authored judgment sections (Definition, Code, Accessibility, Do's & Don'ts). A drifted component page also offers a one-click **Update from Figma** when a matching inbox draft already exists. Aligned with `spec/SIDECAR.md` (the sidecar moves with the markdown).
+
+Implemented as Tasks 9–10 below. Status checklist:
+
+- [x] Task 9.1 — `lib/specUpdate.ts` `updateLibrarySpecFromInbox` (section-preserving merge, sidecar move, inbox cleanup, report flip) + tests
+- [x] Task 9.2 — `summarizeInbox` update recognition (match inbox `figma_key` → library spec) + tests
+- [x] Task 9.3 — `POST /api/specs/update` route + tests
+- [x] Task 9.4 — inbox UI **Update → &lt;slug&gt;** affordance (`inboxUpdateRequest` + `InboxComponentList`)
+- [x] Task 10 — one-click **Update from Figma** on the drifted component-page banner when a matching inbox draft exists (`SyncAlert` is now a client component); `/sync` rows link to the component page where the action lives
+- [x] Docs — CHANGELOG, ARCHITECTURE, README, this plan checked off
+- [x] Verification — typecheck + lint clean, 630 tests pass, web + plugin builds succeed (commands run from repo root)
+
+**Shipped commits:** `feat(web): section-preserving spec update from inbox re-extraction` · `feat(web): inbox Update affordance for drafts that re-extract a saved spec` · `feat(web): one-click Update from Figma on the drift banner` · `docs: …`. New files: `lib/specUpdate.ts`, `app/api/specs/update/route.ts`, `components/inboxUpdateRequest.ts` (+ tests). Modified: `lib/inboxSummary.ts`, `components/InboxComponentList.tsx`, `components/SyncAlert.tsx`, `app/inbox/page.tsx`, `app/components/[...slug]/page.tsx`, `globals.css`.
+
+**Still open (future, not in this milestone):** import the `new-in-figma` candidates straight into the inbox; Enterprise server-side checks via the Variables API; sidebar drift dots. A manual resolve-loop smoke test against a real Figma file still wants a human pass (the automated suite covers the merge/route/UI units).
+
+Scope decisions for this pass (documented so they're intentional, not accidental):
+- The web app cannot re-extract from Figma (the whole premise is plugin-driven, hash-parity — see *Why plugin-driven*). So "Update from Figma" is genuinely one-click **only when a re-extracted inbox draft already exists**; otherwise the surfaces keep the guidance copy ("Re-extract in the Figma plugin and send to docs").
+- The section-preserving merge preserves the four judgment sections plus the existing file's `status`, `approved_by`, and any top-level `name:` rename; everything else (deterministic sections, `content_hash`, `extracted_at`, `component.*`) comes from the re-extraction.
+- `Save All` is unchanged; per-item **Update** replaces the per-item **Save** button for items recognized as updates (avoids the 409 the plain move would hit).
+
+### Milestone 1 — Detect & surface (shipped)
+
+Plugin **Check library sync** + selection doc-status chip; `/api/sync/check` + `/api/sync/lookup`; `.spec-sync.json` report; component-page banner, `/sync` overview, home **Out of date** card, freshness. Merged with `main`'s sidecar zip-export fix and the `codex/sidecar-import-export` sidecar import work — all coexisting, full suite green.
+
+---
+
 **Tech Stack:** Next.js 14 (App Router), React 18, TypeScript, Node `fs`, Vitest (node environment — component tests use `renderToStaticMarkup`, never DOM interaction). Plugin is vanilla TS + the pure `@spec-layer/extractor`.
 
 **Spec:** `docs/superpowers/specs/2026-06-16-figma-component-sync-design.md`

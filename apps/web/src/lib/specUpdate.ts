@@ -3,7 +3,7 @@ import path from "node:path";
 import { parseFrontmatter, parseMarkdown, serializeFrontmatter } from "@spec-layer/format";
 import { getContentDir } from "./config";
 import { upsertFrontmatterField } from "./content";
-import { hasTraversal, isSafeSlug } from "./specApi";
+import { isSafeSlug } from "./specApi";
 import { readSyncReport, writeSyncReport } from "./sync";
 
 /**

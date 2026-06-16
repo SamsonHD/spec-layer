@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDoc } from "@/lib/content";
+import { getAllDocs } from "@/lib/contentCache";
 import { getSpecSyncStatus } from "@/lib/sync";
 import { formatRelative } from "@/lib/relativeTime";
 import { readStoredSpec } from "@/lib/specWriter";
@@ -38,6 +39,15 @@ export default async function ComponentPage({ params }: { params: Promise<{ slug
 
   // Drift status from the persisted sync report (additive; null when unknown).
   const sync = isInboxDoc ? null : getSpecSyncStatus(slug);
+
+  // A waiting inbox re-extraction (matched by figma_key) enables a one-click
+  // Update from the drift banner; otherwise the banner points at the plugin.
+  let updateSource: string[] | undefined;
+  if (sync?.status === "drifted" && fm.figmaKey) {
+    updateSource = getAllDocs().find(
+      (d) => d.slug[0] === "_inbox" && d.frontmatter.figmaKey === fm.figmaKey,
+    )?.slug;
+  }
 
   // JSON sidecar (preferred source for the Specs tab); null for legacy docs.
   const storedSpec = readStoredSpec(slug);
@@ -98,7 +108,12 @@ export default async function ComponentPage({ params }: { params: Promise<{ slug
           )}
         </div>
 
-        <SyncAlert status={sync} extractedAt={fm.extractedAt} />
+        <SyncAlert
+          status={sync}
+          extractedAt={fm.extractedAt}
+          slug={slug}
+          updateSource={updateSource}
+        />
 
         <GapsAlert
           missingRequired={missingRequired}

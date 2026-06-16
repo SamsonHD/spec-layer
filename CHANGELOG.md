@@ -9,6 +9,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Added
 
 - Figma drift detection. A **Check library sync** action in the plugin re-extracts every component in the open file and reports current content hashes; the app compares them against saved specs by `figma_key` and persists a `.spec-sync.json` report. Drift is surfaced as an **Out of date** / **Not found in Figma** banner on the component page, a **Sync** overview grouped by Figma file, an **Out of date** home stat, and a per-selection doc-status chip in the plugin. Comparisons run plugin-side for hash parity (no false positives); the report is additive and the app renders normally when it is absent.
+- Resolve drift in-app. When a re-extracted component is sent to docs, the Inbox recognizes it as an **update** to the matching library spec (by `figma_key`) and offers a section-preserving **Update**: deterministic sections and identity frontmatter are refreshed from the re-extraction while the human-authored judgment sections (Definition, Code, Accessibility, Do's & Don'ts) — and the existing `status`/`approved_by`/name — are kept. The `.spec-data` sidecar moves with the markdown (`spec/SIDECAR.md`). A drifted component page offers the same as a one-click **Update from Figma** when a matching inbox draft is waiting (`POST /api/specs/update`).
 
 ## [1.0.0] - 2026-06-15
 
