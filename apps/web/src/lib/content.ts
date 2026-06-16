@@ -25,6 +25,8 @@ export interface ComponentFrontmatter {
   contentHash?: string;
   extractedAt?: string;
   approvedBy?: string;
+  /** Stable Figma component key (`component.figma_key`); the drift match key. */
+  figmaKey?: string;
 }
 
 export interface ComponentDoc {
@@ -210,6 +212,7 @@ function parseLegacyDoc(
       contentHash: asString(fm.content_hash),
       extractedAt: asString(fm.extracted_at),
       approvedBy: asString(fm.approved_by),
+      figmaKey: asString(asRecord(fm.component).figma_key),
     },
     body: content,
     updated: includeUpdated ? lastUpdated(filePath) : null,
@@ -255,6 +258,7 @@ function parse(filePath: string, baseDir: string, includeUpdated = false): Compo
         contentHash: frontmatter.content_hash,
         extractedAt: frontmatter.extracted_at,
         approvedBy: frontmatter.approved_by,
+        figmaKey: frontmatter.component.figma_key,
       },
       body,
       updated: includeUpdated ? lastUpdated(filePath) : null,
