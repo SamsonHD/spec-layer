@@ -8,7 +8,7 @@
  * exactly from the original monolithic ui.ts.
  */
 
-import { extract, renderSpec } from '@spec-layer/extractor';
+import { extract, renderSpec, contentHash } from '@spec-layer/extractor';
 import type { SerializedNode, IntermediateSpec } from '@spec-layer/extractor';
 import type { UiToMain } from '../messages';
 import { nextStatus, resetToIdle, toKebab, type UiPhase } from './state';
@@ -22,6 +22,14 @@ import {
   renderExportProgress,
   renderExportDone,
   showInlineFileKeyPrompt,
+  renderSyncScanning,
+  renderSyncProgress,
+  renderSyncPosting,
+  renderSyncResult,
+  renderSyncMessage,
+  renderDocStatusChip,
+  hideDocStatusChip,
+  type DocStatusChipState,
 } from './render';
 import { buildExportFiles, zipFiles } from '../exportFiles';
 import type { FileKeySource } from '../fileKey';
@@ -47,6 +55,19 @@ export interface UiState {
   exportSkippedAtoms: number;
   // Count of components that failed to render in the UI (kept out of the zip).
   exportFailed: number;
+  // Bulk mode — the Export-all scan is reused for "Check library sync".
+  // 'export' → build a zip; 'sync' → fingerprint + POST to /api/sync/check.
+  bulkMode: 'export' | 'sync';
+  // Sync accumulator — fingerprints of every keyed component in the file.
+  syncItems: SyncFingerprint[];
+}
+
+/** Per-component fingerprint sent to /api/sync/check. */
+export interface SyncFingerprint {
+  figmaKey: string;
+  figmaNode: string;
+  name: string;
+  contentHash: string;
 }
 
 export function createState(): UiState {
@@ -65,7 +86,58 @@ export function createState(): UiState {
     exportTotal: 0,
     exportSkippedAtoms: 0,
     exportFailed: 0,
+    bulkMode: 'export',
+    syncItems: [],
   };
+}
+
+// ---------------------------------------------------------------------------
+// fingerprintNode — pure helper: extract a node's content fingerprint for the
+// drift check. Returns null for components with no stable Figma key (which
+// cannot be matched against a saved spec).
+// ---------------------------------------------------------------------------
+
+export function fingerprintNode(node: SerializedNode, fileKey: string): SyncFingerprint | null {
+  const spec = extract(node, { figmaFile: fileKey });
+  if (!spec.figmaKey) return null; // unmatchable
+  return {
+    figmaKey: spec.figmaKey,
+    figmaNode: spec.figmaNode,
+    name: spec.name,
+    contentHash: contentHash(spec),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Sync summary formatting — pure: turn a /api/sync/check summary into the
+// urgency-ordered status lines (per the UX Specification).
+// ---------------------------------------------------------------------------
+
+export interface SyncCheckSummary {
+  inSync: number;
+  drifted: number;
+  missingInFigma: number;
+  newInFigma: number;
+}
+
+/** Total saved specs that were evaluated for this file. */
+export function checkedSpecCount(summary: SyncCheckSummary): number {
+  return summary.inSync + summary.drifted + summary.missingInFigma;
+}
+
+/**
+ * Format the mixed-result summary lines (icon + count), urgency order. Lines
+ * with a zero count are omitted; the trailing "Checked against N saved specs."
+ * line is always present.
+ */
+export function formatSyncSummaryLines(summary: SyncCheckSummary): string[] {
+  const lines: string[] = [];
+  if (summary.drifted > 0) lines.push(`⚠ ${summary.drifted} out of date`);
+  if (summary.missingInFigma > 0) lines.push(`⊘ ${summary.missingInFigma} not found in Figma`);
+  if (summary.inSync > 0) lines.push(`✓ ${summary.inSync} in sync`);
+  if (summary.newInFigma > 0) lines.push(`＋ ${summary.newInFigma} in Figma aren't documented`);
+  lines.push(`Checked against ${checkedSpecCount(summary)} saved specs.`);
+  return lines;
 }
 
 // ---------------------------------------------------------------------------
@@ -122,6 +194,52 @@ export async function runExtract(refs: Refs, state: UiState): Promise<void> {
   renderPhase(refs, state);
 
   send({ type: 'notify', message: `Spec extracted for ${name}` });
+
+  // Best-effort doc-status chip — never throws out of runExtract.
+  await runSelectionStatus(refs, state);
+}
+
+// ---------------------------------------------------------------------------
+// Selection doc-status chip — POST the extracted spec's identity to
+// /api/sync/lookup and render the chip. Strictly best-effort: any failure,
+// missing file key, or missing figmaKey degrades to "unavailable" (never an
+// error banner, never a throw).
+// ---------------------------------------------------------------------------
+
+export async function runSelectionStatus(refs: Refs, state: UiState): Promise<void> {
+  try {
+    const spec = state.currentSpec;
+    if (!spec || !spec.figmaKey || !state.currentFileKey) {
+      hideDocStatusChip(refs);
+      return;
+    }
+    const guard = canSendToDocs(state.currentFileKey);
+    if (!guard.allowed) {
+      hideDocStatusChip(refs);
+      return;
+    }
+
+    const base = state.docsEndpoint.replace(/\/+$/, '');
+    const res = await window.fetch(`${base}/api/sync/lookup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ figmaKey: spec.figmaKey, contentHash: contentHash(spec) }),
+    });
+    if (!res.ok) {
+      renderDocStatusChip(refs, 'unavailable');
+      return;
+    }
+    const data = (await res.json()) as { status: 'in-sync' | 'drifted' | 'absent'; slug?: string };
+    const chipState: DocStatusChipState =
+      data.status === 'in-sync' ? 'in-sync'
+      : data.status === 'drifted' ? 'drifted'
+      : data.status === 'absent' ? 'absent'
+      : 'unavailable';
+    renderDocStatusChip(refs, chipState);
+  } catch {
+    // Degrade silently — the chip is additive, never blocking.
+    renderDocStatusChip(refs, 'unavailable');
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -144,8 +262,33 @@ export function runExportAll(refs: Refs, state: UiState): void {
   send({ type: 'requestExportAll', includeAtoms: refs.includeAtomsInput.checked });
 }
 
-export function handleExportAllScanning(refs: Refs): void {
+export function handleExportAllScanning(refs: Refs, state: UiState): void {
+  if (state.bulkMode === 'sync') {
+    renderSyncScanning(refs);
+    return;
+  }
   renderExportScanning(refs);
+}
+
+// ---------------------------------------------------------------------------
+// Check library sync — reuses the Export-all whole-file scan, branching on
+// state.bulkMode. No main.ts / messages.ts changes: the same bulk stream is
+// driven, but each node is fingerprinted (not rendered to a zip).
+// ---------------------------------------------------------------------------
+
+export function runCheckSync(refs: Refs, state: UiState): void {
+  refs.checkSyncBtn.disabled = true;
+  // Reset accumulators shared with the export flow + the sync items.
+  state.exportItems = [];
+  state.exportFileKey = '';
+  state.exportTotal = 0;
+  state.exportSkippedAtoms = 0;
+  state.exportFailed = 0;
+  state.syncItems = [];
+  state.bulkMode = 'sync';
+  renderSyncScanning(refs);
+  // Reuse the existing scan; atoms can be saved specs so include them.
+  send({ type: 'requestExportAll', includeAtoms: true });
 }
 
 // ---------------------------------------------------------------------------
@@ -175,6 +318,19 @@ export function handleExportComponent(
 ): void {
   // Isolate per-component failures: one component whose extract/render throws
   // must not stall the whole stream or freeze progress at a fixed number.
+  if (state.bulkMode === 'sync') {
+    try {
+      const fp = fingerprintNode(node, state.exportFileKey);
+      if (fp) state.syncItems.push(fp); // skip keyless / unmatchable nodes
+    } catch (err) {
+      state.exportFailed++;
+      const m = err instanceof Error ? err.message : String(err);
+      console.warn(`[check-sync] failed to fingerprint "${node.name}": ${m}`);
+    }
+    renderSyncProgress(refs, index, total);
+    return;
+  }
+
   try {
     const item = renderOne(node, state.exportFileKey);
     state.exportItems.push(item);
@@ -187,6 +343,11 @@ export function handleExportComponent(
 }
 
 export function handleExportAllDone(refs: Refs, state: UiState): void {
+  if (state.bulkMode === 'sync') {
+    void handleCheckSyncDone(refs, state);
+    return;
+  }
+
   // Nothing to zip (no components found, or all failed) — say so plainly
   // instead of downloading an empty/near-empty archive silently.
   if (state.exportItems.length === 0) {
@@ -225,7 +386,87 @@ export function handleExportAllDone(refs: Refs, state: UiState): void {
   refs.exportAllBtn.disabled = false;
 }
 
+/**
+ * Sync completion: POST the fingerprints to /api/sync/check and render the
+ * result summary. Best-effort and additive — every failure end state degrades
+ * to a status line, never an error that blocks the panel.
+ */
+async function handleCheckSyncDone(refs: Refs, state: UiState): Promise<void> {
+  try {
+    // No effective file key → reuse the inline file-key prompt path.
+    const guard = canSendToDocs(state.exportFileKey);
+    if (!guard.allowed) {
+      renderSyncMessage(
+        refs,
+        guard.reason ?? 'No Figma file detected — set the file URL in Settings to check sync.',
+        true,
+      );
+      return;
+    }
+
+    // No keyed components → nothing the library could match against.
+    if (state.syncItems.length === 0) {
+      renderSyncMessage(
+        refs,
+        'No saved specs match this Figma file yet. Export some components first.',
+      );
+      return;
+    }
+
+    const base = state.docsEndpoint.replace(/\/+$/, '');
+    renderSyncPosting(refs);
+
+    const res = await window.fetch(`${base}/api/sync/check`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileKey: state.exportFileKey, components: state.syncItems }),
+    });
+
+    if (!res.ok) {
+      renderSyncMessage(
+        refs,
+        `Couldn't reach your docs app at ${base} (${res.status}). Check it's running and the Docs URL in Settings.`,
+        true,
+      );
+      return;
+    }
+
+    const data = (await res.json()) as {
+      ok: boolean;
+      fileKey: string;
+      summary: SyncCheckSummary;
+    };
+    const summary = data.summary;
+
+    renderSyncResult(refs, summary, base);
+    const total = checkedSpecCount(summary);
+    const note =
+      summary.drifted + summary.missingInFigma > 0
+        ? `${summary.drifted + summary.missingInFigma} of ${total} specs need attention`
+        : `All ${total} specs are up to date`;
+    send({ type: 'notify', message: `Library sync checked: ${note}.` });
+    send({ type: 'openBrowser', url: `${base}/sync` });
+  } catch (err) {
+    const base = state.docsEndpoint.replace(/\/+$/, '');
+    const msg = err instanceof Error ? err.message : String(err);
+    renderSyncMessage(
+      refs,
+      `Couldn't reach your docs app at ${base}. Check it's running and the Docs URL in Settings. (${msg})`,
+      true,
+    );
+  } finally {
+    state.bulkMode = 'export';
+    refs.checkSyncBtn.disabled = false;
+  }
+}
+
 export function handleExportAllError(refs: Refs, state: UiState, message: string): void {
+  if (state.bulkMode === 'sync') {
+    renderSyncMessage(refs, `Sync check failed: ${message}`, true);
+    state.bulkMode = 'export';
+    refs.checkSyncBtn.disabled = false;
+    return;
+  }
   // Surface the error in the export-all status area and re-enable the button.
   renderExportProgress(refs, 0, 0, message);
   refs.exportAllBtn.disabled = false;

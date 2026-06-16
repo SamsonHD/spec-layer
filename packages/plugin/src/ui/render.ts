@@ -51,6 +51,8 @@ export function renderSelection(refs: Refs, state: UiState): void {
   // A fresh selection starts a new cycle — drop any inline send-time prompt
   // left over from a previous component's failed send.
   showInlineFileKeyPrompt(refs, false);
+  // A fresh selection has no resolved doc status yet — drop any prior chip.
+  hideDocStatusChip(refs);
   if (state.currentNode) {
     refs.noSelection.style.display = 'none';
     refs.mainArea.style.display = 'block';
@@ -214,4 +216,163 @@ export function exportDoneMessage(
     ? `, skipped ${skippedAtoms} atom component${skippedAtoms === 1 ? '' : 's'}`
     : '';
   return `Exported ${count} component${count === 1 ? '' : 's'}${failedNote}${atomNote} → ${folderName}.zip`;
+}
+
+// ---------------------------------------------------------------------------
+// Library-sync status line (Export-all panel) — phases + result summary.
+// ---------------------------------------------------------------------------
+
+interface SyncCheckSummary {
+  inSync: number;
+  drifted: number;
+  missingInFigma: number;
+  newInFigma: number;
+}
+
+export function renderSyncScanning(refs: Refs): void {
+  refs.syncStatus.style.color = '';
+  refs.syncStatus.textContent = 'Scanning file for components…';
+}
+
+export function renderSyncProgress(refs: Refs, index: number, total: number): void {
+  refs.syncStatus.style.color = '';
+  refs.syncStatus.textContent = total === 0
+    ? 'Scanning file for components…'
+    : `Comparing ${index} of ${total}…`;
+}
+
+export function renderSyncPosting(refs: Refs): void {
+  refs.syncStatus.style.color = '';
+  refs.syncStatus.textContent = 'Comparing against your library…';
+}
+
+/** A plain status line (no-matches, unreachable, no-file-key). */
+export function renderSyncMessage(refs: Refs, text: string, isError = false): void {
+  refs.syncStatus.style.color = isError ? 'var(--figma-color-bg-danger)' : '';
+  refs.syncStatus.textContent = text;
+}
+
+/**
+ * Render the mixed/all-in-sync result. Each count line is icon + count in
+ * urgency order; an "Open sync report ↗" link follows. Built as DOM nodes (not
+ * innerHTML) so the link can carry a click handler that asks main to open the
+ * browser.
+ */
+export function renderSyncResult(refs: Refs, summary: SyncCheckSummary, base: string): void {
+  refs.syncStatus.style.color = '';
+  refs.syncStatus.textContent = '';
+
+  const total = summary.inSync + summary.drifted + summary.missingInFigma;
+
+  // All in sync (nothing drifted/missing) — single positive line.
+  if (summary.drifted === 0 && summary.missingInFigma === 0) {
+    const line = document.createElement('div');
+    line.textContent = total > 0
+      ? `✓ All ${total} spec${total === 1 ? ' is' : 's are'} up to date.`
+      : 'No saved specs match this Figma file yet. Export some components first.';
+    refs.syncStatus.appendChild(line);
+    if (total > 0) appendSyncReportLink(refs, base);
+    return;
+  }
+
+  for (const text of syncSummaryLines(summary)) {
+    const line = document.createElement('div');
+    line.textContent = text;
+    refs.syncStatus.appendChild(line);
+  }
+  appendSyncReportLink(refs, base);
+}
+
+/** Pure: urgency-ordered status lines (icon + count); zero counts omitted. */
+export function syncSummaryLines(summary: SyncCheckSummary): string[] {
+  const lines: string[] = [];
+  if (summary.drifted > 0) lines.push(`⚠ ${summary.drifted} out of date`);
+  if (summary.missingInFigma > 0) lines.push(`⊘ ${summary.missingInFigma} not found in Figma`);
+  if (summary.inSync > 0) lines.push(`✓ ${summary.inSync} in sync`);
+  if (summary.newInFigma > 0) lines.push(`＋ ${summary.newInFigma} in Figma aren't documented`);
+  const total = summary.inSync + summary.drifted + summary.missingInFigma;
+  lines.push(`Checked against ${total} saved spec${total === 1 ? '' : 's'}.`);
+  return lines;
+}
+
+function appendSyncReportLink(refs: Refs, base: string): void {
+  const link = document.createElement('a');
+  link.href = '#';
+  link.className = 'sync-report-link';
+  link.textContent = 'Open sync report ↗';
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    parent.postMessage({ pluginMessage: { type: 'openBrowser', url: `${base}/sync` } }, '*');
+  });
+  refs.syncStatus.appendChild(link);
+}
+
+// ---------------------------------------------------------------------------
+// Selection doc-status chip (Selected-component panel).
+// ---------------------------------------------------------------------------
+
+export type DocStatusChipState = 'in-sync' | 'drifted' | 'absent' | 'unavailable';
+
+export function hideDocStatusChip(refs: Refs): void {
+  refs.docStatusChip.style.display = 'none';
+  refs.docStatusChip.textContent = '';
+  refs.docStatusChip.removeAttribute('aria-label');
+}
+
+/**
+ * Render the chip with icon + text (state conveyed by both, never colour
+ * alone) and an aria-label spelling out the meaning. The `drifted` chip carries
+ * an "Update docs" button (#doc-status-update) wired to runSendToDocs by ui.ts.
+ */
+export function renderDocStatusChip(refs: Refs, state: DocStatusChipState): void {
+  const chip = refs.docStatusChip;
+  chip.textContent = '';
+  chip.className = `doc-chip doc-chip-${state}`;
+  chip.style.display = 'inline-flex';
+
+  const dot = document.createElement('span');
+  dot.className = 'doc-chip-dot';
+  dot.setAttribute('aria-hidden', 'true');
+
+  const label = document.createElement('span');
+  label.className = 'doc-chip-text';
+
+  switch (state) {
+    case 'in-sync':
+      dot.textContent = '✓';
+      label.textContent = 'In sync with docs';
+      chip.setAttribute('aria-label', 'In sync with docs — the saved spec matches this Figma component');
+      chip.appendChild(dot);
+      chip.appendChild(label);
+      break;
+    case 'drifted': {
+      dot.textContent = '⚠';
+      label.textContent = 'Out of date in docs';
+      chip.setAttribute('aria-label', 'Out of date in docs — the saved spec differs from this Figma component');
+      chip.appendChild(dot);
+      chip.appendChild(label);
+      const update = document.createElement('button');
+      update.id = 'doc-status-update';
+      update.type = 'button';
+      update.className = 'doc-chip-action';
+      update.textContent = 'Update docs';
+      chip.appendChild(update);
+      break;
+    }
+    case 'absent':
+      dot.textContent = '○';
+      label.textContent = 'Not in docs yet';
+      chip.setAttribute('aria-label', 'Not in docs yet — use Send to docs to add this component');
+      chip.appendChild(dot);
+      chip.appendChild(label);
+      break;
+    case 'unavailable':
+    default:
+      dot.textContent = '·';
+      label.textContent = 'Doc status unavailable';
+      chip.setAttribute('aria-label', 'Doc status unavailable');
+      chip.appendChild(dot);
+      chip.appendChild(label);
+      break;
+  }
 }

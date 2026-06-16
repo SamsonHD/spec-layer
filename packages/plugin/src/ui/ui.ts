@@ -20,6 +20,7 @@ import {
   runDownload,
   runSendToDocs,
   runExportAll,
+  runCheckSync,
   handleExportAllScanning,
   handleExportAllStart,
   handleExportComponent,
@@ -73,6 +74,16 @@ refs.specTextarea.addEventListener('input', () => {
 // ---------------------------------------------------------------------------
 
 refs.exportAllBtn.addEventListener('click', () => runExportAll(refs, state));
+refs.checkSyncBtn.addEventListener('click', () => runCheckSync(refs, state));
+
+// The drifted doc-status chip renders an "Update docs" button (#doc-status-update)
+// dynamically; delegate its click to the existing send flow.
+refs.docStatusChip.addEventListener('click', (e) => {
+  const target = e.target as HTMLElement | null;
+  if (target?.id === 'doc-status-update') {
+    runSendToDocs(refs, state).catch(() => { /* handled inside */ });
+  }
+});
 
 // ---------------------------------------------------------------------------
 // Optional docs-platform inputs (endpoint + file key override)
@@ -171,7 +182,7 @@ window.onmessage = (event: MessageEvent) => {
     }
 
     case 'exportAllScanning': {
-      handleExportAllScanning(refs);
+      handleExportAllScanning(refs, state);
       break;
     }
 
