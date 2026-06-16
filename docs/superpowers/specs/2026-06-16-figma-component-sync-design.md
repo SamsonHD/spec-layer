@@ -6,7 +6,7 @@ Once a component spec is saved to the library, nothing tells a reviewer that the
 
 The format already anticipates this. `spec/SPEC.md` §2 designates `content_hash` as "the drift-detection … key" and `component.figma_key` as the "stable Figma component key (survives renames and file moves)." Both fields are written on every extracted spec and read into `ComponentFrontmatter`, but nothing in the product consumes them to detect drift. This is the "drift detection" half of the README roadmap item *"Git-backed content synchronization and drift detection."*
 
-This design covers **detecting and surfacing drift** — telling reviewers which saved specs no longer match Figma. It deliberately does **not** cover automatically rewriting specs from Figma; that resolution step is deferred (see *Deferred*).
+This design covers **detecting and surfacing drift** (Milestone 1) and **resolving it** through a prose-preserving update flow that reuses the inbox review gate (Milestone 2). It never rewrites a spec without the designer's explicit action (see *Milestones* and *Designer Workflow & UX → Journey 3*).
 
 ## Why plugin-driven, not server-side REST extraction
 
@@ -18,16 +18,73 @@ Drift detection needs the *current* Figma state to recompute a `content_hash` an
 
 Hash parity is the whole game for drift detection, and only the plugin path guarantees it across plans. The plugin owns Figma access in this architecture (`ARCHITECTURE.md`); keeping re-extraction there preserves that boundary.
 
-## User Experience
+## Designer Workflow & UX
 
-- In the Figma plugin, a **Check library sync** action scans every component in the current file, computes each one's current `content_hash`, and reports the result to the docs app. It reuses the existing whole-file scan, so it works without a selection and shows the same scanning/progress feedback as Export all.
-- After a check, the plugin shows a one-line summary (e.g. *"3 of 12 library specs are out of date"*) and offers to open the docs **Sync** page.
-- In the docs app:
-  - A saved component whose Figma source changed since extraction shows an **Out of date** banner at the top of its page, with the date it was last checked and a short instruction to re-extract from the plugin.
-  - A saved component whose `figma_key` was not found in the last scan of its file shows a **Not found in Figma** banner.
-  - A new **Sync** overview page lists, grouped by Figma file: out-of-date specs, specs not found in Figma, in-sync specs, and components present in Figma that have no saved spec yet (import candidates). Each entry shows when it was last checked and links to the component where applicable.
-  - The home page gains an **Out of date** metric card alongside the existing counts.
-- Drift state is informational. Nothing is rewritten automatically; the reviewer decides whether to re-extract and re-save.
+The designer lives in Figma and edits components; the docs app is where those components are documented. The feature has to answer one question at two altitudes — *"is my documentation up to date with my Figma?"* — for a single component I'm editing right now, and for the whole library before a release. It also has to make the answer *actionable*: detecting drift a designer cannot resolve is worse than not detecting it.
+
+### Journey 1 — In the moment (single component)
+
+The everyday touchpoint. A designer edits **Button**, opens the plugin, and selects it.
+
+- The **Selected component** tab gains a **doc-status chip** beside the component name, resolved after the spec is extracted (the plugin needs the current hash) by a lightweight call to the docs app:
+  - `● In sync with docs` (success color) — the saved spec matches the current component.
+  - `● Out of date in docs` (warning color) — a saved spec exists but differs. The chip exposes an **Update docs** action.
+  - `○ Not in docs yet` (neutral) — no saved spec for this component; the existing **Send to docs** is the call to action.
+  - `— Doc status unavailable` (muted, no nagging) — the docs app is unreachable, no file key is set, or the lookup failed. The rest of the tab works unchanged.
+- The chip is color **plus icon plus text** (never color alone) and carries an accessible label spelling out the meaning.
+- **Update docs** re-extracts and sends the spec as an *update* to the existing component (Journey 3), rather than creating an unrelated new draft.
+
+This turns sync into a passive signal the designer sees while doing normal work, not a separate chore.
+
+### Journey 2 — The audit (whole library, release readiness)
+
+- In the plugin's **Export all** tab, a distinct **Library sync** section holds a **Check library sync** button with a one-line explainer (*"Compare your saved docs against this Figma file."*). It reuses the whole-file scan, so it needs no selection and shows the same scanning/progress feedback as Export all:
+  - *Scanning file for components…* → *Comparing 24 of 60…* → *Comparing against your library…*
+- The result renders as a compact summary, each line an icon+count, ordered by urgency:
+  - `⚠ 3 out of date` · `⊘ 1 not found in Figma` · `✓ 9 in sync` · `＋ 5 in Figma aren't documented` · *"Checked against 12 saved specs."*
+  - A primary **Open sync report ↗** opens the docs `/sync` page.
+- Distinct end states, never a blank panel:
+  - All match → *"✓ All 12 specs are up to date."*
+  - No saved specs for this file → *"No saved specs match this Figma file yet. Export some components first."*
+  - Docs unreachable → the existing send-failure copy (*"Couldn't reach your docs app at &lt;url&gt;. Start it, then check the URL in Settings."*).
+  - No file key → the existing inline file-key prompt (the `canSendToDocs` path), so the designer fixes it without leaving the panel.
+
+### What the designer sees in the docs app
+
+- **Component page** (above `GapsAlert`, never on inbox drafts):
+  - *Out of date with Figma* — *"The Figma component changed since this spec was extracted on &lt;date&gt;. Last checked &lt;relative&gt;. Re-extract it in the Figma plugin and send to docs to update."* with a *View all changes →* link to `/sync`. (After Journey 3 ships, this becomes a one-click **Update from Figma**.)
+  - *Not found in Figma* — *"This spec's component wasn't in the last scan of its Figma file (&lt;relative&gt;). It may have been removed or renamed in Figma."*
+  - In sync → no banner; a low-key positive line in the meta-row: *"✓ In sync with Figma · checked &lt;relative&gt;."*
+- **`/sync` overview page** — the dashboard, grouped by Figma file when more than one file is involved. Per file: a header with the file key and *"Last checked &lt;relative&gt; · N scanned"*, then sections ordered by urgency — **Out of date**, **Not found in Figma**, **Undocumented in Figma** (Figma components with no spec), and a collapsed **In sync**. Drifted/missing rows link to their component pages and show last-extracted and last-checked times; undocumented rows are informational (Journey-3 future: *Add to inbox*). A summary chip strip sits at the top: *Out of date N · Not in Figma N · In sync N · Undocumented N*.
+- **Home page** — an **Out of date** metric card (drifted + missing) linking to `/sync`, and a **Sync** entry in navigation.
+
+### Freshness — drift info has its own staleness
+
+Drift status is only as current as the last check, and the web app cannot trigger a plugin scan. So:
+
+- Every surface shows *checked &lt;relative&gt;* (e.g. *"2 hours ago"*, *"yesterday"*, *"on 12 Jun"*).
+- When the last check for a file is older than a threshold (7 days), the `/sync` file header and the component banner add *"— run a fresh check for current status."*
+- `/sync` states plainly that it refreshes by running **Check library sync** in the plugin; it never shows a fake web "refresh" that wouldn't reach Figma.
+- Before any check exists, `/sync` shows an empty state explaining how to run the first check, and the home card shows *"—"* rather than a misleading `0`.
+
+### Journey 3 — Resolving drift (closing the loop)
+
+Detecting drift is only useful if the designer can fix it. The resolve path must reuse the existing inbox **review gate** and must **not** destroy human-authored prose.
+
+A constraint shapes this: the inbox→library save (`lib/inboxMove.ts`) copies with `COPYFILE_EXCL` and rejects an existing destination with a 409. So re-extracting a documented component and using **Send to docs** today produces a fresh inbox draft that *cannot* be saved over the existing file, and the only crude workaround (delete then save) discards the spec's judgment sections. The resolve loop therefore needs an explicit **update** path:
+
+1. Designer triggers a re-extract — via **Update docs** on the selected component (Journey 1) or by following the component-page / `/sync` guidance.
+2. **Send to docs** delivers the new spec. The inbox recognizes it as an **update**: an incoming spec whose `figma_key` matches an existing non-inbox library spec is flagged in the inbox as *Update → components/Button* rather than treated as a brand-new component.
+3. The designer reviews and clicks **Update**, which performs a **section-preserving merge** into the existing library file: the deterministic sections (Anatomy, Configuration, Variants, States, Tokens used, Related atoms, and any Extraction gaps) and the identity frontmatter (`content_hash`, `extracted_at`) are replaced from the new extraction, while the four judgment sections (Definition, Code, Accessibility, Do's & Don'ts) are kept from the existing file. This reuses the same prose-preserving discipline as AI bulk-fill and `regenerate`. The inbox draft and its sidecar are then removed.
+4. On the next check the component reports **in sync**. (As a nicety, the update can proactively flip that spec's `.spec-sync.json` entry to in-sync, since both hashes are known at update time.)
+
+The plain **Save** / move path keeps its 409 safety for genuinely new components; **Update** is a separate, intentional overwrite-with-merge. Nothing is ever overwritten without the designer's explicit action in the inbox.
+
+### Cross-cutting UX
+
+- **Additive and non-blocking:** every drift surface is additive. A missing or unreadable `.spec-sync.json`, an unreachable docs app, or a missing file key degrades to "no info / unavailable" — never an error that blocks the library or the plugin's core flows.
+- **Accessibility:** banners and chips convey state with icon + text, not color alone; banners use an appropriate live-region role; the `/sync` page and inbox controls follow the existing keyboard-nav and visible-focus patterns; collapsed sections use native `details/summary` like the inbox list.
+- **Theming:** the plugin chip/section use Figma theme variables (light/dark) as the rest of the plugin does; app surfaces honor the existing theme toggle and reduced-motion preferences.
 
 ## Drift Semantics
 
@@ -93,16 +150,22 @@ The send reuses the existing docs-endpoint plumbing and the opaque-origin postur
 
 ### Web app (`md-ds`)
 
-- `lib/sync.ts` (new): the report types plus `readSyncReport()`, `writeSyncReport(report)`, `computeFileSync(fileKey, components, docs)`, and `getSpecSyncStatus(slug)`. The content root, like elsewhere, comes from `getContentDir()`.
+- `lib/sync.ts` (new): the report types plus `readSyncReport()`, `writeSyncReport(report)`, `computeFileSync(fileKey, components, docs)`, `lookupSpecByFigmaKey(figmaKey, currentHash, docs)` (for the per-selection chip), and `getSpecSyncStatus(slug)`. The content root, like elsewhere, comes from `getContentDir()`.
+- `lib/relativeTime.ts` (new): `formatRelative(iso, now?)` and an `isStale(iso, now?)` helper (the 7-day freshness threshold), shared by every drift surface.
 - `app/api/sync/check/route.ts` (new): `POST` + `OPTIONS`, guarded exactly like the other plugin-facing write routes (`authorizeApiRequest`, `corsHeaders`, `force-dynamic`, a bounded JSON body). Validates `fileKey` and a bounded `components` array, computes the per-file result over `getAllDocs()`, merges and writes the report, and returns the per-file summary.
-- `app/components/[...slug]/page.tsx`: read `getSpecSyncStatus(slug)` and render a new `SyncAlert` for `drifted` / `missing-in-figma`, near `GapsAlert`.
-- `components/SyncAlert.tsx` (new): presentational banner.
+- `app/api/sync/lookup/route.ts` (new): `POST` + `OPTIONS`, same guards. Accepts `{ figmaKey, contentHash }`, returns `{ status: "in-sync" | "drifted" | "absent", slug? }` for the plugin's per-selection chip. Read-only — it does not write the report.
+- `app/components/[...slug]/page.tsx`: read `getSpecSyncStatus(slug)` and render a new `SyncAlert` for `drifted` / `missing-in-figma`, near `GapsAlert`; add the in-sync meta-row line.
+- `components/SyncAlert.tsx` (new): presentational banner (icon + text + freshness).
 - `app/sync/page.tsx` (new): the overview, reading the report and `getAllDocs()`.
 - `lib/homeStats.ts`: add an `outOfDate` count (specs whose report status is `drifted` or `missing-in-figma`); surface it as a card on the home page and add a nav link to `/sync`.
 
+### Plugin per-selection chip
+
+The Selected-component tab calls `/api/sync/lookup` with the freshly extracted spec's `figmaKey` and `contentHash` and renders the resulting chip. It is best-effort: any failure (unreachable docs, no file key, non-200) renders the muted "unavailable" state and never blocks extract/download/send.
+
 ### Trust boundary
 
-`/api/sync/check` is a local, plugin-facing write that touches only `.spec-sync.json`. It reuses the established host/origin policy (`ARCHITECTURE.md`, Local API Boundary) and adds the same defense-in-depth as existing import routes; it does not read or write component Markdown, credentials, or anything outside the content root.
+The new routes are local, plugin-facing, and reuse the established host/origin policy (`ARCHITECTURE.md`, Local API Boundary) with the same defense-in-depth as existing import routes. `/api/sync/check` writes only `.spec-sync.json`; `/api/sync/lookup` is read-only; `/api/specs/update` (Milestone 2) overwrites exactly one library `.md` (and its sidecar) that the designer explicitly chose in the inbox, with the same slug/symlink guards as `inboxMove.ts`. None read or write credentials or anything outside the content root.
 
 ## Error Handling
 
@@ -131,11 +194,15 @@ The send reuses the existing docs-endpoint plumbing and the opaque-origin postur
 - The drift report lives only in `.spec-sync.json`, is untracked, and the library renders normally when it is absent.
 - The host/origin policy and body limits on `/api/sync/check` match the other plugin-facing write routes.
 
-## Deferred
+## Milestones
 
-These are intentionally out of scope here and would build on this report:
+The work splits into two shippable milestones; the designer workflow above spans both.
 
-- **Resolve from Figma.** A one-click "update this spec from Figma" that re-renders deterministic sections while preserving the four judgment sections (Definition, Code, Accessibility, Do's & Don'ts), reusing the prose-preserving merge that AI bulk-fill and `regenerate` already implement. This requires the plugin to send full `IntermediateSpec`s for drifted components rather than fingerprints, and careful section-merge semantics.
-- **Import new-in-figma.** Turning import candidates into a one-click add to the inbox.
+- **Milestone 1 — Detect & surface (this plan's core).** The plugin **Check library sync** + the per-selection chip + `/api/sync/check` and `/api/sync/lookup` + the persisted report + the component-page banner, `/sync` overview, home card, and freshness. The library can be audited and every out-of-date/missing/new component is visible. Resolution is by guidance (re-extract in the plugin and send to docs).
+- **Milestone 2 — Resolve (Journey 3).** The inbox **update** recognition (incoming `figma_key` matches an existing library spec) and the section-preserving **Update** action that merges a re-extraction into the existing file, plus turning the component-page banner CTA into a one-click **Update from Figma**. This closes the loop without the 409 dead-end and without losing judgment prose.
+
+## Deferred (beyond Milestone 2)
+
+- **Import new-in-figma.** Turning `/sync` import candidates into a one-click add to the inbox.
 - **Enterprise server-side checks.** A `FIGMA_TOKEN` + Variables-API path so drift can be checked without opening the plugin, available where the Variables REST API is (Enterprise).
 - **Sidebar drift dots.** Per-item drift indicators in the navigation tree.
