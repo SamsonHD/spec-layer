@@ -2,10 +2,6 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh: vi.fn() }),
-}));
-
 import InboxComponentList from "./InboxComponentList";
 
 const items = [
@@ -17,31 +13,63 @@ const items = [
   },
   {
     name: "Input",
-    slug: ["_inbox", "input"],
+    slug: ["_inbox", "forms", "input"],
     issueCount: 1,
     missingRequiredCount: 2,
   },
 ];
 
-describe("InboxComponentList", () => {
-  it("renders all rows with search, open, save, status, and delete controls", () => {
-    const html = renderToStaticMarkup(
-      <InboxComponentList items={items} folder="Components" />,
-    );
+function renderList(overrides: Partial<React.ComponentProps<typeof InboxComponentList>> = {}) {
+  return renderToStaticMarkup(
+    <InboxComponentList
+      items={items}
+      totalCount={items.length}
+      selected={new Set(["_inbox/button"])}
+      selectAllState="some"
+      rowBusy={null}
+      disabled={false}
+      onToggleRow={vi.fn()}
+      onToggleAll={vi.fn()}
+      onRowSave={vi.fn()}
+      onRowDelete={vi.fn()}
+      {...overrides}
+    />,
+  );
+}
 
-    expect(html).toContain("Imported components");
-    expect(html).toContain('type="search"');
-    expect(html).not.toContain("Filter imported components");
-    expect(html).not.toContain("All 2");
+describe("InboxComponentList", () => {
+  it("renders a table with select checkboxes, source paths, statuses, and row actions", () => {
+    const html = renderList();
+
+    expect(html).toContain("<table");
+    expect(html).toContain('aria-label="Select all components"');
+    expect(html).toContain('aria-label="Select Button"');
+    expect(html).toContain('aria-label="Select Input"');
+    expect(html).toContain("Source path");
     expect(html).toContain("Button");
     expect(html).toContain("Input");
+    expect(html).toContain("forms");
     expect(html).toContain("Ready");
+    expect(html).toContain("Needs attention");
     expect(html).toContain("1 issue · 2 missing sections");
     expect(html).toContain('href="/components/_inbox/button"');
-    expect(html).toContain('href="/components/_inbox/input"');
+    expect(html).toContain('href="/components/_inbox/forms/input"');
     expect(html.match(/>Open</g)?.length).toBe(2);
     expect(html.match(/>Save</g)?.length).toBe(2);
     expect(html.match(/inbox-delete-item/g)?.length).toBe(2);
-    expect(html).toContain(">Delete<");
+  });
+
+  it("marks selected rows and renders a checked select-all box when all are selected", () => {
+    const html = renderList({
+      selected: new Set(["_inbox/button", "_inbox/forms/input"]),
+      selectAllState: "all",
+    });
+
+    expect(html.match(/inbox-row-selected/g)?.length).toBe(2);
+  });
+
+  it("shows an empty state with a hint that depends on the total count", () => {
+    expect(renderList({ items: [], totalCount: 0 })).toContain("Inbox is empty");
+    expect(renderList({ items: [], totalCount: 5 })).toContain("No matching components");
   });
 });
