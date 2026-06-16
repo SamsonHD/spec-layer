@@ -1,8 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import matter from "gray-matter";
-import { parseFrontmatter } from "@spec-layer/format";
+import { parseFrontmatter, parseMarkdown } from "@spec-layer/format";
 import { getContentDir } from "./config";
 import { parseFigmaUrl } from "./figma";
 import { applyOrder, readNavOrder } from "./navOrder";
@@ -188,7 +187,7 @@ function parseLegacyDoc(
   includeUpdated: boolean,
   issue?: string,
 ): ComponentDoc {
-  const { data, content } = matter(raw);
+  const { data, content } = parseMarkdown(raw);
   const slug = slugFromPath(filePath, baseDir);
   const sections = extractSections(content);
   const fm = asRecord(data);
@@ -223,7 +222,7 @@ function parseLegacyDoc(
 
 function parse(filePath: string, baseDir: string, includeUpdated = false): ComponentDoc {
   const raw = fs.readFileSync(filePath, "utf-8");
-  const { data } = matter(raw);
+  const { data } = parseMarkdown(raw);
   const fm = asRecord(data);
   const hasSpecVersion = fm.spec_version !== undefined;
 
