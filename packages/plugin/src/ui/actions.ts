@@ -308,6 +308,10 @@ export function handleExportAllStart(
   state.exportFileKey = fileKey;
   state.exportSkippedAtoms = skippedAtoms;
   state.exportItems = [];
+  if (state.bulkMode === 'sync') {
+    renderSyncProgress(refs, 0, total);
+    return;
+  }
   renderExportProgress(refs, 0, total);
 }
 
