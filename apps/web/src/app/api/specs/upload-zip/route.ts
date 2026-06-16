@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeApiRequest, corsHeaders } from "@/lib/specApi";
-import { writeInboxMarkdown } from "@/lib/specWriter";
-import { selectMarkdownEntries, unzipWithLimits } from "@/lib/zipImport";
+import { writeInboxMarkdown, writeInboxSpec } from "@/lib/specWriter";
+import { selectSpecArchiveEntries, unzipWithLimits } from "@/lib/zipImport";
 import { assertContentLength, PayloadTooLargeError } from "@/lib/requestLimits";
 
 export const dynamic = "force-dynamic";
@@ -10,8 +10,12 @@ export const dynamic = "force-dynamic";
 // Safety caps — basic zip-bomb / oversized-payload guard.
 // ---------------------------------------------------------------------------
 
-/** Maximum number of entries in the zip (files + directories). */
-const MAX_ENTRIES = 1000;
+/**
+ * Maximum number of entries in the zip (files + directories). A sidecar-aware
+ * export emits two entries per component (`<slug>.md` + `.spec-data/<slug>.json`),
+ * so this is sized to allow ~1000 components, not 1000 files.
+ */
+const MAX_ENTRIES = 2000;
 
 /** Maximum decompressed size of a single file (2 MB). */
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
@@ -30,8 +34,9 @@ export function OPTIONS(req: NextRequest) {
  * POST /api/specs/upload-zip
  *
  * Accepts a `.zip` file via multipart form-data (`file` field).
- * Decompresses the zip, filters for `.md` entries via `selectMarkdownEntries`,
- * and writes each kept file to the `_inbox` folder via `writeInboxMarkdown`.
+ * Decompresses the zip, filters for `.md` entries, pairs mirrored
+ * `.spec-data/*.json` sidecars when present, and writes each kept file to the
+ * `_inbox` folder. Markdown-only files remain valid imports.
  *
  * Returns:
  *   { ok: true, imported: number, skipped: Array<{name, reason}>, slugs: string[] }
@@ -118,17 +123,19 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Filter and decode entries.
-  const { files, skipped } = selectMarkdownEntries(rawEntries);
+  // Filter, decode, and pair mirrored `.spec-data` sidecars when present.
+  const { files, skipped } = selectSpecArchiveEntries(rawEntries);
 
   // Write each kept file; collect per-file failures without aborting the batch.
   const slugs: string[] = [];
   let imported = 0;
   const writeFailures: Array<{ name: string; reason: string }> = [];
 
-  for (const { name, markdown } of files) {
+  for (const { name, markdown, spec } of files) {
     try {
-      const written = writeInboxMarkdown(name, markdown);
+      const written = spec
+        ? writeInboxSpec(name, markdown, { spec })
+        : writeInboxMarkdown(name, markdown);
       slugs.push(written.slug);
       imported++;
     } catch (e) {

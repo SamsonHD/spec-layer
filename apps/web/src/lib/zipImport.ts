@@ -1,11 +1,12 @@
 /**
  * Pure helper for filtering and normalising zip entries before writing to _inbox.
  *
- * `selectMarkdownEntries` is intentionally side-effect-free (no I/O) so it can
- * be unit-tested without a filesystem or a real zip file.
+ * `selectSpecArchiveEntries` is intentionally side-effect-free (no I/O) so it
+ * can be unit-tested without a filesystem or a real zip file.
  */
 
 import { parseMarkdown } from "@spec-layer/format";
+import type { IntermediateSpec } from "@spec-layer/extractor";
 import path from "node:path";
 import { Unzip, UnzipInflate } from "fflate";
 
@@ -82,6 +83,8 @@ export interface SelectedFile {
   name: string;
   /** Raw markdown string (UTF-8 decoded). */
   markdown: string;
+  /** Paired generated extraction sidecar, when present and valid. */
+  spec?: IntermediateSpec;
 }
 
 export interface SkippedEntry {
@@ -120,41 +123,120 @@ function safeBasename(entryName: string): string {
   return path.posix.basename(normalised);
 }
 
+function normalizeArchivePath(entryName: string): string | null {
+  const normalized = entryName
+    .replace(/\\/g, "/")
+    .replace(/^\/+/, "")
+    .replace(/^\.\//, "");
+  const parts = normalized.split("/");
+  if (!normalized || parts.some((part) => part === "..")) return null;
+  return normalized;
+}
+
+function markdownMirrorKey(entryName: string): string | null {
+  const normalized = normalizeArchivePath(entryName);
+  if (!normalized) return null;
+  if (!/\.(md|markdown)$/i.test(normalized)) return null;
+  return normalized.replace(/\.(md|markdown)$/i, "");
+}
+
+function sidecarMirrorKey(entryName: string): string | null {
+  const normalized = normalizeArchivePath(entryName);
+  if (!normalized) return null;
+  if (!normalized.toLowerCase().startsWith(".spec-data/")) return null;
+  if (!normalized.toLowerCase().endsWith(".json")) return null;
+  return normalized.slice(".spec-data/".length).replace(/\.json$/i, "");
+}
+
+function isIntermediateSpec(value: unknown): value is IntermediateSpec {
+  if (typeof value !== "object" || value === null) return false;
+  const spec = value as Record<string, unknown>;
+  return (
+    typeof spec.name === "string" &&
+    typeof spec.figmaKey === "string" &&
+    typeof spec.figmaFile === "string" &&
+    typeof spec.figmaNode === "string" &&
+    Array.isArray(spec.anatomy) &&
+    Array.isArray(spec.props) &&
+    Array.isArray(spec.variants) &&
+    Array.isArray(spec.variantInstances) &&
+    Array.isArray(spec.states) &&
+    Array.isArray(spec.tokens) &&
+    Array.isArray(spec.related) &&
+    Array.isArray(spec.gaps) &&
+    Array.isArray(spec.layout)
+  );
+}
+
+function parseSidecar(bytes: Uint8Array | string): IntermediateSpec | string {
+  try {
+    const parsed = JSON.parse(decode(bytes)) as unknown;
+    if (!isIntermediateSpec(parsed)) {
+      return "Sidecar JSON is not an IntermediateSpec";
+    }
+    return parsed;
+  } catch (error) {
+    return `Sidecar parse error: ${error instanceof Error ? error.message : String(error)}`;
+  }
+}
+
 /**
- * Filter a map of unzipped entries to only those that are non-empty `.md` files.
- * Returns kept files (with name + markdown) and a list of skipped entries with
+ * Select importable component entries from an unzipped archive.
+ *
+ * Keeps non-empty `.md`/`.markdown` files (with name + markdown) and pairs each
+ * with its mirrored `.spec-data/<same-path>.json` sidecar when present and valid
+ * (an `IntermediateSpec`). Returns kept files plus a list of skipped entries with
  * reasons. Directory entries (names ending in `/`) are silently ignored.
  *
  * @param entries  The output of fflate's `unzipSync`: Record<path, Uint8Array>.
  *                 Accepts `string` values too so tests can pass raw strings.
  */
-export function selectMarkdownEntries(
+export function selectSpecArchiveEntries(
   entries: Record<string, Uint8Array | string>,
 ): SelectResult {
+  const sidecars = new Map<string, { name: string; value: IntermediateSpec | string }>();
+  for (const [entryName, bytes] of Object.entries(entries)) {
+    if (entryName.endsWith("/")) continue;
+    const sidecarKey = sidecarMirrorKey(entryName);
+    if (!sidecarKey) continue;
+    sidecars.set(sidecarKey, { name: entryName, value: parseSidecar(bytes) });
+  }
+
   const files: SelectedFile[] = [];
   const skipped: SkippedEntry[] = [];
+  const matchedSidecars = new Set<string>();
 
   for (const [entryName, bytes] of Object.entries(entries)) {
     // 1. Silently ignore directory entries.
     if (entryName.endsWith("/")) continue;
 
-    // 2. Only keep .md / .markdown files; skip everything else.
+    // 2. Sidecars are handled by mirror-key pairing, not as standalone files.
+    if (sidecarMirrorKey(entryName)) continue;
+
+    // 3. Only keep .md / .markdown files; skip everything else.
     const lowerEntry = entryName.toLowerCase();
     if (!lowerEntry.endsWith(".md") && !lowerEntry.endsWith(".markdown")) {
       skipped.push({ name: entryName, reason: "Not a .md or .markdown file" });
       continue;
     }
 
-    // 3. Decode to string.
+    // This entry is the markdown half of a potential pair. Account for its
+    // mirrored sidecar now so that, even if the markdown is itself skipped
+    // below (empty / bad frontmatter), the sidecar is not separately reported
+    // as an orphan — one skip message per component, not two.
+    const mirrorKey = markdownMirrorKey(entryName);
+    if (mirrorKey) matchedSidecars.add(mirrorKey);
+
+    // 4. Decode to string.
     const markdown = decode(bytes);
 
-    // 4. Reject empty / whitespace-only content.
+    // 5. Reject empty / whitespace-only content.
     if (!markdown.trim()) {
       skipped.push({ name: entryName, reason: "File is empty or contains only whitespace" });
       continue;
     }
 
-    // 5. Validate parseable frontmatter.
+    // 6. Validate parseable frontmatter.
     let parsed: ReturnType<typeof parseMarkdown>;
     try {
       parsed = parseMarkdown(markdown);
@@ -166,7 +248,7 @@ export function selectMarkdownEntries(
       continue;
     }
 
-    // 6. Derive the component name.
+    // 7. Derive the component name.
     //    Priority: frontmatter `name` → `component.name` → filename stem.
     const fm = parsed.data as Record<string, unknown>;
     const nameFromFm =
@@ -182,8 +264,26 @@ export function selectMarkdownEntries(
     const base = safeBasename(entryName);
     const stem = base.replace(/\.(md|markdown)$/i, "");
     const name = nameFromFm ?? stem;
+    const selected: SelectedFile = { name, markdown };
 
-    files.push({ name, markdown });
+    // `mirrorKey` was already marked matched above. Attach a valid sidecar, or
+    // report an invalid one (it is still "matched", so not double-reported).
+    const sidecar = mirrorKey ? sidecars.get(mirrorKey) : undefined;
+    if (sidecar) {
+      if (typeof sidecar.value === "string") {
+        skipped.push({ name: sidecar.name, reason: sidecar.value });
+      } else {
+        selected.spec = sidecar.value;
+      }
+    }
+
+    files.push(selected);
+  }
+
+  for (const [key, sidecar] of sidecars) {
+    if (!matchedSidecars.has(key)) {
+      skipped.push({ name: sidecar.name, reason: "No matching markdown file for sidecar" });
+    }
   }
 
   return { files, skipped };

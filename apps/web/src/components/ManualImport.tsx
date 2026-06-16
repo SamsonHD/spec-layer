@@ -19,6 +19,21 @@ interface ZipUploadResponse {
   error?: string;
 }
 
+interface ImportRouter {
+  push(href: string): void;
+  refresh(): void;
+}
+
+export function navigateToInboxAfterImport(
+  router: ImportRouter,
+  schedule: (callback: () => void) => void = (callback) => {
+    window.setTimeout(callback, 0);
+  },
+) {
+  router.push("/inbox");
+  schedule(() => router.refresh());
+}
+
 export default function ManualImport() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -77,8 +92,7 @@ export default function ManualImport() {
           }
 
           setZipSummary(data);
-          router.refresh();
-          router.push("/inbox");
+          navigateToInboxAfterImport(router);
           return;
         }
 
@@ -93,8 +107,7 @@ export default function ManualImport() {
           return;
         }
 
-        router.push("/inbox");
-        router.refresh();
+        navigateToInboxAfterImport(router);
       } else {
         const markdown = pasteValue.trim();
         if (!markdown) {
@@ -114,8 +127,7 @@ export default function ManualImport() {
           return;
         }
 
-        router.push("/inbox");
-        router.refresh();
+        navigateToInboxAfterImport(router);
       }
     } catch {
       setError("Could not reach the server. Please try again.");

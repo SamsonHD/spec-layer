@@ -1,5 +1,5 @@
 /**
- * Tests for the pure zip-entry filtering helper `selectMarkdownEntries`.
+ * Tests for the pure zip-entry filtering helper `selectSpecArchiveEntries`.
  *
  * The helper operates on already-unzipped entries (Record<string, Uint8Array | string>)
  * so tests need no real zip files — they can pass raw in-memory maps.
@@ -8,8 +8,13 @@
  */
 
 import { describe, expect, it } from "vitest";
+import type { IntermediateSpec } from "@spec-layer/extractor";
 import { strToU8, zipSync } from "fflate";
-import { selectMarkdownEntries, unzipWithLimits, ZipLimitError } from "./zipImport";
+import {
+  selectSpecArchiveEntries,
+  unzipWithLimits,
+  ZipLimitError,
+} from "./zipImport";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -49,17 +54,37 @@ const NO_FRONTMATTER_MD = `## Definition
 No frontmatter at all — still valid for gray-matter.
 `;
 
+function validSpec(name = "Button"): IntermediateSpec {
+  return {
+    name,
+    figmaKey: "component-key",
+    figmaFile: "file-key",
+    figmaNode: "12:34",
+    anatomy: [],
+    props: [],
+    variants: [],
+    variantInstances: [
+      { nodeId: "12:35", name: "Primary", values: { Type: "Primary" } },
+    ],
+    states: [],
+    tokens: [],
+    related: [],
+    gaps: [],
+    layout: [],
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Keep only .md entries, derive basenames
 // ---------------------------------------------------------------------------
 
-describe("selectMarkdownEntries — basic filtering", () => {
+describe("selectSpecArchiveEntries — basic filtering", () => {
   it("keeps two .md files in a folder, returning basename names", () => {
     const entries: Record<string, Uint8Array> = {
       "design-system/button.md": str(VALID_MD_1),
       "design-system/input.md": str(VALID_MD_2),
     };
-    const { files, skipped } = selectMarkdownEntries(entries);
+    const { files, skipped } = selectSpecArchiveEntries(entries);
     expect(files).toHaveLength(2);
     expect(skipped).toHaveLength(0);
     const names = files.map((f) => f.name).sort();
@@ -73,7 +98,7 @@ describe("selectMarkdownEntries — basic filtering", () => {
       "image.png": str("PNG data"),
       "readme.txt": "text content",
     };
-    const { files, skipped } = selectMarkdownEntries(entries);
+    const { files, skipped } = selectSpecArchiveEntries(entries);
     expect(files).toHaveLength(1);
     expect(skipped).toHaveLength(2);
     const skipNames = skipped.map((s) => s.name).sort();
@@ -88,7 +113,7 @@ describe("selectMarkdownEntries — basic filtering", () => {
       "design-system/": str(""),
       "design-system/button.md": str(VALID_MD_1),
     };
-    const { files, skipped } = selectMarkdownEntries(entries);
+    const { files, skipped } = selectSpecArchiveEntries(entries);
     expect(files).toHaveLength(1);
     // directory entries are silently ignored, not counted as skipped
     expect(skipped).toHaveLength(0);
@@ -132,12 +157,12 @@ describe("unzipWithLimits", () => {
 // Zip-slip / path traversal
 // ---------------------------------------------------------------------------
 
-describe("selectMarkdownEntries — path traversal prevention", () => {
+describe("selectSpecArchiveEntries — path traversal prevention", () => {
   it("strips folder prefix and keeps only basename for nested paths", () => {
     const entries: Record<string, Uint8Array> = {
       "some/deep/path/button.md": str(VALID_MD_1),
     };
-    const { files } = selectMarkdownEntries(entries);
+    const { files } = selectSpecArchiveEntries(entries);
     expect(files).toHaveLength(1);
     // basename only, no path component
     expect(files[0].name).toBe("Button");
@@ -147,7 +172,7 @@ describe("selectMarkdownEntries — path traversal prevention", () => {
     const entries: Record<string, Uint8Array> = {
       "../evil.md": str(VALID_MD_1),
     };
-    const { files } = selectMarkdownEntries(entries);
+    const { files } = selectSpecArchiveEntries(entries);
     // Should still process it but strip to basename "evil" or "Button" from frontmatter
     expect(files).toHaveLength(1);
     // Whatever name is returned, it must NOT contain '..' or path separators
@@ -161,7 +186,7 @@ describe("selectMarkdownEntries — path traversal prevention", () => {
     const entries: Record<string, Uint8Array> = {
       "folder\\button.md": str(VALID_MD_1),
     };
-    const { files } = selectMarkdownEntries(entries);
+    const { files } = selectSpecArchiveEntries(entries);
     expect(files).toHaveLength(1);
   });
 });
@@ -170,12 +195,12 @@ describe("selectMarkdownEntries — path traversal prevention", () => {
 // Content validation
 // ---------------------------------------------------------------------------
 
-describe("selectMarkdownEntries — content validation", () => {
+describe("selectSpecArchiveEntries — content validation", () => {
   it("skips empty/whitespace-only files with a reason", () => {
     const entries: Record<string, string> = {
       "empty.md": EMPTY_FILE,
     };
-    const { files, skipped } = selectMarkdownEntries(entries);
+    const { files, skipped } = selectSpecArchiveEntries(entries);
     expect(files).toHaveLength(0);
     expect(skipped).toHaveLength(1);
     expect(skipped[0].name).toBe("empty.md");
@@ -186,7 +211,7 @@ describe("selectMarkdownEntries — content validation", () => {
     const entries: Record<string, string> = {
       "no-fm.md": NO_FRONTMATTER_MD,
     };
-    const { files, skipped } = selectMarkdownEntries(entries);
+    const { files, skipped } = selectSpecArchiveEntries(entries);
     expect(files).toHaveLength(1);
     expect(skipped).toHaveLength(0);
     // name falls back to filename stem
@@ -200,7 +225,7 @@ describe("selectMarkdownEntries — content validation", () => {
     const entries: Record<string, string> = {
       "empty.md": EMPTY_FILE,
     };
-    const { skipped } = selectMarkdownEntries(entries);
+    const { skipped } = selectSpecArchiveEntries(entries);
     expect(skipped[0].reason).toBeTruthy();
   });
 });
@@ -209,12 +234,12 @@ describe("selectMarkdownEntries — content validation", () => {
 // Frontmatter name extraction
 // ---------------------------------------------------------------------------
 
-describe("selectMarkdownEntries — name derivation", () => {
+describe("selectSpecArchiveEntries — name derivation", () => {
   it("uses frontmatter `name` when present", () => {
     const entries: Record<string, string> = {
       "some-file.md": VALID_MD_1, // frontmatter name: Button
     };
-    const { files } = selectMarkdownEntries(entries);
+    const { files } = selectSpecArchiveEntries(entries);
     expect(files[0].name).toBe("Button");
   });
 
@@ -232,7 +257,7 @@ spec_version: "0.1"
     const entries: Record<string, string> = {
       "icon-button.md": md,
     };
-    const { files } = selectMarkdownEntries(entries);
+    const { files } = selectSpecArchiveEntries(entries);
     expect(files[0].name).toBe("Icon Button");
   });
 
@@ -240,7 +265,7 @@ spec_version: "0.1"
     const entries: Record<string, string> = {
       "my-widget.md": NO_FRONTMATTER_MD,
     };
-    const { files } = selectMarkdownEntries(entries);
+    const { files } = selectSpecArchiveEntries(entries);
     expect(files[0].name).toBe("my-widget");
   });
 
@@ -248,7 +273,7 @@ spec_version: "0.1"
     const entries: Record<string, string> = {
       "BUTTON.MD": VALID_MD_1,
     };
-    const { files } = selectMarkdownEntries(entries);
+    const { files } = selectSpecArchiveEntries(entries);
     expect(files).toHaveLength(1);
   });
 
@@ -256,7 +281,55 @@ spec_version: "0.1"
     const entries: Record<string, Uint8Array> = {
       "button.md": str(VALID_MD_1),
     };
-    const { files } = selectMarkdownEntries(entries);
+    const { files } = selectSpecArchiveEntries(entries);
     expect(files[0].markdown).toContain("## Definition");
+  });
+});
+
+describe("selectSpecArchiveEntries — sidecars", () => {
+  it("pairs .spec-data sidecars with mirrored markdown paths", () => {
+    const spec = validSpec();
+    const result = selectSpecArchiveEntries({
+      "design-system/button.md": VALID_MD_1,
+      ".spec-data/design-system/button.json": JSON.stringify(spec),
+    });
+
+    expect(result.files).toHaveLength(1);
+    expect(result.files[0].name).toBe("Button");
+    expect(result.files[0].markdown).toContain("## Definition");
+    expect(result.files[0].spec).toEqual(spec);
+    expect(result.skipped).toEqual([]);
+  });
+
+  it("keeps markdown and reports invalid paired sidecar without writing spec data", () => {
+    const result = selectSpecArchiveEntries({
+      "design-system/button.md": VALID_MD_1,
+      ".spec-data/design-system/button.json": "{ bad json",
+    });
+
+    expect(result.files).toHaveLength(1);
+    expect(result.files[0].spec).toBeUndefined();
+    expect(result.skipped).toEqual([
+      {
+        name: ".spec-data/design-system/button.json",
+        reason: expect.stringMatching(/sidecar/i),
+      },
+    ]);
+  });
+
+  it("reports unmatched sidecars and imports matching markdown normally", () => {
+    const result = selectSpecArchiveEntries({
+      "design-system/button.md": VALID_MD_1,
+      ".spec-data/design-system/missing.json": JSON.stringify(validSpec("Missing")),
+    });
+
+    expect(result.files).toHaveLength(1);
+    expect(result.files[0].spec).toBeUndefined();
+    expect(result.skipped).toEqual([
+      {
+        name: ".spec-data/design-system/missing.json",
+        reason: "No matching markdown file for sidecar",
+      },
+    ]);
   });
 });
