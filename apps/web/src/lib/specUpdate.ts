@@ -3,6 +3,7 @@ import path from "node:path";
 import { parseFrontmatter, parseMarkdown, serializeFrontmatter } from "@spec-layer/format";
 import { getContentDir } from "./config";
 import { upsertFrontmatterField } from "./content";
+import { JUDGMENT_KEYS, splitSections } from "./markdownSections";
 import { isSafeSlug } from "./specApi";
 import { readSyncReport, writeSyncReport } from "./sync";
 
@@ -29,50 +30,6 @@ export class SpecUpdateError extends Error {
   }
 }
 
-/** Judgment sections kept from the existing file (normalized headings). */
-const JUDGMENT_HEADINGS = new Set([
-  "definition",
-  "code",
-  "accessibility",
-  "do's & don'ts",
-  "dos & don'ts",
-  "dos and don'ts",
-  "do's and don'ts",
-]);
-
-function normalizeHeading(s: string): string {
-  return s
-    .toLowerCase()
-    .trim()
-    .replace(/[‘’‛`]/g, "'")
-    .replace(/\s+/g, " ");
-}
-
-interface RawSection {
-  key: string; // normalized heading
-  block: string; // heading line + body, trimmed at the end
-}
-
-/** Split a markdown body into ordered `## Section` blocks (fence-aware). */
-function splitSections(body: string): RawSection[] {
-  const lines = body.split("\n");
-  const out: RawSection[] = [];
-  let current: RawSection | null = null;
-  let inFence = false;
-  for (const line of lines) {
-    if (/^\s*```/.test(line)) inFence = !inFence;
-    const m = !inFence ? /^##\s+(.+?)\s*$/.exec(line) : null;
-    if (m) {
-      if (current) out.push(current);
-      current = { key: normalizeHeading(m[1]), block: line };
-    } else if (current) {
-      current.block += "\n" + line;
-    }
-  }
-  if (current) out.push(current);
-  return out.map((s) => ({ ...s, block: s.block.trimEnd() }));
-}
-
 /**
  * Merge bodies: take the NEW body's sections in order, but for each judgment
  * section also present in the OLD body, keep the OLD block (human prose).
@@ -80,7 +37,7 @@ function splitSections(body: string): RawSection[] {
 export function mergePreservingJudgment(newBody: string, oldBody: string): string {
   const oldByKey = new Map(splitSections(oldBody).map((s) => [s.key, s.block]));
   const merged = splitSections(newBody).map((s) =>
-    JUDGMENT_HEADINGS.has(s.key) && oldByKey.has(s.key) ? oldByKey.get(s.key)! : s.block,
+    JUDGMENT_KEYS.has(s.key) && oldByKey.has(s.key) ? oldByKey.get(s.key)! : s.block,
   );
   return merged.join("\n\n").trim() + "\n";
 }

@@ -311,7 +311,7 @@ function appendSyncReportLink(refs: Refs, base: string): void {
 // Selection doc-status chip (Selected-component panel).
 // ---------------------------------------------------------------------------
 
-export type DocStatusChipState = 'in-sync' | 'drifted' | 'absent' | 'unavailable';
+export type DocStatusChipState = 'in-sync' | 'drifted' | 'absent' | 'unavailable' | 'sent';
 
 export function hideDocStatusChip(refs: Refs): void {
   refs.docStatusChip.style.display = 'none';
@@ -319,10 +319,22 @@ export function hideDocStatusChip(refs: Refs): void {
   refs.docStatusChip.removeAttribute('aria-label');
 }
 
+/** Append a "Re-check" button (#doc-status-recheck), wired by ui.ts. */
+function appendRecheck(chip: HTMLElement): void {
+  const recheck = document.createElement('button');
+  recheck.id = 'doc-status-recheck';
+  recheck.type = 'button';
+  recheck.className = 'doc-chip-action';
+  recheck.textContent = 'Re-check';
+  chip.appendChild(recheck);
+}
+
 /**
  * Render the chip with icon + text (state conveyed by both, never colour
  * alone) and an aria-label spelling out the meaning. The `drifted` chip carries
- * an "Update docs" button (#doc-status-update) wired to runSendToDocs by ui.ts.
+ * an "Update docs" button (#doc-status-update) wired to runSendToDocs by ui.ts;
+ * `drifted`, `sent`, and `unavailable` also carry a "Re-check" button
+ * (#doc-status-recheck) so the status refreshes without re-extracting.
  */
 export function renderDocStatusChip(refs: Refs, state: DocStatusChipState): void {
   const chip = refs.docStatusChip;
@@ -357,8 +369,20 @@ export function renderDocStatusChip(refs: Refs, state: DocStatusChipState): void
       update.className = 'doc-chip-action';
       update.textContent = 'Update docs';
       chip.appendChild(update);
+      appendRecheck(chip);
       break;
     }
+    case 'sent':
+      dot.textContent = '↗';
+      label.textContent = 'Sent — apply in your inbox';
+      chip.setAttribute(
+        'aria-label',
+        'Sent to docs — apply the update in your inbox, then re-check',
+      );
+      chip.appendChild(dot);
+      chip.appendChild(label);
+      appendRecheck(chip);
+      break;
     case 'absent':
       dot.textContent = '○';
       label.textContent = 'Not in docs yet';
@@ -373,6 +397,7 @@ export function renderDocStatusChip(refs: Refs, state: DocStatusChipState): void
       chip.setAttribute('aria-label', 'Doc status unavailable');
       chip.appendChild(dot);
       chip.appendChild(label);
+      appendRecheck(chip);
       break;
   }
 }

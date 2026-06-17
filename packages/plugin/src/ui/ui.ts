@@ -21,6 +21,7 @@ import {
   runSendToDocs,
   runExportAll,
   runCheckSync,
+  runSelectionStatus,
   handleExportAllScanning,
   handleExportAllStart,
   handleExportComponent,
@@ -35,6 +36,7 @@ import {
   switchTab,
   clearBanners,
   showBanner,
+  renderDocStatusChip,
 } from './render';
 
 // ---------------------------------------------------------------------------
@@ -76,13 +78,37 @@ refs.specTextarea.addEventListener('input', () => {
 refs.exportAllBtn.addEventListener('click', () => runExportAll(refs, state));
 refs.checkSyncBtn.addEventListener('click', () => runCheckSync(refs, state));
 
-// The drifted doc-status chip renders an "Update docs" button (#doc-status-update)
-// dynamically; delegate its click to the existing send flow.
+// The doc-status chip renders its action buttons dynamically; delegate them.
+//  - "Update docs"  → send the re-extraction to docs, then show the transitional
+//    "Sent — apply in your inbox" state (the saved spec only flips to in-sync
+//    once the update is applied on the docs side).
+//  - "Re-check"     → re-query /api/sync/lookup so the chip reflects the docs
+//    side without re-extracting or restarting the plugin.
 refs.docStatusChip.addEventListener('click', (e) => {
   const target = e.target as HTMLElement | null;
   if (target?.id === 'doc-status-update') {
-    runSendToDocs(refs, state).catch(() => { /* handled inside */ });
+    runSendToDocs(refs, state)
+      .then((ok) => { if (ok) renderDocStatusChip(refs, 'sent'); })
+      .catch(() => { /* handled inside */ });
+  } else if (target?.id === 'doc-status-recheck') {
+    runSelectionStatus(refs, state).catch(() => { /* best-effort */ });
   }
+});
+
+// Self-heal the chip when the designer returns to Figma after updating on the
+// docs side: re-checking on focus/visibility flips a stale "Out of date" to
+// "In sync" without a manual re-check or a plugin restart. Best-effort and
+// debounced; runSelectionStatus no-ops until a spec has been extracted.
+let recheckTimer: ReturnType<typeof setTimeout> | undefined;
+function recheckDocStatusSoon(): void {
+  if (recheckTimer) clearTimeout(recheckTimer);
+  recheckTimer = setTimeout(() => {
+    runSelectionStatus(refs, state).catch(() => { /* best-effort */ });
+  }, 250);
+}
+window.addEventListener('focus', recheckDocStatusSoon);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') recheckDocStatusSoon();
 });
 
 // ---------------------------------------------------------------------------

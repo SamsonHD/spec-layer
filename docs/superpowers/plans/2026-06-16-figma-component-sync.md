@@ -36,6 +36,13 @@ Implemented as Tasks 9–10 below. Status checklist:
 
 **Still open (future, not in this milestone):** import the `new-in-figma` candidates straight into the inbox; Enterprise server-side checks via the Variables API; sidebar drift dots. A manual resolve-loop smoke test against a real Figma file still wants a human pass (the automated suite covers the merge/route/UI units).
 
+#### Post-Milestone-2 UX follow-ups (shipped)
+
+From dogfeeding feedback:
+
+- **Stale plugin chip.** The doc-status chip was a one-shot lookup, so it kept saying "Out of date" after the docs side was updated until the plugin restarted. Fixed: the chip now re-checks `/api/sync/lookup` when the plugin window regains focus/visibility (debounced) and via an explicit **Re-check** button, and shows a transitional **Sent — apply in your inbox** state after **Update docs** (the saved spec only flips to in-sync once the update is actually applied, which the focus re-check then reflects). `runSendToDocs` now returns success so the chip can transition. Files: `packages/plugin/src/ui/{actions,render,ui,dom}.ts`.
+- **See what changed.** `lib/specDiff.ts` (`diffSpecBodies`, LCS line diff over the deterministic sections only) + `components/SpecChanges.tsx` render a collapsible **What changed in Figma** diff on the drifted component page, fed by the waiting inbox re-extraction. A shared `lib/markdownSections.ts` splitter now backs both the merge and the diff (de-duped from `specUpdate.ts`). Tests: `specDiff.test.ts`, `SpecChanges.test.tsx`.
+
 Scope decisions for this pass (documented so they're intentional, not accidental):
 - The web app cannot re-extract from Figma (the whole premise is plugin-driven, hash-parity — see *Why plugin-driven*). So "Update from Figma" is genuinely one-click **only when a re-extracted inbox draft already exists**; otherwise the surfaces keep the guidance copy ("Re-extract in the Figma plugin and send to docs").
 - The section-preserving merge preserves the four judgment sections plus the existing file's `status`, `approved_by`, and any top-level `name:` rename; everything else (deterministic sections, `content_hash`, `extracted_at`, `component.*`) comes from the re-extraction.

@@ -488,6 +488,35 @@ button.btn-link { cursor: pointer; font-family: var(--sans); }
 .sync-row-hint { font-size: 12px; color: var(--text-muted); flex-basis: 100%; }
 .sync-insync summary { cursor: pointer; font-size: 13px; font-weight: 600; }
 
+/* ---------- Spec changes (drift diff) ---------- */
+.spec-changes {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  margin-bottom: 20px;
+  font-size: 13px;
+}
+.spec-changes > summary { cursor: pointer; font-weight: 600; }
+.spec-changes-summary { color: var(--text-muted); font-weight: 400; }
+.spec-changes-note { color: var(--text-muted); font-size: 12px; margin: 8px 0; }
+.spec-changes-section { margin-top: 10px; }
+.spec-changes-section h4 { margin: 0 0 4px; font-size: 13px; }
+.spec-changes-tag {
+  font-size: 11px; font-weight: 600; border-radius: 4px; padding: 1px 6px; margin-left: 4px;
+}
+.spec-changes-tag.added { background: var(--status-approved-bg); color: var(--status-approved-text); }
+.spec-changes-tag.removed { background: var(--warn-surface); color: var(--warn-text); }
+.spec-changes-tag.changed { background: var(--accent-soft); color: var(--accent); }
+.spec-changes-diff {
+  margin: 0; padding: 8px 10px; border-radius: var(--radius-sm);
+  background: var(--bg-subtle); overflow-x: auto;
+  font-family: var(--mono); font-size: 12px; line-height: 1.5; white-space: pre;
+}
+.diff-line { display: block; }
+.diff-add { background: rgba(46, 160, 67, 0.15); color: var(--status-approved-text); }
+.diff-del { background: rgba(248, 81, 73, 0.15); color: var(--warn-text); }
+.diff-context { color: var(--text-muted); }
+
 /* ---------- Gaps modal ---------- */
 .gaps-modal-overlay {
   position: fixed;

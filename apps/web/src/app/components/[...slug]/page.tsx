@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getDoc } from "@/lib/content";
 import { getAllDocs } from "@/lib/contentCache";
 import { getSpecSyncStatus } from "@/lib/sync";
+import { diffSpecBodies, type SpecDiff } from "@/lib/specDiff";
 import { formatRelative } from "@/lib/relativeTime";
 import { readStoredSpec } from "@/lib/specWriter";
 import { readCachedDrafts } from "@/lib/aiDraftCache";
@@ -12,6 +13,7 @@ import FigmaSection from "@/components/FigmaSection";
 import ComponentTabs from "@/components/ComponentTabs";
 import GapsAlert from "@/components/GapsAlert";
 import SyncAlert from "@/components/SyncAlert";
+import SpecChanges from "@/components/SpecChanges";
 
 // Read the content repo live on each request so edits/new files show up
 // without a rebuild (the "live backend" model).
@@ -43,10 +45,15 @@ export default async function ComponentPage({ params }: { params: Promise<{ slug
   // A waiting inbox re-extraction (matched by figma_key) enables a one-click
   // Update from the drift banner; otherwise the banner points at the plugin.
   let updateSource: string[] | undefined;
+  let specChanges: SpecDiff | null = null;
   if (sync?.status === "drifted" && fm.figmaKey) {
-    updateSource = getAllDocs().find(
+    const draft = getAllDocs().find(
       (d) => d.slug[0] === "_inbox" && d.frontmatter.figmaKey === fm.figmaKey,
-    )?.slug;
+    );
+    updateSource = draft?.slug;
+    // Diff the saved spec against the waiting re-extraction so the reviewer can
+    // see what Figma changed before applying the update.
+    if (draft) specChanges = diffSpecBodies(body, draft.body);
   }
 
   // JSON sidecar (preferred source for the Specs tab); null for legacy docs.
@@ -114,6 +121,8 @@ export default async function ComponentPage({ params }: { params: Promise<{ slug
           slug={slug}
           updateSource={updateSource}
         />
+
+        {specChanges && <SpecChanges diff={specChanges} />}
 
         <GapsAlert
           missingRequired={missingRequired}

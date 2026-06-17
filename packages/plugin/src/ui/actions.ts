@@ -524,8 +524,8 @@ export function buildSingleExportBundle(
 // Send to docs — optional, guarded by canSendToDocs + a real file key.
 // ---------------------------------------------------------------------------
 
-export async function runSendToDocs(refs: Refs, state: UiState): Promise<void> {
-  if (!state.currentSpec) return;
+export async function runSendToDocs(refs: Refs, state: UiState): Promise<boolean> {
+  if (!state.currentSpec) return false;
 
   // Guard: figma.fileKey is the only automatic source for the file key.
   // When the file is unsaved/dev or detection failed, effectiveFileKey returns
@@ -536,7 +536,7 @@ export async function runSendToDocs(refs: Refs, state: UiState): Promise<void> {
     showBanner(refs, 'error', guard.reason ?? 'No Figma file detected — paste the file URL below.');
     showInlineFileKeyPrompt(refs, true);
     refs.inlineFileKeyInput.focus();
-    return;
+    return false;
   }
 
   const base = state.docsEndpoint.replace(/\/+$/, '');
@@ -555,7 +555,7 @@ export async function runSendToDocs(refs: Refs, state: UiState): Promise<void> {
     if (!res.ok) {
       const text = await res.text().catch(() => res.statusText);
       showBanner(refs, 'error', `Send failed (${res.status}): ${text}`);
-      return;
+      return false;
     }
 
     const data = await res.json() as { ok: boolean; path?: string; slug?: string; warning?: string };
@@ -571,9 +571,11 @@ export async function runSendToDocs(refs: Refs, state: UiState): Promise<void> {
       ? `${base}/components/_inbox/${slug}`
       : `${base}/inbox`;
     send({ type: 'openBrowser', url: browserUrl });
+    return true;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     showBanner(refs, 'error', `Send failed: ${msg}`);
+    return false;
   } finally {
     refs.sendBtn.disabled = false;
   }

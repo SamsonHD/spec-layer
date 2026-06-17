@@ -202,11 +202,13 @@ const TEMPLATE = `
     .doc-chip-dot { font-size: 10px; }
     .doc-chip-in-sync { color: var(--figma-color-bg-success); border-color: var(--figma-color-bg-success); }
     .doc-chip-drifted { color: var(--figma-color-bg-danger); border-color: var(--figma-color-bg-danger); }
+    .doc-chip-sent { color: var(--figma-color-text); border-color: var(--figma-color-border); }
     .doc-chip-action {
       appearance: none; border: none; background: none; cursor: pointer;
       font-size: 10px; font-weight: 600; padding: 0 0 0 4px;
       color: var(--figma-color-bg-brand); text-decoration: underline;
     }
+    .doc-chip-action + .doc-chip-action { padding-left: 8px; }
   </style>
 
   <div class="tabs" role="tablist">
