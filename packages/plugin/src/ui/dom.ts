@@ -223,13 +223,13 @@ const TEMPLATE = `
 
         <div id="review-area" style="display:none; margin-top:14px">
           <p class="hint" style="margin-top:0">
-            Review the spec. Edits here only affect the downloaded .md.
+            Review the spec. Edits here only affect the Markdown inside the downloaded bundle.
           </p>
           <textarea id="spec-textarea" spellcheck="false"></textarea>
 
           <div class="row" style="margin-top:10px">
             <button class="btn btn-primary" id="send-btn">Send to docs</button>
-            <button class="btn btn-secondary" id="download-btn">Download .md</button>
+            <button class="btn btn-secondary" id="download-btn">Download</button>
           </div>
 
           <!-- Send-time prompt: only revealed when the Figma file key can't be
