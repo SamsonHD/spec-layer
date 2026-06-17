@@ -244,7 +244,7 @@ export default function InboxWorkspace({
           </button>
           <button
             type="button"
-            className="btn-secondary inbox-bulk-delete"
+            className="btn-secondary inbox-danger"
             onClick={onBulkDelete}
             disabled={busy || selectedCount === 0}
           >

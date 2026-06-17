@@ -61,7 +61,8 @@ describe("InboxComponentList", () => {
     expect(html).toContain('href="/components/_inbox/forms/input"');
     expect(html.match(/>Open</g)?.length).toBe(2);
     expect(html.match(/>Save</g)?.length).toBe(2);
-    expect(html.match(/inbox-delete-item/g)?.length).toBe(2);
+    expect(html.match(/inbox-danger/g)?.length).toBe(2);
+    expect(html).toContain(">Delete<");
   });
 
   it("marks selected rows and renders a checked select-all box when all are selected", () => {

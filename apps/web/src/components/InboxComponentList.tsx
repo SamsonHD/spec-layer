@@ -118,12 +118,12 @@ export default function InboxComponentList({
                 </td>
                 <td data-label="Actions" className="inbox-col-actions">
                   <div className="inbox-item-actions">
-                    <Link className="btn-link inbox-open-item" href={href}>
+                    <Link className="btn-link" href={href}>
                       Open
                     </Link>
                     <button
                       type="button"
-                      className="btn-primary inbox-save-item"
+                      className="btn-primary"
                       onClick={() => onRowSave(item)}
                       disabled={disabled}
                     >
@@ -131,7 +131,7 @@ export default function InboxComponentList({
                     </button>
                     <button
                       type="button"
-                      className="inbox-delete-item"
+                      className="btn-secondary inbox-danger"
                       onClick={() => onRowDelete(item)}
                       disabled={disabled}
                     >

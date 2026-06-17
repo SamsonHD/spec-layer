@@ -776,7 +776,8 @@ button.btn-link { cursor: pointer; font-family: var(--sans); }
 }
 
 /* ---------- Inbox ---------- */
-.inbox-page { max-width: 1120px; }
+/* Inbox shares the standard content width so its side gutters line up with
+   every other page (max-width comes from .content-inner). */
 .inbox-head { margin-bottom: 24px; }
 .inbox-title-row { display: flex; align-items: center; gap: 12px; }
 .inbox-title-row h1 { margin: 0; letter-spacing: -0.03em; font-size: 30px; }
@@ -843,8 +844,8 @@ button.btn-link { cursor: pointer; font-family: var(--sans); }
 }
 .inbox-search input:focus,
 .inbox-destination input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.inbox-bulk-delete { color: var(--danger-text); border-color: var(--danger-border); }
-.inbox-bulk-delete:not(:disabled):hover { color: var(--danger-text); border-color: var(--danger-border); background: var(--danger-surface); }
+.inbox-danger { color: var(--danger-text); border-color: var(--danger-border); }
+.inbox-danger:not(:disabled):hover { color: var(--danger-text); border-color: var(--danger-border); background: var(--danger-surface); }
 .inbox-selection-status {
   display: flex;
   align-items: center;
@@ -925,20 +926,6 @@ button.btn-link { cursor: pointer; font-family: var(--sans); }
 .inbox-status-ready { background: var(--status-approved-bg); color: var(--status-approved-text); }
 .inbox-status-attention { background: var(--status-draft-bg); color: var(--status-draft-text); }
 .inbox-item-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
-.inbox-open-item { padding: 5px 10px; }
-.inbox-save-item { padding: 6px 11px; }
-.inbox-delete-item {
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  padding: 5px 8px;
-  color: var(--danger-text);
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
-}
-.inbox-delete-item:hover { border-color: var(--danger-border); background: var(--danger-surface); }
-.inbox-delete-item:disabled { opacity: 0.5; cursor: default; }
 .inbox-list-empty { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 48px 22px; color: var(--text-muted); }
 .inbox-list-empty strong { color: var(--text); font-size: 14px; }
 .inbox-list-empty span { font-size: 13px; }
