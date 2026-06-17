@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getContentDir } from "@/lib/config";
 import { setKeys, getKeyStatus } from "@/lib/settings";
 import { authorizeApiRequest, corsHeaders } from "@/lib/specApi";
+import { validateJsonMutationRequest } from "@/lib/requestSecurity";
 
 export const dynamic = "force-dynamic";
+const MAX_SETTINGS_BYTES = 16 * 1024;
 
 export function OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req) });
@@ -30,9 +32,14 @@ interface SettingsBody {
 
 /** POST /api/settings — saves provided keys, returns updated boolean key presence. */
 export async function POST(req: NextRequest) {
-  const access = authorizeApiRequest(req);
-  if (access.response) return access.response;
-  const { headers } = access;
+  const headers = corsHeaders(req);
+  const mutationError = validateJsonMutationRequest(req, MAX_SETTINGS_BYTES);
+  if (mutationError) {
+    return NextResponse.json(
+      { error: mutationError.error },
+      { status: mutationError.status, headers },
+    );
+  }
 
   let body: SettingsBody;
   try {
