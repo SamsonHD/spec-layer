@@ -23,7 +23,12 @@ import {
   renderExportDone,
   showInlineFileKeyPrompt,
 } from './render';
-import { buildExportFiles, zipFiles } from '../exportFiles';
+import {
+  buildExportFiles,
+  buildSingleExportFiles,
+  zipFiles,
+  type ExportItem,
+} from '../exportFiles';
 import type { FileKeySource } from '../fileKey';
 
 // ---------------------------------------------------------------------------
@@ -40,8 +45,10 @@ export interface UiState {
   currentExtractedAt: string;
   renderedMd: string;
   docsEndpoint: string;
-  // Export-all accumulator
-  exportItems: Array<{ name: string; markdown: string }>;
+  // Export-all accumulator. Carries the structured `spec` (not just markdown)
+  // so the zip can emit the `.spec-data` sidecars that power the docs variant
+  // grid — matching what "Send to docs" persists.
+  exportItems: ExportItem[];
   exportFileKey: string;
   exportTotal: number;
   exportSkippedAtoms: number;
@@ -202,18 +209,7 @@ export function handleExportAllDone(refs: Refs, state: UiState): void {
 
   const files = buildExportFiles(state.exportItems, folderName);
   const zipped = zipFiles(files);
-  // Copy into a plain ArrayBuffer to satisfy Blob constructor typings when
-  // fflate's result carries ArrayBufferLike (may include SharedArrayBuffer).
-  const zipBuffer: ArrayBuffer = zipped.buffer instanceof ArrayBuffer
-    ? zipped.buffer.slice(zipped.byteOffset, zipped.byteOffset + zipped.byteLength) as ArrayBuffer
-    : new Uint8Array(zipped).buffer as ArrayBuffer;
-  const blob = new Blob([zipBuffer], { type: 'application/zip' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${folderName}.zip`;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadBytes(zipped, `${folderName}.zip`, 'application/zip');
 
   renderExportDone(
     refs,
@@ -231,21 +227,52 @@ export function handleExportAllError(refs: Refs, state: UiState, message: string
   refs.exportAllBtn.disabled = false;
 }
 
-// ---------------------------------------------------------------------------
-// Download — local Blob; works with no docs endpoint and no network.
-// ---------------------------------------------------------------------------
-
-export function runDownload(refs: Refs, state: UiState): void {
-  const content = refs.specTextarea.value;
-  const name = state.currentNode?.name ?? 'component';
-  const filename = toKebab(name) + '.md';
-  const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+function downloadBytes(bytes: Uint8Array, filename: string, type: string): void {
+  // Copy into a plain ArrayBuffer to satisfy Blob constructor typings when
+  // fflate's result carries ArrayBufferLike (may include SharedArrayBuffer).
+  const zipped = bytes;
+  const zipBuffer: ArrayBuffer = zipped.buffer instanceof ArrayBuffer
+    ? zipped.buffer.slice(zipped.byteOffset, zipped.byteOffset + zipped.byteLength) as ArrayBuffer
+    : new Uint8Array(zipped).buffer as ArrayBuffer;
+  const blob = new Blob([zipBuffer], { type });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// ---------------------------------------------------------------------------
+// Download — local Blob; works with no docs endpoint and no network.
+// ---------------------------------------------------------------------------
+
+export function runDownload(refs: Refs, state: UiState): void {
+  if (!state.currentSpec) {
+    showBanner(refs, 'error', 'Extract a spec first to download.');
+    return;
+  }
+
+  const bundle = buildSingleExportBundle(
+    refs.specTextarea.value,
+    state.currentSpec,
+    state.currentNode?.name ?? 'component',
+  );
+  downloadBytes(bundle.bytes, bundle.filename, 'application/zip');
+}
+
+export function buildSingleExportBundle(
+  markdown: string,
+  spec: IntermediateSpec,
+  fallbackName = 'component',
+): { filename: string; bytes: Uint8Array } {
+  const name = spec.name || fallbackName;
+  const slug = toKebab(name).replace(/^-+|-+$/g, '') || 'component';
+  const files = buildSingleExportFiles({ name, markdown, spec });
+  return {
+    filename: `${slug}.spec-layer.zip`,
+    bytes: zipFiles(files),
+  };
 }
 
 // ---------------------------------------------------------------------------

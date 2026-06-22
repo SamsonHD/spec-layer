@@ -12,24 +12,50 @@
  */
 
 import { zipSync, strToU8 } from 'fflate';
+import type { IntermediateSpec } from '@spec-layer/extractor';
 import { toKebab } from './ui/state';
+
+export interface ExportItem {
+  name: string;
+  markdown: string;
+  /**
+   * The structured extraction. When present, a `.spec-data/<path>.json` sidecar
+   * is emitted alongside the markdown — this is what powers the docs site's
+   * interactive Variants grid, Anatomy, and Properties tables. Omitting it
+   * (legacy/raw markdown) writes the `.md` only.
+   */
+  spec?: IntermediateSpec;
+}
 
 // ---------------------------------------------------------------------------
 // buildExportFiles
 // ---------------------------------------------------------------------------
 
 /**
- * Convert an array of components to a path → markdown record.
+ * Convert an array of components to a path → content record ready to zip.
+ *
+ * For each item this emits:
+ *   - "<folder>/<slug>.md"               → the rendered markdown
+ *   - ".spec-data/<folder>/<slug>.json"  → the IntermediateSpec (when present)
+ *
+ * The `.spec-data` layout mirrors exactly what "Send to docs" persists on the
+ * server (`writeInboxSpec(name, md, { spec })`), so extracting the archive into
+ * the docs content directory reproduces the same rendering — including the
+ * per-variant grid that lives in `spec.variantInstances` and never appears in
+ * the markdown. Without the sidecar the docs fall back to markdown-only and the
+ * variant grid is empty, which is the bug this export path used to exhibit.
  *
  * - Names are kebab-cased via toKebab().
  * - If a name kebabs to empty, the fallback "component" is used.
  * - Collisions are resolved by appending -2, -3, … (first occurrence keeps no
  *   suffix); the candidate is also re-checked against already-emitted paths so a
- *   literal "card-2" can't silently overwrite the suffixed form of "card".
+ *   literal "card-2" can't silently overwrite the suffixed form of "card". The
+ *   resolved slug is shared between the `.md` and its `.json` sidecar so the two
+ *   stay in lockstep.
  * - folder is prepended as "<folder>/" when non-empty.
  */
 export function buildExportFiles(
-  items: Array<{ name: string; markdown: string }>,
+  items: ExportItem[],
   folder: string,
 ): Record<string, string> {
   const result: Record<string, string> = {};
@@ -45,21 +71,38 @@ export function buildExportFiles(
     // candidate is taken — this covers the edge where a literal name like
     // "card-2" collides with the suffixed form of a duplicate "card".
     let n = (seen.get(slug) ?? 0) + 1;
-    const pathFor = (suffix: string) => {
+    const mdPathFor = (suffix: string) => {
       const filename = slug + suffix + '.md';
       return folder ? `${folder}/${filename}` : filename;
     };
-    let path = pathFor(n === 1 ? '' : `-${n}`);
+    let suffix = n === 1 ? '' : `-${n}`;
+    let path = mdPathFor(suffix);
     while (result[path] !== undefined) {
       n += 1;
-      path = pathFor(`-${n}`);
+      suffix = `-${n}`;
+      path = mdPathFor(suffix);
     }
     seen.set(slug, n);
 
     result[path] = item.markdown;
+
+    // Sidecar uses the same resolved slug under a sibling ".spec-data" tree, so
+    // it can never collide with a ".md" path; lockstep slugging keeps it paired
+    // with its markdown even across name collisions.
+    if (item.spec) {
+      const sidecarName = slug + suffix + '.json';
+      const sidecarPath = folder
+        ? `.spec-data/${folder}/${sidecarName}`
+        : `.spec-data/${sidecarName}`;
+      result[sidecarPath] = JSON.stringify(item.spec, null, 2);
+    }
   }
 
   return result;
+}
+
+export function buildSingleExportFiles(item: ExportItem): Record<string, string> {
+  return buildExportFiles([item], '');
 }
 
 // ---------------------------------------------------------------------------

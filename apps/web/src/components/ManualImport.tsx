@@ -19,6 +19,21 @@ interface ZipUploadResponse {
   error?: string;
 }
 
+interface ImportRouter {
+  push(href: string): void;
+  refresh(): void;
+}
+
+export function navigateToInboxAfterImport(
+  router: ImportRouter,
+  schedule: (callback: () => void) => void = (callback) => {
+    window.setTimeout(callback, 0);
+  },
+) {
+  router.push("/inbox");
+  schedule(() => router.refresh());
+}
+
 export default function ManualImport({ onImported }: { onImported?: () => void }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
