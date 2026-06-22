@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Reject commits that contain known secret patterns.
+set -euo pipefail
+
+PATTERNS=(
+  'sk-ant-api[0-9A-Za-z_-]{20,}'   # Anthropic API key
+  'figd_[0-9A-Za-z_-]{20,}'         # Figma personal access token
+  'AKIA[A-Z0-9]{16}'                # AWS access key
+  'ghp_[A-Za-z0-9]{36}'            # GitHub personal access token (classic)
+  'github_pat_[A-Za-z0-9_]{82}'    # GitHub fine-grained PAT
+)
+
+STAGED=$(git diff --cached --name-only)
+if [ -z "$STAGED" ]; then
+  exit 0
+fi
+
+FOUND=0
+for pattern in "${PATTERNS[@]}"; do
+  matches=$(git diff --cached -U0 | grep '^+' | grep -v '^+++' | grep -E "$pattern" || true)
+  if [ -n "$matches" ]; then
+    echo "ERROR: Possible secret detected in staged changes (pattern: $pattern):"
+    echo "$matches" | head -5
+    FOUND=1
+  fi
+done
+
+if [ "$FOUND" -eq 1 ]; then
+  echo ""
+  echo "Commit blocked. Remove the secret before committing."
+  echo "If this is a false positive, use: git commit --no-verify"
+  exit 1
+fi
