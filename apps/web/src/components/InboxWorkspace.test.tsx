@@ -12,25 +12,36 @@ const items = [
   {
     name: "Button",
     slug: ["_inbox", "button"],
+    source: "figma" as const,
     issueCount: 0,
     missingRequiredCount: 0,
   },
 ];
 
 describe("InboxWorkspace", () => {
-  it("renders one destination field and the reorganized bulk actions without metrics", () => {
+  it("renders the top action row with search, destination, and selection-driven bulk actions", () => {
     const html = renderToStaticMarkup(
       <InboxWorkspace items={items} folderOptions={["Forms"]} />,
     );
 
-    expect(html).toContain("Destination folder");
+    expect(html).toContain('type="search"');
+    expect(html).toContain('aria-label="Destination folder"');
     expect(html).toContain('value="Components"');
     expect(html).toContain('value="Forms"');
-    expect(html).toContain("Fill Guidelines with AI");
-    expect(html).toContain("Save All");
-    expect(html).toContain("Clear All");
-    expect(html).not.toContain("Imported</dt>");
-    expect(html).not.toContain("With issues");
-    expect(html).not.toContain("Missing required");
+    expect(html).toContain("Add guidelines");
+    expect(html).toContain(">Save<");
+    expect(html).toContain(">Delete<");
+    // Single header only — no "Imported components" sub-heading.
+    expect(html).not.toContain("<h2");
+  });
+
+  it("disables bulk actions and prompts to select when nothing is selected", () => {
+    const html = renderToStaticMarkup(
+      <InboxWorkspace items={items} folderOptions={[]} />,
+    );
+
+    expect(html).toContain("Select components to enable bulk actions.");
+    // All three bulk buttons start disabled.
+    expect(html.match(/disabled=""/g)?.length).toBeGreaterThanOrEqual(3);
   });
 });

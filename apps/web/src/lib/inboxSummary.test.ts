@@ -6,11 +6,14 @@ function doc(
   name: string,
   missingRequired: string[] = [],
   issues: string[] = [],
+  figma = true,
 ): ComponentDoc {
   return {
     slug: ["_inbox", name.toLowerCase()],
     filePath: "",
-    frontmatter: { name },
+    frontmatter: figma
+      ? { name, figmaRef: { fileKey: "FILE", nodeId: "1:2" } }
+      : { name },
     body: "",
     updated: null,
     sections: [],
@@ -21,12 +24,12 @@ function doc(
 }
 
 describe("summarizeInbox", () => {
-  it("counts affected components and sorts the compact item list", () => {
+  it("counts affected components, marks the source, and sorts the item list", () => {
     expect(
       summarizeInbox([
         doc("Button", ["Accessibility"], ["Invalid token"]),
         doc("Input", ["Definition", "Usage"]),
-        doc("Badge"),
+        doc("Badge", [], [], false),
       ]),
     ).toEqual({
       total: 3,
@@ -36,18 +39,21 @@ describe("summarizeInbox", () => {
         {
           name: "Badge",
           slug: ["_inbox", "badge"],
+          source: "local",
           issueCount: 0,
           missingRequiredCount: 0,
         },
         {
           name: "Button",
           slug: ["_inbox", "button"],
+          source: "figma",
           issueCount: 1,
           missingRequiredCount: 1,
         },
         {
           name: "Input",
           slug: ["_inbox", "input"],
+          source: "figma",
           issueCount: 0,
           missingRequiredCount: 2,
         },

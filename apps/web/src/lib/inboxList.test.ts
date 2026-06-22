@@ -5,18 +5,21 @@ const items = [
   {
     name: "Action Bar",
     slug: ["_inbox", "action-bar"],
+    source: "figma" as const,
     issueCount: 0,
     missingRequiredCount: 0,
   },
   {
     name: "Button",
     slug: ["_inbox", "button-primary"],
+    source: "figma" as const,
     issueCount: 1,
     missingRequiredCount: 0,
   },
   {
     name: "Text Field",
     slug: ["_inbox", "form", "text-field"],
+    source: "local" as const,
     issueCount: 0,
     missingRequiredCount: 2,
   },

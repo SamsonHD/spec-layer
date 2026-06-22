@@ -1,8 +1,11 @@
 import type { ComponentDoc } from "./content";
 
+export type InboxSource = "figma" | "local";
+
 export interface InboxSummaryItem {
   name: string;
   slug: string[];
+  source: InboxSource;
   issueCount: number;
   missingRequiredCount: number;
 }
@@ -24,9 +27,11 @@ export function summarizeInbox(docs: ComponentDoc[]): InboxSummary {
     withIssues: docs.filter((doc) => doc.issues.length > 0).length,
     missingRequired: docs.filter((doc) => doc.missingRequired.length > 0).length,
     items: docs
-      .map((doc) => ({
+      .map((doc): InboxSummaryItem => ({
         name: doc.frontmatter.name,
         slug: doc.slug,
+        source:
+          doc.frontmatter.figmaRef || doc.frontmatter.figma ? "figma" : "local",
         issueCount: doc.issues.length,
         missingRequiredCount: doc.missingRequired.length,
       }))
