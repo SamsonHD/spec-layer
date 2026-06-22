@@ -48,3 +48,28 @@ export function validateJsonMutationRequest(
 
   return null;
 }
+
+/**
+ * Like validateJsonMutationRequest, but when an Origin header is present it must
+ * match the request host. Opaque/null and cross-origin callers are rejected.
+ * Use for browser-only mutations (e.g. settings) that must not accept the
+ * Figma plugin's Origin: null allowance.
+ */
+export function validateBrowserJsonMutationRequest(
+  req: NextRequest,
+  maxBytes?: number,
+): MutationRequestError | null {
+  const jsonError = validateJsonMutationRequest(req, maxBytes);
+  if (jsonError) return jsonError;
+
+  const origin = req.headers.get("origin");
+  if (!origin) return null;
+
+  const requestUrl = new URL(req.url);
+  const host = req.headers.get("host") ?? requestUrl.host;
+  if (origin !== `${requestUrl.protocol}//${host}`) {
+    return { error: "Origin not allowed", status: 403 };
+  }
+
+  return null;
+}

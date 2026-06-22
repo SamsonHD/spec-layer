@@ -116,6 +116,27 @@ describe("POST /api/settings", () => {
     expect(fs.existsSync(configPath)).toBe(false);
   });
 
+  it("rejects a non-string figma key without writing settings", async () => {
+    const response = await POST(request(JSON.stringify({ figma: 42 })));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "'figma' must be a string",
+    });
+    expect(fs.existsSync(configPath)).toBe(false);
+  });
+
+  it("returns a CORS-readable 400 for invalid JSON", async () => {
+    const response = await POST(request("{"));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid JSON body" });
+    expect(response.headers.get("access-control-allow-origin")).toBe(
+      "http://localhost:3000",
+    );
+    expect(fs.existsSync(configPath)).toBe(false);
+  });
+
   it("rejects a non-local Host without writing settings", async () => {
     const response = await POST(
       request(JSON.stringify({ figma: "figd-test" }), {
@@ -131,6 +152,18 @@ describe("POST /api/settings", () => {
     expect(fs.existsSync(configPath)).toBe(false);
   });
 
+  it("rejects the Figma plugin's opaque null origin without writing settings", async () => {
+    const response = await POST(
+      request(JSON.stringify({ figma: "figd-test" }), { origin: "null" }),
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: "Origin not allowed",
+    });
+    expect(fs.existsSync(configPath)).toBe(false);
+  });
+
   it("rejects a non-JSON content type without writing settings", async () => {
     const response = await POST(
       request(JSON.stringify({ anthropic: "sk-ant-test" }), {
@@ -139,6 +172,9 @@ describe("POST /api/settings", () => {
     );
 
     expect(response.status).toBe(415);
+    await expect(response.json()).resolves.toEqual({
+      error: "Content-Type must be application/json",
+    });
     expect(fs.existsSync(configPath)).toBe(false);
   });
 
@@ -150,6 +186,9 @@ describe("POST /api/settings", () => {
     );
 
     expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toEqual({
+      error: "Request body exceeds 16384 bytes",
+    });
     expect(fs.existsSync(configPath)).toBe(false);
   });
 });

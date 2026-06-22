@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getContentDir } from "@/lib/config";
 import { setKeys, getKeyStatus } from "@/lib/settings";
 import { authorizeApiRequest, corsHeaders } from "@/lib/specApi";
-import { validateJsonMutationRequest } from "@/lib/requestSecurity";
+import { validateBrowserJsonMutationRequest } from "@/lib/requestSecurity";
 
 export const dynamic = "force-dynamic";
 const MAX_SETTINGS_BYTES = 16 * 1024;
@@ -33,7 +33,7 @@ interface SettingsBody {
 /** POST /api/settings — saves provided keys, returns updated boolean key presence. */
 export async function POST(req: NextRequest) {
   const headers = corsHeaders(req);
-  const mutationError = validateJsonMutationRequest(req, MAX_SETTINGS_BYTES);
+  const mutationError = validateBrowserJsonMutationRequest(req, MAX_SETTINGS_BYTES);
   if (mutationError) {
     return NextResponse.json(
       { error: mutationError.error },
