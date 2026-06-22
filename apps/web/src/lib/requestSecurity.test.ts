@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
 import {
+  validateBrowserJsonMutationRequest,
   validateJsonMutationRequest,
   validateSameOriginRequest,
 } from "./requestSecurity";
@@ -116,6 +117,32 @@ describe("validateJsonMutationRequest", () => {
         request({ origin: "https://evil.example", contentLength: String(99_999) }),
         1024,
       ),
+    ).toEqual({ error: "Origin not allowed", status: 403 });
+  });
+});
+
+describe("validateBrowserJsonMutationRequest", () => {
+  it("passes a same-origin JSON request", () => {
+    expect(validateBrowserJsonMutationRequest(request())).toBeNull();
+  });
+
+  it("passes when no Origin header is present", () => {
+    expect(
+      validateBrowserJsonMutationRequest(request({ origin: null })),
+    ).toBeNull();
+  });
+
+  it("rejects the Figma plugin's opaque null origin", () => {
+    expect(
+      validateBrowserJsonMutationRequest(request({ origin: "null" })),
+    ).toEqual({ error: "Origin not allowed", status: 403 });
+  });
+
+  it("rejects a configured cross-origin client", () => {
+    process.env.SPEC_LAYER_ALLOWED_ORIGINS = "https://plugin.example";
+
+    expect(
+      validateBrowserJsonMutationRequest(request({ origin: "https://plugin.example" })),
     ).toEqual({ error: "Origin not allowed", status: 403 });
   });
 });
