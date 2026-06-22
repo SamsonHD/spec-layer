@@ -19,7 +19,7 @@ interface ZipUploadResponse {
   error?: string;
 }
 
-export default function ManualImport() {
+export default function ManualImport({ onImported }: { onImported?: () => void }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const fileTabRef = useRef<HTMLButtonElement>(null);
@@ -30,11 +30,27 @@ export default function ManualImport() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [zipSummary, setZipSummary] = useState<ZipUploadResponse | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   function selectMode(nextMode: ImportMode) {
     setMode(nextMode);
     setError(null);
     setZipSummary(null);
+  }
+
+  function chooseFile(file: File | null) {
+    setSelectedFile(file);
+    setError(null);
+    setZipSummary(null);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragging(false);
+    if (busy) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) chooseFile(file);
   }
 
   function handleTabKeyDown(e: React.KeyboardEvent<HTMLButtonElement>) {
@@ -55,7 +71,7 @@ export default function ManualImport() {
 
     try {
       if (mode === "file") {
-        const file = fileRef.current?.files?.[0];
+        const file = selectedFile;
         if (!file) {
           setError("Please choose a .md or .zip file to upload.");
           return;
@@ -76,9 +92,9 @@ export default function ManualImport() {
             return;
           }
 
+          setSelectedFile(null);
           setZipSummary(data);
           router.refresh();
-          router.push("/inbox");
           return;
         }
 
@@ -93,7 +109,7 @@ export default function ManualImport() {
           return;
         }
 
-        router.push("/inbox");
+        onImported?.();
         router.refresh();
       } else {
         const markdown = pasteValue.trim();
@@ -114,7 +130,7 @@ export default function ManualImport() {
           return;
         }
 
-        router.push("/inbox");
+        onImported?.();
         router.refresh();
       }
     } catch {
@@ -164,23 +180,40 @@ export default function ManualImport() {
           role="tabpanel"
           aria-labelledby="mi-file-tab"
         >
-          <label htmlFor="mi-file-input" className="manual-import-label">
-            Component spec file
-          </label>
-          <div className="manual-import-dropzone">
+          <label
+            htmlFor="mi-file-input"
+            className={`manual-import-dropzone${dragging ? " dragging" : ""}`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (!busy) setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={handleDrop}
+          >
             <input
               id="mi-file-input"
               ref={fileRef}
               type="file"
               accept=".md,.markdown,.zip,text/markdown,application/zip"
-              className="manual-import-file-input"
+              className="sr-only"
               disabled={busy}
+              onChange={(e) => chooseFile(e.target.files?.[0] ?? null)}
               aria-describedby={error ? "mi-error" : undefined}
             />
+            <span className="manual-import-dropzone-icon" aria-hidden="true">
+              ↑
+            </span>
+            {selectedFile ? (
+              <span className="manual-import-file-name">{selectedFile.name}</span>
+            ) : (
+              <span className="manual-import-dropzone-title">
+                Drag &amp; drop, or <span className="manual-import-browse">browse</span>
+              </span>
+            )}
             <span className="manual-import-dropzone-hint">
               .md, .markdown, or .zip files
             </span>
-          </div>
+          </label>
         </div>
       ) : (
         <div
