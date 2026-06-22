@@ -8,7 +8,7 @@ Spec Layer is a local-first toolkit for turning Figma components into structured
 
 The project is currently intended for trusted local development. The web app reads and writes files on the host machine and is not hardened as a public multi-user service.
 
-![The Spec Layer inbox showing an imported Figma component ready for review, with bulk actions to fill guidelines with AI, save to the library, or clear drafts.](.github/assets/inbox.jpg)
+![A Spec Layer component page for Button, showing the library sidebar, a live Figma preview of the component's variants, and the structured Markdown documentation with Guidelines and Specs tabs.](.github/assets/component.jpg)
 
 ## Contents
 
